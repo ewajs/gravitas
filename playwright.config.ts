@@ -8,6 +8,7 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   workers: 1,
+  reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     viewport: { width: 1000, height: 750 },
     trace: 'retain-on-failure',
@@ -30,8 +31,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',
-      url: 'http://127.0.0.1:4173',
+      command: 'npm run preview -- --host 127.0.0.1 --port 4173 --strictPort --base /gravitas/',
+      url: 'http://127.0.0.1:4173/gravitas/',
       timeout: 60_000,
     },
     {

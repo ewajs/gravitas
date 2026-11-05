@@ -76,11 +76,13 @@ npm run test:e2e
 npm run test:e2e:webgpu
 ```
 
-The first command runs the forced-WebGL project. The second runs full Chromium
+The first test script runs the forced-WebGL project. The second runs full Chromium
 with automatic backend selection and requires actual WebGPU/image-content checks
 to pass; automatic fallback is not success. Both suites test production app assets
 and a separate public-API fixture, which is never included in `apps/game/dist`.
-They run locally in 0.3a; browser CI is introduced in 0.3b.
+Both npm scripts build before testing. Playwright itself serves the existing build
+under `/gravitas/`, exercising the Pages asset prefix and both locales. When running
+`npx playwright test` directly, build first or supply the CI artifact.
 
 On a headless software runner, use `GRAVITAS_SOFTWARE_GPU=1 npm run test:e2e` for
 SwiftShader WebGL. `GRAVITAS_CHROMIUM=/absolute/path/to/chromium` optionally selects
@@ -88,6 +90,24 @@ an installed browser for diagnostics; normal verification uses the pinned
 Playwright browser. Do not claim software runs establish physical-device coverage.
 Some software runners expose WebGPU allocation but cannot present canvas textures;
 report WebGPU as unverified on those hosts, preserving the strict hardware test.
+
+### CI and delivery
+
+The CI workflow checks and builds once, uploads `apps/game/dist`, then downloads
+that artifact by ID for the forced-WebGL browser job. The browser job does not
+rebuild the app. On failure, its HTML report and retained traces are uploaded for
+seven days; locally, use `npx playwright show-report`. Lifecycle fixtures run on a
+separate development server and are never part of the deployed artifact.
+
+Only successful main runs can deploy, after both jobs pass. The deploy job downloads
+the same artifact ID and publishes it with the official Pages actions. Only that
+job has Pages/id-token write permissions. PR runs can be superseded; main runs
+are serialized. A manual workflow run can deploy only when targeting main.
+
+Pages must use **GitHub Actions** as its source in repository Settings → Pages.
+The first deployment and live desktop/narrow checks follow owner merge; see
+[delivery verification](docs/verification/delivery.md) and
+[ADR 0006](docs/decisions/0006-browser-ci-and-pages.md).
 
 Browser tests reject unexpected warnings/errors. They permit the exact Chromium
 GPU-stall-due-to-ReadPixels diagnostic caused by screenshots/traces/image assertions,

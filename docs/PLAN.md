@@ -13,16 +13,18 @@ to the next step unless the owner authorizes otherwise.
       Vite, ESLint boundary rules, Prettier, Vitest, lockfile, fast PR CI. No invented
       public APIs. **Verify:** clean install/check/build; demonstrate a temporary
       forbidden import fails lint, then remove it.
-- [~] **0.3a Viewport integration:** procedural vehicle/ground, inspection camera,
-  asynchronous lifecycle, resize, forced-WebGL mode, focused Playwright tests,
-  and minimal bilingual loading/failure messages. **Verify:** actual backend
-  identity, visible scene, camera interaction, resize, and disposal/remount,
-  including disposal while initialization is pending. Report backend/device limits.
-  Implementation and WebGL checks are complete; [WebGPU device verification](verification/viewport.md)
-  remains pending before acceptance.
-- [ ] **0.3b Browser CI and delivery:** forced-WebGL browser checks in CI and Pages
-      workflow. **Verify:** checks gate main deployment, assets work under `/gravitas/`,
-      deployed desktop/narrow layout. Hosting settings need available authorization.
+- [x] **0.3a Viewport integration:** procedural vehicle/ground, inspection camera,
+      asynchronous lifecycle, resize, forced-WebGL mode, focused Playwright tests,
+      and minimal bilingual loading/failure messages. **Verify:** actual backend
+      identity, visible scene, camera interaction, resize, and disposal/remount,
+      including disposal while initialization is pending. Report backend/device limits.
+      Accepted with cloud WebGL checks and the owner's nine passing WebGPU checks on
+      a MacBook Pro M1 with 32 GB RAM; see [verification](verification/viewport.md).
+- [~] **0.3b Browser CI and delivery:** forced-WebGL browser checks in CI and Pages
+  workflow. **Verify:** checks gate main deployment, assets work under `/gravitas/`,
+  deployed desktop/narrow layout. Hosting settings need available authorization.
+  Workflow and prefix checks are prepared; first deployment and live verification
+  follow owner merge. See [delivery verification](verification/delivery.md).
 - [ ] **0.4 Bilingual UI shell:** Lit HUD/menu, locale switch, design tokens, number
       formatting, keyboard focus, minimal real engine data contract. **Verify:** es-AR/en
       switch without state reset; desktop/narrow readability; owner reviews visuals.

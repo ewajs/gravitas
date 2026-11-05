@@ -5,9 +5,20 @@ test('production scene renders in both languages with the requested backend', as
   page,
 }, info) => {
   const backend = info.project.name;
+  const assets: { url: string; status: number; type: string }[] = [];
+  page.on('response', (response) => {
+    const url = new URL(response.url());
+    if (url.origin === 'http://127.0.0.1:4173' && /\.(js|css)$/.test(url.pathname)) {
+      assets.push({
+        url: url.pathname,
+        status: response.status(),
+        type: response.headers()['content-type'] ?? '',
+      });
+    }
+  });
   for (const lang of ['es-AR', 'en']) {
     await page.goto(
-      `http://127.0.0.1:4173/?backend=${backend === 'webgl2' ? 'webgl2' : 'auto'}&lang=${lang}`,
+      `http://127.0.0.1:4173/gravitas/?backend=${backend === 'webgl2' ? 'webgl2' : 'auto'}&lang=${lang}`,
     );
     await expect(page.locator('#viewport')).toHaveAttribute('data-backend', backend);
     await expect(page.locator('canvas')).toBeVisible();
@@ -25,6 +36,23 @@ test('production scene renders in both languages with the requested backend', as
       lang === 'en' ? 'Moon · Inspection view' : 'Luna · Vista de inspección',
     );
     await expect(page.locator('#status')).toBeHidden();
+  }
+  // Bootstrap, deferred renderer, and English locale must load from the project prefix.
+  expect(
+    new Set(assets.filter((asset) => asset.url.endsWith('.js')).map((asset) => asset.url)).size,
+  ).toBeGreaterThanOrEqual(3);
+  expect(assets.some((asset) => asset.url.endsWith('.css'))).toBe(true);
+  for (const asset of assets) {
+    expect(asset.url).toMatch(/^\/gravitas\/assets\//);
+    expect([200, 304]).toContain(asset.status);
+    if (asset.status === 200) {
+      expect(asset.type).toMatch(asset.url.endsWith('.css') ? /text\/css/ : /javascript/);
+    } else {
+      // A 304 has no MIME header; its original response must have been checked above.
+      expect(assets.some((original) => original.url === asset.url && original.status === 200)).toBe(
+        true,
+      );
+    }
   }
   await page.screenshot({ path: info.outputPath('scene.png') });
   await page.setViewportSize({ width: 375, height: 667 });
@@ -169,7 +197,7 @@ test.describe('unavailable graphics', () => {
       } as typeof original;
     });
     for (const lang of ['es-AR', 'en']) {
-      await page.goto(`http://127.0.0.1:4173/?backend=webgl2&lang=${lang}`);
+      await page.goto(`http://127.0.0.1:4173/gravitas/?backend=webgl2&lang=${lang}`);
       await expect(page.getByRole('alert')).toContainText(
         lang === 'en' ? 'We couldn’t display' : 'No pudimos mostrar',
       );
@@ -210,7 +238,7 @@ test.describe('lost graphics context', () => {
   test('production context loss stops drawing and shows an understandable failure', async ({
     page,
   }) => {
-    await page.goto('http://127.0.0.1:4173/?backend=webgl2&lang=en');
+    await page.goto('http://127.0.0.1:4173/gravitas/?backend=webgl2&lang=en');
     await expect(page.locator('#viewport')).toHaveAttribute('data-backend', 'webgl2');
     await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => {
       canvas.getContext('webgl2')!.getExtension('WEBGL_lose_context')!.loseContext();

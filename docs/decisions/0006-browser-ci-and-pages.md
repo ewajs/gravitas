@@ -1,6 +1,6 @@
 # 0006. Browser CI and Pages delivery
 
-- Status: Workflow prepared in 0.3b; first deployment follows owner merge.
+- Status: Implemented in 0.3b; first deployment and live checks verified.
 - Date: 2026-11-05
 
 ## Decision
@@ -38,6 +38,6 @@ without a custom runner or cache invalidation scheme. CI uses software WebGL;
 device performance and WebGPU compatibility still need named-device evidence.
 
 The repository must have Pages enabled with GitHub Actions as its source. Do not
-add a privileged secret to enable Pages from CI. First live verification follows
-merge, and deployment remains explicitly unverified until then. Revisit delivery
+add a privileged secret to enable Pages from CI. The first deployment and live
+checks are recorded in [delivery verification](../verification/delivery.md). Revisit delivery
 when routing, PWA/offline behavior, or another hosting target creates a real need.

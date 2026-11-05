@@ -105,7 +105,7 @@ job has Pages/id-token write permissions. PR runs can be superseded; main runs
 are serialized. A manual workflow run can deploy only when targeting main.
 
 Pages must use **GitHub Actions** as its source in repository Settings → Pages.
-The first deployment and live desktop/narrow checks follow owner merge; see
+The first deployment and live desktop/narrow checks are recorded in
 [delivery verification](docs/verification/delivery.md) and
 [ADR 0006](docs/decisions/0006-browser-ci-and-pages.md).
 

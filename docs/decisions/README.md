@@ -11,4 +11,4 @@ does not imply implemented code.
 | [0003](0003-delivery-and-ownership.md) | Delivery, dependencies, cognitive ownership                    | Accepted direction                    |
 | [0004](0004-workspace-tooling.md)      | Workspace tooling and MIT licensing                            | Implemented                           |
 | [0005](0005-viewport-lifecycle.md)     | Viewport lifecycle, first scene, and localization prerequisite | Implemented                           |
-| [0006](0006-browser-ci-and-pages.md)   | Browser CI and artifact-based Pages delivery                   | Workflow prepared; deployment pending |
+| [0006](0006-browser-ci-and-pages.md)   | Browser CI and artifact-based Pages delivery                   | Implemented; live deployment verified |

@@ -1,7 +1,7 @@
 # Architecture
 
-**Status:** workspace scaffolding and import boundaries implemented; simulation,
-viewport, and UI implementations pending. See
+**Status:** workspace boundaries, first viewport, and minimal localization implemented;
+simulation, full HUD, and hosted delivery pending. See
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -24,7 +24,8 @@ or Lit dependency. Enforce boundaries in lint, including reverse type-only impor
 Consume packages from TypeScript source initially; publication and stable API
 compatibility promises are deferred.
 
-Each library exports only `src/index.ts`; the entry points currently expose no API.
+Each library exports only `src/index.ts`. Viewport exposes its lifecycle/pose types;
+UI exposes initial localized messages. Engine still exposes no API.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
 imports use `@gravitas/*`, never relative paths or private subpaths. Engine's
@@ -103,9 +104,24 @@ require an explicit fallback policy before adoption.
 Lit and `@lit/localize`, native platform behavior, shared CSS tokens. es-AR default,
 English complete; locale switches preserve flight state. UI's TypeScript config
 uses legacy decorators (`experimentalDecorators: true`, `useDefineForClassFields:
-false`), matching Lux's familiar Lit convention. No components or component library
-are installed yet.
+false`), matching Lux's familiar Lit convention. The minimal runtime locale setup
+is installed, but no UI components or component kit have been introduced.
 
 TypeDoc covers each library's API/guides and application integration walkthroughs.
 A separate VitePress player manual is bilingual. Introduce each build with its
 content, and do not claim published docs before deployment exists.
+
+## Current integration: a fixture becomes a scene
+
+1. `apps/game/src/main.ts` selects the locale and reads `viewportMessages()` from UI.
+2. It displays loading text, then dynamically imports viewport so the larger 3D
+   download does not block the initial status presentation.
+3. The app supplies `fixture.ts`'s stationary pose. Viewport validates/copies it,
+   initializes Three.js, compiles materials, and attaches its own canvas.
+4. The app owns one animation-frame loop, pausing it for a hidden document or a
+   zero-size host. Viewport owns its inspection camera, resize/DPR updates, and draw.
+5. Device loss becomes a render error; the app stops, disposes, and presents a
+   localized failure. Disposal during pending init cannot attach a canvas later.
+
+The engine is not involved yet. See [viewport's API](../packages/viewport/README.md),
+[localization](../packages/ui/README.md), and [ADR 0005](decisions/0005-viewport-lifecycle.md).

@@ -13,10 +13,16 @@ to the next step unless the owner authorizes otherwise.
       Vite, ESLint boundary rules, Prettier, Vitest, lockfile, fast PR CI. No invented
       public APIs. **Verify:** clean install/check/build; demonstrate a temporary
       forbidden import fails lint, then remove it.
-- [ ] **0.3 Viewport integration:** procedural vehicle/ground, camera, asynchronous
-      renderer lifecycle, resize, forced-WebGL mode, Playwright smoke, Pages workflow.
-      **Verify:** both backends locally on capable hardware; forced-WebGL smoke in CI;
-      resize/remount cleanup. Hosting settings depend on available owner authorization.
+- [~] **0.3a Viewport integration:** procedural vehicle/ground, inspection camera,
+  asynchronous lifecycle, resize, forced-WebGL mode, focused Playwright tests,
+  and minimal bilingual loading/failure messages. **Verify:** actual backend
+  identity, visible scene, camera interaction, resize, and disposal/remount,
+  including disposal while initialization is pending. Report backend/device limits.
+  Implementation and WebGL checks are complete; [WebGPU device verification](verification/viewport.md)
+  remains pending before acceptance.
+- [ ] **0.3b Browser CI and delivery:** forced-WebGL browser checks in CI and Pages
+      workflow. **Verify:** checks gate main deployment, assets work under `/gravitas/`,
+      deployed desktop/narrow layout. Hosting settings need available authorization.
 - [ ] **0.4 Bilingual UI shell:** Lit HUD/menu, locale switch, design tokens, number
       formatting, keyboard focus, minimal real engine data contract. **Verify:** es-AR/en
       switch without state reset; desktop/narrow readability; owner reviews visuals.

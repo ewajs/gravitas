@@ -12,6 +12,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gravitas/engine": "*"
+    "@gravitas/engine": "*",
+    "lit": "3.3.3",
+    "@lit/localize": "0.12.2"
   }
 }

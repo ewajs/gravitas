@@ -17,11 +17,13 @@
     "preview": "vite preview",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "npm run typecheck --workspaces && tsc -p tsconfig.tools.json",
-    "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest --passWithNoTests",
+    "typecheck": "npm run typecheck --workspaces && tsc -p tsconfig.tools.json && tsc -p tests/browser/tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:e2e": "playwright test --project=webgl2",
+    "test:e2e:webgpu": "playwright test --project=webgpu"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -33,6 +35,8 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
     "vite": "8.3.5",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "@types/three": "0.187.0",
+    "@playwright/test": "1.64.1"
   }
 }

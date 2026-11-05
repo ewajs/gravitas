@@ -68,7 +68,10 @@ type-only imports, re-exports, and dynamic imports. UI can import engine types
 with `import type`; engine cannot depend on other workspaces or runtime packages.
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
-`npm run docs` and `npm run manual` remain planned. For local browser checks:
+`npm run docs` and `npm run manual` remain planned. Browser suites run locally
+when UI, rendering, lifecycle, or delivery changes need them; record the results
+and backend/device limits in the PR. Do not run heavy browser suites, simulation
+matrices, or benchmarks in routine CI. For local browser checks:
 
 ```sh
 npx playwright install chromium
@@ -93,19 +96,20 @@ report WebGPU as unverified on those hosts, preserving the strict hardware test.
 
 ### CI and delivery
 
-The CI workflow checks and builds once, uploads `apps/game/dist`, then downloads
-that artifact by ID for the forced-WebGL browser job. The browser job does not
-rebuild the app. On failure, its HTML report and retained traces are uploaded for
-seven days; locally, use `npx playwright show-report`. Lifecycle fixtures run on a
-separate development server and are never part of the deployed artifact.
+The CI workflow runs format, lint, types, unit tests, and the production build,
+then uploads `apps/game/dist`. It does not install browsers or run Playwright.
+Browser reports and retained failure traces stay local; use
+`npx playwright show-report`. Lifecycle fixtures run on a separate development
+server and are never part of the deployed artifact.
 
-Only successful main runs can deploy, after both jobs pass. The deploy job downloads
-the same artifact ID and publishes it with the official Pages actions. Only that
-job has Pages/id-token write permissions. PR runs can be superseded; main runs
+Only successful main runs can deploy, after the check/build job passes. The deploy
+job downloads that artifact by ID without rebuilding and publishes it with the
+official Pages actions. Only that job has Pages/id-token write permissions.
+PR runs can be superseded; main runs
 are serialized. A manual workflow run can deploy only when targeting main.
 
 Pages must use **GitHub Actions** as its source in repository Settings → Pages.
-The first deployment and live desktop/narrow checks follow owner merge; see
+The first deployment and live desktop/narrow checks are recorded in
 [delivery verification](docs/verification/delivery.md) and
 [ADR 0006](docs/decisions/0006-browser-ci-and-pages.md).
 

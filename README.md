@@ -8,6 +8,8 @@ in delivery.
 No flight simulation or gameplay yet. The first playable target is a short lunar
 landing challenge; orbital flight and construction are later possibilities.
 
+[Open the live inspection scene](https://ewajs.github.io/gravitas/).
+
 ## Workspaces
 
 | Workspace           | Responsibility                                                    |
@@ -20,8 +22,8 @@ landing challenge; orbital flight and construction are later possibilities.
 TypeScript strict, npm workspaces, Vite, Node 24 LTS. The viewport uses Three.js
 WebGPURenderer with WebGL 2 fallback; its lifecycle/pose API is independent of
 dynamics. Engine remains empty. Lit/localize supplies initial es-AR/English copy;
-the full HUD arrives in 0.4. CI checks the built app in Chromium with WebGL 2;
-the Pages workflow is prepared, with the first deployment pending owner merge.
+the full HUD arrives in 0.4. CI runs fast checks and builds the app; browser suites
+run locally when relevant. GitHub Pages serves that build after successful main checks.
 See [delivery verification](docs/verification/delivery.md) for its current status.
 
 ## Development
@@ -56,7 +58,7 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 - [Viewport library](packages/viewport/README.md): pose/lifecycle contract and ownership.
 - [UI/localization](packages/ui/README.md): initial bilingual messages.
 
-Separate package references, a player manual, and a live link arrive with their
+Separate package references and a player manual arrive with their
 implementations. Names under `@gravitas/*` are internal workspace identifiers;
 npm publication is deferred.
 

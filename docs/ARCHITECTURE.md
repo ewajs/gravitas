@@ -1,7 +1,7 @@
 # Architecture
 
-**Status:** workspace boundaries, first viewport, and minimal localization implemented;
-simulation, full HUD, and hosted delivery pending. See
+**Status:** workspace boundaries, first viewport, minimal localization, and hosted
+delivery implemented; simulation and full HUD pending. See
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 

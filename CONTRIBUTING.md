@@ -59,17 +59,40 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run format` / `npm run format:check` | Write/check formatting                                      |
 | `npm run build` / `npm run preview`       | Build/serve `apps/game/dist`                                |
 
-Vitest currently has no test files. `--passWithNoTests` is temporary scaffolding;
-remove it when real tests arrive. Engine source has no DOM/ambient Node types;
-browser workspaces and build tooling opt into their own environments.
+Vitest covers the pure pose-validation boundary; empty suites are no longer allowed.
+Engine source has no DOM/ambient Node types; browser workspaces and build tooling
+opt into their own environments.
 
 Boundary rules check public entry points and dependency direction, including
 type-only imports, re-exports, and dynamic imports. UI can import engine types
 with `import type`; engine cannot depend on other workspaces or runtime packages.
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
-`npm run docs`, `npm run manual`, and `npm run test:e2e` are not installed yet.
-Their builds/suites arrive with their planned content and browser integration.
+`npm run docs` and `npm run manual` remain planned. For local browser checks:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+npm run test:e2e:webgpu
+```
+
+The first command runs the forced-WebGL project. The second runs full Chromium
+with automatic backend selection and requires actual WebGPU/image-content checks
+to pass; automatic fallback is not success. Both suites test production app assets
+and a separate public-API fixture, which is never included in `apps/game/dist`.
+They run locally in 0.3a; browser CI is introduced in 0.3b.
+
+On a headless software runner, use `GRAVITAS_SOFTWARE_GPU=1 npm run test:e2e` for
+SwiftShader WebGL. `GRAVITAS_CHROMIUM=/absolute/path/to/chromium` optionally selects
+an installed browser for diagnostics; normal verification uses the pinned
+Playwright browser. Do not claim software runs establish physical-device coverage.
+Some software runners expose WebGPU allocation but cannot present canvas textures;
+report WebGPU as unverified on those hosts, preserving the strict hardware test.
+
+Browser tests reject unexpected warnings/errors. They permit the exact Chromium
+GPU-stall-due-to-ReadPixels diagnostic caused by screenshots/traces/image assertions,
+and explicitly declared fallback/failure messages in their targeted tests. No shader,
+device-loss, or initialization error is generally ignored.
 
 Physics tests use independently calculated expectations, invariants, and timestep
 convergence where relevant. Browser tests cover integration, controls, lifecycle,

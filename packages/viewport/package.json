@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@gravitas/engine": "*"
+    "@gravitas/engine": "*",
+    "three": "0.187.0"
   }
 }

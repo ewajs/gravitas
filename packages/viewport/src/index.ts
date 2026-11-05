@@ -1,2 +1,8 @@
-/** Three.js viewport. Rendering implementation arrives in step 0.3. @module */
-export {};
+/** Three.js rendering, independent of flight dynamics and UI components. @module */
+export {
+  Viewport,
+  type ViewportOptions,
+  type BackendRequest,
+  type RenderBackend,
+} from './Viewport';
+export type { VehiclePose } from './pose';

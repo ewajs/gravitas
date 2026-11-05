@@ -3,6 +3,15 @@
 **Status:** design target; no gameplay is implemented. This document will
 distinguish shipped rules from future direction as the game develops.
 
+## Current build: inspection scene
+
+The current build shows an illustrative stationary lunar lander and landing pad.
+Drag to orbit, scroll to zoom, or focus the canvas and use arrow keys to pan.
+The initial inspection/loading/failure copy is available in Spanish and English
+(`?lang=en`); a visible language selector and HUD remain in 0.4. There is no flight,
+fuel, scoring, or landing outcome yet. Rendering/backend verification is reported
+separately from future physical correctness.
+
 ## Purpose
 
 Gravitas is about understanding and controlling motion in space. The ambition

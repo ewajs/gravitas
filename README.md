@@ -4,9 +4,9 @@ A spaceflight game for the web, built alongside reusable simulation, Three.js
 viewport, and Lit UI libraries. Ambitious in direction; small, reviewable steps
 in delivery.
 
-**Status:** workspace/tooling foundation with a runnable title shell. No flight
-simulation or gameplay yet. The first playable target is a short lunar landing
-challenge; orbital flight and vehicle construction are later possibilities.
+**Status:** first procedural 3D inspection scene with a stationary lander and pad.
+No flight simulation or gameplay yet. The first playable target is a short lunar
+landing challenge; orbital flight and construction are later possibilities.
 
 ## Workspaces
 
@@ -17,9 +17,10 @@ challenge; orbital flight and vehicle construction are later possibilities.
 | `packages/ui`       | Optional Lit web components: instruments, menus, and settings     |
 | `apps/game`         | Missions, input, assets, scheduling, persistence, and integration |
 
-TypeScript strict, npm workspaces, Vite, Node 24 LTS. Libraries currently contain
-empty public entry points. Three.js rendering (WebGPU with WebGL 2 fallback)
-arrives in step 0.3; Lit and Spanish/English localization arrive in step 0.4.
+TypeScript strict, npm workspaces, Vite, Node 24 LTS. The viewport uses Three.js
+WebGPURenderer with WebGL 2 fallback; its lifecycle/pose API is independent of
+dynamics. Engine remains empty. Lit/localize supplies initial es-AR/English copy;
+the full HUD arrives in 0.4. Pages delivery and browser CI wiring remain in 0.3b.
 
 ## Development
 
@@ -29,10 +30,18 @@ npm ci
 npm run dev
 ```
 
-Open the URL Vite prints. The shell currently displays only the Gravitas name.
+Open the URL Vite prints. Drag to orbit, scroll to zoom, or focus the canvas and
+use arrow keys to pan. Add `?lang=en` for English or `?backend=webgl2` to explicitly
+request WebGL 2. With no backend override, Three.js selects the available backend.
 `npm run check` runs format/lint/type checks and the test runner; `npm run build`
 writes the production shell to `apps/game/dist`. Use `npm run preview` to serve it.
 See [Contributing](CONTRIBUTING.md) for individual commands and boundaries.
+
+```sh
+npx playwright install chromium
+npm run test:e2e          # Forced WebGL 2, production app + lifecycle fixture
+npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image content
+```
 
 ## Read next
 
@@ -42,6 +51,8 @@ See [Contributing](CONTRIBUTING.md) for individual commands and boundaries.
 - [Decisions](docs/decisions/README.md): choices and their tradeoffs.
 - [Contributing](CONTRIBUTING.md): workflow, dependencies, and verification.
 - [Agent instructions](AGENTS.md): shared rules for Claude and Codex.
+- [Viewport library](packages/viewport/README.md): pose/lifecycle contract and ownership.
+- [UI/localization](packages/ui/README.md): initial bilingual messages.
 
 Separate package references, a player manual, and a live link arrive with their
 implementations. Names under `@gravitas/*` are internal workspace identifiers;

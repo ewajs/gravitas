@@ -1,17 +1,18 @@
 # Architecture
 
-**Status:** agreed direction, awaiting implementation. See
+**Status:** workspace scaffolding and import boundaries implemented; simulation,
+viewport, and UI implementations pending. See
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
 ## Package boundaries
 
-| Workspace | Owns | Allowed project dependencies |
-| --- | --- | --- |
-| `@gravitas/engine` | Plain simulation state, dynamics, simulation stepping | None |
-| `@gravitas/viewport` | Three.js scene, camera, interpolation, effects, GPU lifecycle | Engine public API/types |
-| `@gravitas/ui` | Optional Lit instruments, menus, settings, localization, tokens | Engine public types where useful |
-| `apps/game` | Missions, outcomes, input, browser scheduling, assets, persistence | All libraries |
+| Workspace            | Owns                                                               | Allowed project dependencies     |
+| -------------------- | ------------------------------------------------------------------ | -------------------------------- |
+| `@gravitas/engine`   | Plain simulation state, dynamics, simulation stepping              | None                             |
+| `@gravitas/viewport` | Three.js scene, camera, interpolation, effects, GPU lifecycle      | Engine public API/types          |
+| `@gravitas/ui`       | Optional Lit instruments, menus, settings, localization, tokens    | Engine public types where useful |
+| `apps/game`          | Missions, outcomes, input, browser scheduling, assets, persistence | All libraries                    |
 
 Engine provides generic contact facts; the game turns them into mission outcomes.
 A reusable landing classifier can belong in engine with explicit parameters,
@@ -22,6 +23,13 @@ use package public entry points, not private files. Engine has no browser, Three
 or Lit dependency. Enforce boundaries in lint, including reverse type-only imports.
 Consume packages from TypeScript source initially; publication and stable API
 compatibility promises are deferred.
+
+Each library exports only `src/index.ts`; the entry points currently expose no API.
+ESLint resolves npm workspace symlinks to their actual package paths and checks
+static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
+imports use `@gravitas/*`, never relative paths or private subpaths. Engine's
+TypeScript config includes neither DOM libraries nor ambient Node types. See
+[ADR 0004](decisions/0004-workspace-tooling.md) for tooling details.
 
 ## State ownership and a frame
 
@@ -93,8 +101,10 @@ Keep a force-WebGL development/test path. Test both backends; WebGPU-only featur
 require an explicit fallback policy before adoption.
 
 Lit and `@lit/localize`, native platform behavior, shared CSS tokens. es-AR default,
-English complete; locale switches preserve flight state. Choose/document decorator
-and compiler conventions explicitly in tooling. No component library selected yet.
+English complete; locale switches preserve flight state. UI's TypeScript config
+uses legacy decorators (`experimentalDecorators: true`, `useDefineForClassFields:
+false`), matching Lux's familiar Lit convention. No components or component library
+are installed yet.
 
 TypeDoc covers each library's API/guides and application integration walkthroughs.
 A separate VitePress player manual is bilingual. Introduce each build with its

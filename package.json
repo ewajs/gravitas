@@ -1,0 +1,38 @@
+{
+  "name": "gravitas",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "npm run typecheck --workspaces && tsc -p tsconfig.tools.json",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest --passWithNoTests",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-boundaries": "7.4.1",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  }
+}

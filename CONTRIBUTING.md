@@ -46,15 +46,30 @@ justified in the PR. Commit the lockfile.
 
 ## Verification
 
-These commands are planned, not installed in the documentation foundation:
+Use Node 24 (`nvm use`), then `npm ci` at the repository root. npm links the four
+workspaces locally; there is no package publishing or separate library build.
 
-| Check | Planned use |
-| --- | --- |
-| `npm run check` | Format, lint, types, fast unit tests; locally and every PR |
-| `npm run build` | Production application build; every PR |
-| `npm run docs` | Library/API and integration docs; every PR once introduced |
-| `npm run manual` | Bilingual player manual; every PR once introduced |
-| `npm run test:e2e` | Short browser smoke suite in CI; affected flows locally |
+| Command                                   | Does                                                        |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| `npm run dev`                             | Vite development server; append `-- --host` for LAN testing |
+| `npm run check`                           | Format, lint, types, and the test runner; every PR          |
+| `npm run lint`                            | ESLint, including workspace boundaries; warnings fail       |
+| `npm run typecheck`                       | Strict TypeScript in each workspace and build/test config   |
+| `npm test` / `npm run test:watch`         | Vitest in Node; tests live beside source as `*.test.ts`     |
+| `npm run format` / `npm run format:check` | Write/check formatting                                      |
+| `npm run build` / `npm run preview`       | Build/serve `apps/game/dist`                                |
+
+Vitest currently has no test files. `--passWithNoTests` is temporary scaffolding;
+remove it when real tests arrive. Engine source has no DOM/ambient Node types;
+browser workspaces and build tooling opt into their own environments.
+
+Boundary rules check public entry points and dependency direction, including
+type-only imports, re-exports, and dynamic imports. UI can import engine types
+with `import type`; engine cannot depend on other workspaces or runtime packages.
+See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
+
+`npm run docs`, `npm run manual`, and `npm run test:e2e` are not installed yet.
+Their builds/suites arrive with their planned content and browser integration.
 
 Physics tests use independently calculated expectations, invariants, and timestep
 convergence where relevant. Browser tests cover integration, controls, lifecycle,
@@ -66,8 +81,8 @@ Keep heavy matrices, long simulation runs, and benchmarks targeted to changes
 they inform, with broader checks at milestones. Establish performance budgets
 from measured scenes and named devices. Do not test implementation trivia.
 
-Until tooling exists, docs PRs check local links, consistency, and diff whitespace;
-report unavailable checks plainly.
+Docs-only changes also check local links, consistency, and diff whitespace.
+Report unavailable checks plainly.
 
 ## Presentation and documentation
 

@@ -22,8 +22,8 @@ landing challenge; orbital flight and construction are later possibilities.
 TypeScript strict, npm workspaces, Vite, Node 24 LTS. The viewport uses Three.js
 WebGPURenderer with WebGL 2 fallback; its lifecycle/pose API is independent of
 dynamics. Engine remains empty. Lit/localize supplies initial es-AR/English copy;
-the full HUD arrives in 0.4. CI checks the built app in Chromium with WebGL 2;
-GitHub Pages serves the same verified build after successful main checks.
+the full HUD arrives in 0.4. CI runs fast checks and builds the app; browser suites
+run locally when relevant. GitHub Pages serves that build after successful main checks.
 See [delivery verification](docs/verification/delivery.md) for its current status.
 
 ## Development

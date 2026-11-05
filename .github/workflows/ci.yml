@@ -38,40 +38,8 @@ jobs:
           overwrite: true
           retention-days: 7
 
-  browser:
-    needs: check
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      GRAVITAS_SOFTWARE_GPU: '1'
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Download checked production build
-        uses: actions/download-artifact@v8.0.2
-        with:
-          artifact-ids: ${{ needs.check.outputs.app-artifact-id }}
-          path: apps/game/dist
-          merge-multiple: true
-      - name: Test the downloaded build under /gravitas/
-        run: npx playwright test --project=webgl2
-      - name: Upload browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: browser-failure-${{ github.run_attempt }}
-          path: |
-            test-results
-            playwright-report
-          retention-days: 7
-
   deploy:
-    needs: [check, browser]
+    needs: check
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -83,7 +51,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Download browser-verified production build
+      - name: Download checked production build
         uses: actions/download-artifact@v8.0.2
         with:
           artifact-ids: ${{ needs.check.outputs.app-artifact-id }}

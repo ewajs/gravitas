@@ -1,9 +1,14 @@
-# Browser CI and Pages verification
+# Browser and Pages verification
 
 Step 0.3b delivers the existing inspection scene. The workflow was merged in
 [PR #4](https://github.com/ewajs/gravitas/pull/4); first deployment and live
 verification passed on 2026-11-05.
 No npm dependencies or renderer behavior change.
+
+Routine CI now runs fast checks and builds, then deploys on main. Browser suites
+run locally when relevant. The first-run evidence below describes the original
+browser-gated workflow; [ADR 0006](../decisions/0006-browser-ci-and-pages.md)
+records the owner's subsequent decision to remove that CI bottleneck.
 
 ## First main run
 
@@ -53,14 +58,16 @@ retains Vite's advisory about the renderer chunk exceeding 500 kB.
 ## Delivery acceptance checklist
 
 - Clean Node 24 install, format/lint/types, six unit tests, and production build.
-- Nine forced-WebGL checks against the existing production build mounted under
+- When browser or delivery behavior changes, run the nine forced-WebGL checks locally
+  against the production build mounted under
   `/gravitas/`, including both locales, lazy JavaScript/CSS asset responses, and
   narrow layout. Software rendering does not establish device performance.
-- PR CI must show successful check/build and browser jobs, with deploy skipped.
-  The browser and deploy jobs reference the check job's artifact ID; no rebuild.
+- PR CI must show successful check/build, with deploy skipped. Main deployment
+  references the check job's artifact ID without rebuilding. CI does not install
+  Chromium or run browser suites.
 
 Record actual outcomes in the PR. Browser failures retain traces and an HTML
-report for seven days. The separate lifecycle fixture is not deployed.
+report locally. The separate lifecycle fixture is not deployed.
 
 ## Hosting setup and first live check
 
@@ -73,7 +80,7 @@ The workflow's deployment environment supplies the authoritative URL.
 
 For subsequent delivery checks after owner merge:
 
-1. Confirm main's check/build and browser jobs pass, then the Pages job deploys.
+1. Confirm main's check/build job passes, then the Pages job deploys.
 2. Open the deployment URL on desktop and at 375 × 667. Confirm a visible lander,
    readable controls, camera interaction, and no horizontal overflow.
 3. Repeat with `?lang=en&backend=webgl2`. Check language, actual backend, and

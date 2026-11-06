@@ -1,13 +1,6 @@
-/** A presentation pose: metres in world space and a normalized body-to-world quaternion. */
-export interface VehiclePose {
-  readonly position: { readonly x: number; readonly y: number; readonly z: number };
-  readonly orientation: {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly w: number;
-  };
-}
+import type { VehiclePose } from '@gravitas/engine';
+
+export type { VehiclePose } from '@gravitas/engine';
 
 /** Rejects invalid poses before any visual transform is changed. */
 export function assertPose(pose: VehiclePose): void {

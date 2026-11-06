@@ -25,7 +25,7 @@ export function viewportMessages() {
       },
     ),
     scene: msg('Un módulo lunar sobre una plataforma de aterrizaje.', { id: 'viewport-scene' }),
-    subtitle: msg('Luna · Vista de inspección', { id: 'viewport-subtitle' }),
+    subtitle: msg('Vista de inspección', { id: 'viewport-subtitle' }),
     controls: msg('Arrastrá para girar · Rueda para acercar · Flechas para desplazar', {
       id: 'viewport-controls',
     }),

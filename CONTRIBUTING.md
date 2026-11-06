@@ -59,7 +59,7 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run format` / `npm run format:check` | Write/check formatting                                      |
 | `npm run build` / `npm run preview`       | Build/serve `apps/game/dist`                                |
 
-Vitest covers the pure pose-validation boundary; empty suites are no longer allowed.
+Vitest covers pose validation and inspection measurements; empty suites are not allowed.
 Engine source has no DOM/ambient Node types; browser workspaces and build tooling
 opt into their own environments.
 

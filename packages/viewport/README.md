@@ -26,6 +26,12 @@ Poses are metres in a right-handed Y-up world, with normalized body-to-world
 quaternions. The illustrative vehicle faces -Z; its origin is the centre of its
 feet's contact plane. The mesh dimensions are artwork, not physical parameters.
 Pose data is validated and copied without mutation.
+`VehiclePose` is defined by engine and re-exported by viewport, preserving the
+existing import. The HUD and viewport consume the same contract.
+
+`setLabel(text)` changes the canvas accessibility description before or after
+initialization, without resetting the camera. The app calls it after a successful
+locale change. Like `setVehiclePose`, it rejects calls after disposal.
 
 `init()` initializes once, compiles the scene's materials, and then attaches the
 canvas. Failures reject the promise. `render()` returns false before initialization,

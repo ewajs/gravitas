@@ -27,9 +27,11 @@ to the next step unless the owner authorizes otherwise.
       assets verified. Browser checks moved out of routine CI at the owner's request
       after installation delays; fast checks/build gate deployment. See
       [delivery verification](verification/delivery.md).
-- [ ] **0.4 Bilingual UI shell:** Lit HUD/menu, locale switch, design tokens, number
+- [x] **0.4 Bilingual UI shell:** Lit HUD/menu, locale switch, design tokens, number
       formatting, keyboard focus, minimal real engine data contract. **Verify:** es-AR/en
       switch without state reset; desktop/narrow readability; owner reviews visuals.
+      Local WebGL/WebGPU checks passed on 2026-11-06; screenshots await owner review.
+      See [UI verification](verification/ui.md).
 - [ ] **0.5 Developer docs:** separate library/API guides and integration walkthrough;
       build checks and deployment. **Verify:** real exports documented, links/build pass.
 

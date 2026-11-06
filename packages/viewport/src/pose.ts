@@ -1,7 +1,5 @@
 import type { VehiclePose } from '@gravitas/engine';
 
-export type { VehiclePose } from '@gravitas/engine';
-
 /** Rejects invalid poses before any visual transform is changed. */
 export function assertPose(pose: VehiclePose): void {
   const p = pose.position;

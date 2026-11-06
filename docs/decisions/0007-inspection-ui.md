@@ -6,7 +6,9 @@
 ## Decision
 
 Move the existing plain `VehiclePose` type from viewport to engine now that both
-viewport and UI consume it. Retain viewport's re-export for existing callers.
+viewport and UI consume it. Update every caller to import it directly from engine;
+remove the old viewport export. At unpublished version 0.0.0, there is no external
+compatibility requirement to justify retaining the old API.
 The contract stays world metres and a normalized body-to-world quaternion;
 validation at the renderer boundary stays in viewport. This introduces no
 dynamics, clock, rendering dependency, or new state owner in engine.

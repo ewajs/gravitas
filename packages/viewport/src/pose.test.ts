@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { assertPose, type VehiclePose } from './pose';
+import type { VehiclePose } from '@gravitas/engine';
+import { assertPose } from './pose';
 
 const pose: VehiclePose = {
   position: { x: -120, y: 0.01, z: 450 },

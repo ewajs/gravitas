@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { assertPose, type VehiclePose } from './pose';
+import type { VehiclePose } from '@gravitas/engine';
+import { assertPose } from './pose';
 import { createScene } from './scene';
 
 /** Backend request. Auto permits Three.js's built-in WebGL 2 fallback. */

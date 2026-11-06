@@ -25,8 +25,8 @@ Consume packages from TypeScript source initially; publication and stable API
 compatibility promises are deferred.
 
 Each library exports only `src/index.ts`. Engine defines the shared `VehiclePose`
-type (world metres and body-to-world quaternion). Viewport re-exports that type and
-exposes lifecycle/pose operations. UI exposes `InspectionHud`, explicit registration,
+type (world metres and body-to-world quaternion), imported directly by every consumer.
+Viewport exposes lifecycle/pose operations. UI exposes `InspectionHud`, explicit registration,
 locale-request details, and localized messages. Engine still has no dynamics.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package

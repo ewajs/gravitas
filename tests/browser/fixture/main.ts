@@ -1,4 +1,5 @@
-import { Viewport, type BackendRequest, type VehiclePose } from '@gravitas/viewport';
+import { Viewport, type BackendRequest } from '@gravitas/viewport';
+import type { VehiclePose } from '@gravitas/engine';
 import { WebGPURenderer } from 'three/webgpu';
 
 const host = document.querySelector<HTMLDivElement>('#host')!;

@@ -39,6 +39,10 @@ that change the agreed stack. Routine implementation choices need no approval ga
 Recommend mature dependencies when they remove substantial work outside the
 project's central goals. Lean does not mean rebuilding established tools.
 
+At the current unpublished 0.0.0 stage, refactor APIs and all repository consumers
+together. Do not retain obsolete aliases, re-exports, or wrappers for hypothetical
+backward compatibility.
+
 Open a review PR; the owner reviews and merges. Do not merge, start the next step,
 publish packages, or change repository settings unless authorized.
 

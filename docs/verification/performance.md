@@ -76,3 +76,10 @@ The test phones (iPhone 15 Pro, Galaxy A70) are measured on the deployed site
 after 4.4 merges, with glass and with solid panels; the procedure is in
 [mobile verification](mobile.md#measuring-the-glass-blur-on-a-phone). Glass stays
 the default on phones until then.
+
+## After input and phone layout (v0.3.0, 2026-11-07)
+
+`npm run measure` on `main` after steps 4.3–4.4, same machine and workload:
+WebGPU 60.00 fps, main-thread work 0.7 ms p50 and 0.8 ms p95, 0.07 s discarded,
+45 draw calls, 19,501 triangles; SwiftShader WebGL 2 15.19 fps. Budgets still hold
+on the reference device. Phones are measured on device with `?debug`.

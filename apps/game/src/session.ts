@@ -52,7 +52,7 @@ export interface FlightScenario {
   readonly limits: TouchdownLimits;
 }
 
-const IDLE: PilotInput = { rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 };
+const ZERO = { x: 0, y: 0, z: 0 } as const;
 
 /** What the actuators actually did in the latest tick, normalized for presentation. */
 export interface Actuation {
@@ -83,6 +83,7 @@ export class FlightSession {
   #record: TouchdownRecord = NO_TOUCHDOWN;
   #outcome: TouchdownOutcome = AIRBORNE;
   #completedAt: number | undefined;
+  #verdictState: FlightState | undefined;
   // Actuators applied during the latest tick, for presentation.
   #applied: Actuation = IDLE_ACTUATION;
   // Contact facts of the latest tick, reused as the next tick's starting facts.
@@ -125,6 +126,10 @@ export class FlightSession {
   get outcome(): TouchdownOutcome {
     return this.#outcome;
   }
+  /** State at the tick the verdict was reached, before any crash plays out. */
+  get verdictState(): FlightState | undefined {
+    return this.#verdictState;
+  }
   /** Simulated seconds from start to the final verdict (or to now, while flying). */
   get flightTime(): number {
     return (this.#completedAt ?? this.#ticks) * FIXED_STEP;
@@ -158,6 +163,7 @@ export class FlightSession {
     this.#record = NO_TOUCHDOWN;
     this.#outcome = AIRBORNE;
     this.#completedAt = undefined;
+    this.#verdictState = undefined;
     this.#facts = undefined;
     this.#applied = IDLE_ACTUATION;
   }
@@ -166,31 +172,32 @@ export class FlightSession {
    * Adds elapsed wall time and runs every whole fixed step it covers, up to
    * MAX_STEPS_PER_FRAME. Returns the number of steps run. Input outside `flying`
    * is ignored, including one-shot actions; after a verdict the vehicle coasts
-   * with the engine cut until restart.
+   * with the engine and attitude thrusters off until restart.
    */
   advance(elapsedSeconds: number, pilot: PilotInput): number {
     if (this.#phase !== 'flying' && this.#phase !== 'complete') return 0;
-    const input = this.#phase === 'complete' ? IDLE : pilot;
-    if (input.throttleSet !== undefined) this.#pendingThrottle = input.throttleSet;
+    if (this.#phase === 'flying' && pilot.throttleSet !== undefined) {
+      this.#pendingThrottle = pilot.throttleSet;
+    }
     if (!(elapsedSeconds > 0)) return 0;
     this.#accumulator += elapsedSeconds;
     const { vehicle, attitude, environment, limits } = this.#scenario;
     let steps = 0;
     while (this.#accumulator >= FIXED_STEP && steps < MAX_STEPS_PER_FRAME) {
-      if (this.#pendingThrottle !== undefined) {
-        this.#throttle = this.#pendingThrottle;
-        this.#pendingThrottle = undefined;
+      // Decided per tick: a verdict can land mid-frame, and from then on the engine
+      // and attitude thrusters are off (no lever ramp, no rate-hold torque).
+      let bodyTorque: Vector3 = ZERO;
+      if (this.#phase === 'flying') {
+        if (this.#pendingThrottle !== undefined) {
+          this.#throttle = this.#pendingThrottle;
+          this.#pendingThrottle = undefined;
+        }
+        this.#throttle = Math.min(
+          1,
+          Math.max(0, this.#throttle + pilot.throttleChange * THROTTLE_RATE * FIXED_STEP),
+        );
+        bodyTorque = rateControlTorque(this.#state.angularVelocity, pilot.rates, vehicle, attitude);
       }
-      this.#throttle = Math.min(
-        1,
-        Math.max(0, this.#throttle + input.throttleChange * THROTTLE_RATE * FIXED_STEP),
-      );
-      const bodyTorque = rateControlTorque(
-        this.#state.angularVelocity,
-        input.rates,
-        vehicle,
-        attitude,
-      );
       const next = stepFlight(
         this.#state,
         { throttle: this.#throttle, bodyTorque },
@@ -232,6 +239,7 @@ export class FlightSession {
         if (status === 'landed' || status === 'rough' || status === 'crashed') {
           this.#phase = 'complete';
           this.#completedAt = this.#ticks;
+          this.#verdictState = next;
           this.#throttle = 0;
           this.#pendingThrottle = undefined;
         }

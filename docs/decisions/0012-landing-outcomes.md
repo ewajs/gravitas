@@ -26,13 +26,18 @@ understated a 16.6 m/s crash as 14.2 m/s. The session caches each tick's facts
 as the next tick's "before" facts.
 
 **Verdicts are final; physics continues.** On a final verdict the session enters
-`complete`: the engine is cut, input is ignored, and the vehicle keeps simulating
-so a crash plays out on screen. Restart starts over. A touch-and-go that stays
-clear of the ground for `airborneReset` (1 s) starts a fresh record.
+`complete`, decided per tick so a verdict landing mid-frame takes effect at once.
+From then on the main engine and attitude thrusters are off and input is ignored,
+while the vehicle keeps simulating so a crash plays out on screen. The report
+judges from the state at the verdict tick, so its figures don't drift as a crash
+slides. Restart starts over. A touch-and-go that stays clear of the ground for
+`airborneReset` (1 s) starts a fresh record.
 
 **Report, not score.** The HUD shows a results card: the verdict, the cause or
 summary, each judged quantity against its limit (✓/✗ with screen-reader text),
-fuel left, and flight time. There are no points.
+fuel left, and flight time. There are no points. A failing value gains decimals
+until it reads above its limit, so the card never shows "✗ 2.0" against a 2.0
+limit. The persistent live region announces the verdict title.
 
 **Opening tuned to make fuel matter.** The opening now loads 60 kg of the 300 kg
 tank. A scripted pilot flying to the pad uses about 24 kg in 31 s, so a careful

@@ -14,7 +14,8 @@ export function landingReport(session: FlightSession): LandingReport | undefined
   if (outcome.status !== 'landed' && outcome.status !== 'rough' && outcome.status !== 'crashed') {
     return undefined;
   }
-  const s = session.state;
+  // Judge from the verdict moment: a crash may keep sliding or tumbling afterwards.
+  const s = session.verdictState ?? session.state;
   const padDistance = Math.hypot(s.position.x - PAD_POSITION.x, s.position.z - PAD_POSITION.z);
   const checks: LandingCheck[] = [];
   const check = (id: LandingCheck['id'], value: number, limit: number) =>

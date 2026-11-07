@@ -106,6 +106,8 @@ export const templates = {
   'touch-yaw-left': 'Turn left',
   'touch-yaw-right': 'Turn right',
   'touch-stick': 'Tilt stick: drag with your thumb',
+  'rotate-title': 'Turn your phone sideways',
+  'rotate-body': 'Gravitas flies in landscape. The flight stays paused until you resume it.',
   'reduce-transparency-note':
     'Solid panels without blur. It is on anyway when your system asks for less transparency.',
 };

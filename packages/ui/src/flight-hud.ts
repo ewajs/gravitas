@@ -38,6 +38,11 @@ export class FlightHud extends LitElement {
    * thumb zones clear.
    */
   @property({ type: Boolean, reflect: true, attribute: 'touch-controls' }) touchControls = false;
+  /**
+   * Ask the player to turn the device sideways: the host shows it while a flight
+   * is under way in portrait on a phone, and pauses the flight meanwhile.
+   */
+  @property({ type: Boolean }) rotatePrompt = false;
   /** Whether sound is muted; the Mute button shows it as pressed. */
   @property({ type: Boolean }) muted = false;
   /** Show the "How to fly" card while ready; hosts hide it once the player has read it. */
@@ -267,7 +272,7 @@ export class FlightHud extends LitElement {
               ${
                 this.telemetry
                   ? html`<section
-                      class="instruments"
+                      class="instruments ${this.phase === 'ready' && this.showControls ? 'behind-card' : ''}"
                       aria-label=${msg('Instrumentos de vuelo', { id: 'instruments' })}
                     >
                       ${instruments(this.telemetry, this.locale)}
@@ -290,6 +295,19 @@ export class FlightHud extends LitElement {
                     </div>`
                   : nothing
               }`
+          : nothing
+      }
+      ${
+        this.rotatePrompt
+          ? html`<div class="rotate" role="alert" data-testid="rotate-prompt">
+              <div class="card">
+                ${icons.rotate()}
+                <h2>${msg('Girá el teléfono', { id: 'rotate-title' })}</h2>
+                <p>
+                  ${msg('Se vuela en horizontal. El vuelo queda en pausa hasta que lo reanudes.', { id: 'rotate-body' })}
+                </p>
+              </div>
+            </div>`
           : nothing
       }
       ${helpDialog(

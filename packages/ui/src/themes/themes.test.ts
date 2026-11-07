@@ -31,14 +31,24 @@ function contrast(foreground: Rgba, background: Rgba): number {
   return (hi! + 0.05) / (lo! + 0.05);
 }
 
+/**
+ * The brightest wide area that sits behind the HUD's panels in the game: sunlit
+ * regolith, measured as the median of the rendered ground (#666661) between the
+ * panels. Backdrop blur averages it, so small bright rocks do not count.
+ */
+const LIT_REGOLITH = parse('#666661');
+
 // Every background a theme's text can sit on: the page, and each panel composited
-// over the page (translucent panels show what is behind them).
+// over the page and over lit ground (translucent panels show what is behind them).
 function surfaces(theme: Theme): [string, Rgba][] {
   const page = parse(theme.colors.surface);
+  const panels = ['panel', 'panelStrong', 'panelSolid'] as const;
   return [
     ['surface', page],
-    ['panel', over(parse(theme.colors.panel), page)],
-    ['panelSolid', over(parse(theme.colors.panelSolid), page)],
+    ...panels.flatMap((role): [string, Rgba][] => [
+      [`${role} over surface`, over(parse(theme.colors[role]), page)],
+      [`${role} over regolith`, over(parse(theme.colors[role]), LIT_REGOLITH)],
+    ]),
   ];
 }
 
@@ -63,14 +73,25 @@ describe.each(themes.map((theme) => [theme.id, theme] as const))('theme %s', (_,
     }
   });
 
-  it('keeps accent ink readable on the accent', () => {
+  it('keeps accent ink readable on the accent, also under the pointer', () => {
     expect(contrast(parse(colors.accentInk), parse(colors.accent))).toBeGreaterThan(4.5);
+    expect(contrast(parse(colors.accentInk), parse(colors.accentHover))).toBeGreaterThan(4.5);
+  });
+
+  it('keeps focus rings visible where they float over the scene', () => {
+    expect(contrast(parse(colors.focus), LIT_REGOLITH)).toBeGreaterThan(3);
   });
 
   it('keeps instrument marks visible in recessed wells', () => {
-    const well = over(parse(colors.well), parse(colors.surface));
-    for (const role of ['text', 'accent', 'focus'] as const) {
-      expect(contrast(parse(colors[role]), well), `${role} on well`).toBeGreaterThan(3);
+    // Wells and tracks sit inside panels, which sit over the scene.
+    for (const backdrop of [parse(colors.surface), LIT_REGOLITH]) {
+      const panel = over(parse(colors.panel), backdrop);
+      for (const recess of ['well', 'track'] as const) {
+        const behind = over(parse(colors[recess]), panel);
+        for (const role of ['text', 'accent', 'focus'] as const) {
+          expect(contrast(parse(colors[role]), behind), `${role} on ${recess}`).toBeGreaterThan(3);
+        }
+      }
     }
   });
 

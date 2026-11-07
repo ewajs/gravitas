@@ -114,7 +114,9 @@ one-shot `throttleSet`. The app passes the element `session.throttle` and the
 hover throttle at the telemetry rate, so the lever shows the throttle actually
 applied, and `syncTouchControls()` shows it while flying or paused when the
 setting is Always, or Automatic and touch is the device in use (the first touch
-anywhere switches to it; keys or a pad switch away).
+anywhere switches to it; keys or a pad switch away). In every phase it sets the
+HUD's `touchLayout` from that same choice, so a phone keeps its corner layout
+before the start and behind the results card.
 
 ## Phones
 

@@ -32,8 +32,11 @@ On a phone or tablet, the controls appear on screen during a flight:
 - **Right thumb: tilt.** Touch anywhere on the right zone and the stick appears
   under your thumb; drag it to pitch and roll, gently near the centre and fully at
   the rim. Let go and it re-centres.
-- **⟲ ⟳ buttons** (above the right zone): hold to turn.
-- **Pause:** the pause button at the top.
+- **⟲ ⟳ buttons** (above the right zone; on a phone, in a column beside the
+  radar): hold to turn.
+- **Pause:** the pause button at the top. On a phone, the **⋯** button beside it
+  opens the menu with the language, sound, restart, and Help; opening it pauses
+  the flight.
 
 You can use both thumbs at once. Drag outside the controls to look around and
 pinch to zoom the camera. In **Help → Display → Touch controls** choose

@@ -24,9 +24,14 @@ resultados funcionan en cualquier posición, pero si empezás a volar con el
 teléfono vertical, el juego te pide que lo gires y deja el vuelo en pausa hasta
 que toques **Reanudar**. En horizontal, el pulgar izquierdo maneja el empuje y el
 derecho la inclinación (ver [Volar](./flying#en-una-pantalla-tactil)). Los
-instrumentos se ordenan arriba y el radar entre los pulgares, para que nada
-quede bajo tus dedos. El juego no hace zoom al pellizcar ni al tocar dos veces:
-pellizcar acerca la cámara.
+instrumentos van en las esquinas para que el centro de la pantalla, desde el
+módulo hasta la plataforma, quede libre: altitud y velocidades en una tarjeta
+chica arriba a la izquierda, la pausa y el menú **⋯** arriba a la derecha (ahí
+están el idioma, el sonido, reiniciar y la Ayuda) y, debajo, el radar con la
+distancia a la plataforma. Se ve igual antes de empezar y detrás de los
+resultados. En vertical, antes de volar, solo aparecen "Cómo volar", un aviso
+para girar el teléfono y **Comenzar**. El juego no hace zoom al pellizcar ni al
+tocar dos veces: pellizcar acerca la cámara.
 
 ### Instalarlo en la pantalla de inicio
 

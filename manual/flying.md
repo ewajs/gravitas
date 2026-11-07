@@ -33,8 +33,11 @@ En un teléfono o una tableta, los controles aparecen en pantalla durante el vue
 - **Pulgar derecho: inclinar.** Tocá en cualquier parte de la zona derecha y el
   control aparece bajo tu pulgar; arrastralo para cabecear y alabear, suave cerca
   del centro y al máximo en el borde. Al soltarlo vuelve al centro.
-- **Botones ⟲ ⟳** (arriba de la zona derecha): mantenelos para girar.
-- **Pausa:** el botón de pausa de arriba.
+- **Botones ⟲ ⟳** (arriba de la zona derecha; en un teléfono, en columna al lado
+  del radar): mantenelos para girar.
+- **Pausa:** el botón de pausa de arriba. En un teléfono, el botón **⋯** de al
+  lado abre el menú con el idioma, el sonido, reiniciar y la Ayuda; abrirlo pone
+  el vuelo en pausa.
 
 Podés usar los dos pulgares a la vez. Arrastrá fuera de los controles para mirar
 alrededor y pellizcá para acercar la cámara. En **Ayuda → Pantalla → Controles

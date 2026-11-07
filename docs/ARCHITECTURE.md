@@ -221,7 +221,13 @@ Main deployments publish all three.
     Safari's gesture events and double tap) and draws under the notch
     (`viewport-fit=cover`) with safe-area insets in every layer's CSS. When the
     game shows the touch controls it sets the HUD's `touchControls`, and the HUD
-    moves its panels out of the thumb zones.
+    moves its panels out of the thumb zones. While the touch controls are in use
+    at all (any phase), it also sets `touchLayout`: on a phone-sized screen the HUD
+    then keeps its corner layout from the start screen to the results, leaving the
+    centre clear, with the view options in a ⋯ menu. The touch-controls element
+    places its yaw buttons and zones around the HUD's corner cards with the same
+    media query and shared numbers
+    ([ADR 0017](decisions/0017-phone-play.md), 4.4c amendment).
 11. Device loss becomes a render error; the app stops, disposes, pauses the session,
     releases the input sources, and presents a localized failure. Language and help
     remain usable.

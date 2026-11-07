@@ -21,9 +21,14 @@ Gravitas flies with the phone **sideways** (landscape). Menus, Help, and results
 work either way, but if you start flying with the phone upright, the game asks
 you to turn it and keeps the flight paused until you tap **Resume**. Sideways, your
 left thumb works the throttle and your right thumb the tilt (see
-[Flying](./flying#on-a-touch-screen)). The instruments line up along the top and
-the radar sits between your thumbs, so nothing is under your fingers. Pinching or
-double-tapping never zooms the page: a pinch zooms the camera.
+[Flying](./flying#on-a-touch-screen)). The instruments keep to the corners so the
+middle of the screen, from the lander down to the pad, stays clear: altitude and
+speeds in a small card at the top left, pause and the **⋯** menu at the top right
+(language, sound, restart, and Help live there), and the radar under them with the
+distance to the pad. The layout stays the same before you start and behind the
+results. Upright, before a flight, you see only "How to fly", a reminder to turn
+the phone, and **Start**. Pinching or double-tapping never zooms the page: a pinch
+zooms the camera.
 
 ### Install it to your home screen
 

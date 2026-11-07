@@ -12,6 +12,13 @@
 | **Combustible**     | Porcentaje del tanque. El primer descenso empieza con el 20 %.                   |
 | **Empuje**          | Posición de la palanca. La marca blanca indica el empuje para flotar.            |
 
+Con el teléfono en horizontal, las lecturas comparten una tarjeta chica arriba a
+la izquierda: altitud y velocidad vertical grandes, la escala de descenso seguro
+como una barra fina y una línea con nombres cortos: **H** (velocidad horizontal),
+**Incl** (inclinación) y **Comb** (combustible). La tarjeta del radar, arriba a
+la derecha, muestra la distancia a la plataforma debajo del radar, y la palanca
+de la izquierda muestra el empuje.
+
 ## El radar de aterrizaje
 
 El radar mira hacia donde apunta el módulo: **arriba es adelante** (la dirección

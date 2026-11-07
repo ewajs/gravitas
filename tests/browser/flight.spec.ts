@@ -163,7 +163,9 @@ test('an unpowered descent crashes, the report explains why, and Try again resta
   await expect(page.getByTestId('check-vertical-speed')).toContainText(/16\.\d m\/s/);
   await expect(page.getByTestId('check-horizontal-speed')).toHaveClass(/fail/);
   await expect(page.getByTestId('check-tilt')).toHaveClass(/pass/);
-  await expect(report).toContainText('Fuel left: 20%');
+  // Fuel and flight time are labelled tiles (4.2b), not a sentence.
+  await expect(report.getByTestId('fuel-left')).toHaveText('20%');
+  await expect(report.getByRole('term').first()).toHaveText('Fuel left');
   // The crash still plays out, then rests on the surface.
   await expect(page.getByTestId('altitude')).toHaveText('0.0 m', { timeout: 15_000 });
   await page.screenshot({ path: info.outputPath('crash.png') });

@@ -64,3 +64,40 @@ test('a hidden tab silences the crash playout after a verdict', async ({ page },
   await hide(false);
   await expect(host).toHaveAttribute('data-audio', 'running');
 });
+
+test('Reduce transparency gives solid panels and persists; the system preference does too', async ({
+  page,
+}, info) => {
+  await page.goto(url(info.project.name, '&lang=en'));
+  await ready(page, info.project.name);
+  const hud = page.locator('gravitas-flight-hud');
+  const panel = hud.locator('.flight-panel');
+  const filter = () => panel.evaluate((element) => getComputedStyle(element).backdropFilter);
+  expect(await filter()).toContain('blur');
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  const setting = page.getByRole('checkbox', { name: 'Reduce transparency' });
+  await expect(setting).not.toBeChecked();
+  await setting.check();
+  await expect(hud).toHaveAttribute('reduce-transparency', '');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  expect(await filter()).toBe('none');
+  expect(await panel.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(
+    'rgb(12, 20, 32)',
+  );
+
+  await page.goto(url(info.project.name, '&lang=en'));
+  await ready(page, info.project.name);
+  await expect(hud).toHaveAttribute('reduce-transparency', '');
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Reduce transparency' }).uncheck();
+  await expect(hud).not.toHaveAttribute('reduce-transparency', '');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  expect(await filter()).toContain('blur');
+
+  // Without the setting, the system's request for less transparency is honoured.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }],
+  });
+  expect(await filter()).toBe('none');
+});

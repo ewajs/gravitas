@@ -32,6 +32,13 @@ test('locale switching preserves the canvas, camera, and readouts while translat
   await expect(page.getByTestId('vertical-speed')).toHaveText('-3,3 m/s');
   await expect(page.getByTestId('tilt')).toHaveText('60°');
   await expect(page.getByTestId('fuel')).toHaveText('54%');
+  // Without a safe-sink hint the scale is hidden; the host supplies one in flight.
+  await expect(page.getByTestId('sink-scale')).toHaveCount(0);
+  await hud.evaluate((element: FlightHud) => {
+    element.telemetry = { ...element.telemetry!, safeSink: 2.5 };
+  });
+  await expect(page.getByRole('img', { name: 'Descenso seguro hasta 2,5 m/s' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Más rápido que el descenso seguro' })).toBeVisible();
   const canvas = await page.locator('canvas').elementHandle();
   // Sample scene left of the centred phase message and card and above the bottom
   // panels, all of which legitimately change language. Zoom is the player's camera
@@ -162,6 +169,38 @@ test('keyboard help traps focus, restores it on Escape, and both locales fit nar
   }
   await page.setViewportSize({ width: 1000, height: 750 });
   await page.screenshot({ path: info.outputPath('hud-en-desktop.png') });
+});
+
+test('motion is limited to easing, the results entrance, and one phase dot, and stops on request', async ({
+  page,
+}, info) => {
+  await page.goto(appUrl(info.project.name));
+  await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
+  const hud = page.locator('gravitas-flight-hud');
+  const style = (selector: string, property: 'animationName' | 'transitionDuration') =>
+    hud
+      .locator(selector)
+      .first()
+      .evaluate((element, key) => getComputedStyle(element)[key], property);
+  await hud.evaluate((element: FlightHud) => {
+    element.phase = 'flying';
+  });
+  expect(await style('.dot', 'animationName')).toBe('breathe');
+  expect(await style('.fill', 'transitionDuration')).toBe('0.2s');
+  await hud.evaluate((element: FlightHud) => {
+    element.phase = 'complete';
+    element.report = { verdict: 'landed', checks: [], fuel: 0.5, flightTime: 30 };
+  });
+  expect(await style('.dot', 'animationName')).toBe('none');
+  expect(await style('.report', 'animationName')).toBe('rise');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await style('.report', 'animationName')).toBe('none');
+  expect(await style('.results', 'animationName')).toBe('none');
+  expect(await style('.fill', 'transitionDuration')).toBe('0s');
+  await hud.evaluate((element: FlightHud) => {
+    element.phase = 'flying';
+  });
+  expect(await style('.dot', 'animationName')).toBe('none');
 });
 
 test('language can change while the renderer is loading', async ({ page }, info) => {

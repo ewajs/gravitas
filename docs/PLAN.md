@@ -277,6 +277,39 @@ provenance when assets arrive.
 
 ## Releases
 
+### v0.3.0 — Phones and pads (2026-11-07)
+
+Gravitas leaves the keyboard: one input layer feeds keyboard, gamepad, and touch,
+and phones get a landscape layout and can install the game to the home screen.
+This completes M4's steps; on-device acceptance on the owner's iPhone 15 Pro and
+Galaxy A70 follows this release.
+
+- **Input layer (4.3a):** a generalized `PilotInput` (any lever speed and
+  position) and an `InputSource` merge rule: strongest rotation request per axis,
+  throttle to the source that last began moving it. Keyboard and scripted flights
+  bit-identical. See ADR 0016.
+- **Gamepad (4.3b):** standard-mapping controllers with proportional pitch and
+  roll, bumper yaw, pressure-scaled trigger throttle, A to confirm, and Start to
+  pause; help and the start card follow the device in use.
+- **Touch (4.3c):** a themed `<gravitas-touch-controls>` element: a left-thumb
+  lever with a hover detent (and a vibration tick where supported), a right-thumb
+  floating stick, and yaw buttons; a "Touch controls" setting (automatic, always,
+  never).
+- **Phone layout (4.4a):** a compact landscape HUD that keeps both thumb zones
+  clear, a rotate prompt that pauses in portrait, pinch and double-tap zoom
+  blocked, safe-area insets for the notch, and a device line in `?debug`. See
+  ADR 0017.
+- **Installable app (4.4b):** a web app manifest generated from the theme
+  (landscape, full screen with a standalone fallback, the install icons), iOS
+  home-screen tags, and install instructions in the manual. No offline mode.
+
+Known limits: not yet tried on a real phone or a physical gamepad; WebKit's
+gesture handling was emulated in Chromium only. On phones the HUD returns from the
+compact strip to the desktop panels behind the results card. Glass blur stays on
+by default on phones until it is measured there. Measured on an Apple M1 Pro:
+60 fps on WebGPU, main-thread work 0.8 ms p95, 45 draw calls; see the
+[performance](verification/performance.md) record.
+
 ### v0.2.0 — A complete landing (2026-11-07)
 
 Every descent now ends in a verdict you can understand and retry, with physical

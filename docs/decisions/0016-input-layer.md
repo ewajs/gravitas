@@ -1,7 +1,7 @@
 # 0016. One input layer: sources merged into one pilot input per frame
 
-- Status: Implemented in 4.3a (input layer, keyboard source). Gamepad (4.3b) and
-  touch (4.3c) are planned sources of the same layer.
+- Status: Implemented in 4.3a (input layer, keyboard source) and 4.3b (gamepad
+  source). Touch (4.3c) is a planned source of the same layer.
 - Date: 2026-11-07
 
 ## Context
@@ -26,7 +26,11 @@ Z/X exactly 1 and 0.
 
 **`InputSource`.** Each device is an object with `sample()` (this frame's held
 input, consuming one-shot settings), `clear()` (release everything held, on blur,
-pause, or restart), and `dispose()`. Discrete commands (`toggle-pause`,
+pause, or restart), and `dispose()`. From 4.3b it also names its `device` and
+reports whether its latest sample was deliberate input (`active`), so help can
+follow the device in use, and a source that must be polled (a gamepad) has
+`poll()`, which the app calls once per frame before sampling, so its commands
+never run in the middle of a merge. Discrete commands (`toggle-pause`,
 `restart`, `toggle-mute`) go to one app callback that every source shares, so
 any device can pause or restart through the same `flightAction` the HUD uses.
 
@@ -65,7 +69,12 @@ With the keyboard as the only source, the merged input equals the keyboard's.
   and after the change and match bit for bit (see
   [input verification](../verification/input.md)).
 - Device-specific tuning (dead zones, response curves, trigger pressure) lives
-  in each source's mapping in the app, unit-tested there.
+  in each source's mapping in the app, unit-tested there. Sticks share
+  `stickResponse`: a radial dead zone (15% on a gamepad), then `0.5 t + 0.5 t³`,
+  gentle near centre and full at the rim.
+- The gamepad's A is a new `confirm` command (start, resume, or try again), and
+  its Start toggles pause like P. Only standard-mapping pads are read, so button
+  positions are known; Xbox names are shown.
 - Revisit if a device needs per-tick rather than per-frame sampling (none does:
   browsers deliver input between animation frames), or if replays need recorded
   input, which would record the merged `PilotInput` per tick.

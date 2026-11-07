@@ -18,19 +18,39 @@ Las teclas son posiciones físicas del teclado (se muestran en QWERTY).
 Arrastrá la escena para mirar alrededor (la cámara vuelve sola detrás del
 módulo) y usá la rueda para acercar o alejar.
 
+### Con un mando
+
+Un mando con la distribución estándar (Xbox, PlayStation y la mayoría de los
+mandos USB o Bluetooth) funciona sin configurar nada: conectalo y pulsá un botón.
+Mientras lo usás, la tarjeta **Cómo volar** y la Ayuda muestran sus controles.
+
+| Mando             | Acción                                                  |
+| ----------------- | ------------------------------------------------------- |
+| **Stick derecho** | Cabeceo y alabeo, en proporción a cuánto lo movés       |
+| **LB / RB**       | Guiñada: girar a izquierda / derecha                    |
+| **RT / LT**       | Subir / bajar el empuje: cuanto más apretás, más rápido |
+| **A**             | Comenzar, reanudar o reintentar                         |
+| **Start**         | Pausar o reanudar                                       |
+
+En un mando de PlayStation, **A** es **✕**, **Start** es **Options**, **LB / RB**
+son **L1 / R1** y **LT / RT** son **L2 / R2**. Cerca del centro el stick responde
+suave, para correcciones finas; a fondo pide el giro máximo. Si el mando se
+desconecta en pleno vuelo, el juego se pausa.
+
 ## El empuje es una palanca
 
 **R** y **F** mueven una palanca: mientras las mantenés, el empuje sube o baja
 la mitad de su recorrido por segundo, y queda donde la soltaste. **Z** la lleva
-al máximo y **X** la corta de golpe.
+al máximo y **X** la corta de golpe. Los gatillos de un mando la mueven igual,
+más lento cuanto menos los apretás.
 
 El motor empuja a lo largo del eje del módulo. Si está vertical, frena la caída;
 si está inclinado, parte del empuje te mueve de costado.
 
 ## La rotación tiene asistencia
 
-Las teclas de rotación piden una **velocidad de giro**, no un ángulo. Al
-soltarlas, el control de actitud **frena** el giro y el módulo queda inclinado
+Los controles de rotación piden una **velocidad de giro**, no un ángulo (un
+stick, en proporción a cuánto lo movés). Al soltarlos, el control de actitud **frena** el giro y el módulo queda inclinado
 donde estaba: no se endereza solo. Enderezarse es tarea tuya.
 
 Girar **gasta combustible** del mismo tanque que el motor: los propulsores de

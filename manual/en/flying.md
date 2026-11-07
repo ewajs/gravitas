@@ -18,17 +18,38 @@ Keys are physical keyboard positions (shown here for QWERTY).
 Drag the scene to look around (the camera returns behind the lander on its own)
 and scroll to zoom.
 
+### With a gamepad
+
+A gamepad with the standard layout (Xbox, PlayStation, and most USB or Bluetooth
+pads) works without setup: connect it and press a button. While you use it, the
+**How to fly** card and Help show its controls.
+
+| Gamepad         | Action                                                  |
+| --------------- | ------------------------------------------------------- |
+| **Right stick** | Pitch and roll, in proportion to how far you push it    |
+| **LB / RB**     | Yaw: turn left / right                                  |
+| **RT / LT**     | Raise / lower the throttle: press harder to move faster |
+| **A**           | Start, resume, or try again                             |
+| **Start**       | Pause or resume                                         |
+
+On a PlayStation pad, **A** is **✕**, **Start** is **Options**, **LB / RB** are
+**L1 / R1**, and **LT / RT** are **L2 / R2**. Near the centre the stick responds
+gently, for fine corrections; fully pushed it asks for the top turn rate. If the
+pad disconnects mid-flight, the game pauses.
+
 ## The throttle is a lever
 
 **R** and **F** move a lever: while held, throttle rises or falls by half its range
 per second and stays where you let go. **Z** jumps to full and **X** cuts it at once.
+A gamepad's triggers move it the same way, slower the lighter you press.
 
 The engine pushes along the lander's axis. Upright, it slows your fall; leaning,
 part of the thrust moves you sideways.
 
 ## Rotation is assisted
 
-Rotation keys request a **turn rate**, not an angle. When you let go, attitude
+Rotation controls request a **turn rate**, not an angle (a stick, in proportion
+to how far you push it). When you let go, attitude
 control **stops** the rotation and the lander stays leaning where it was: it does
 not level itself. Levelling out is your job.
 

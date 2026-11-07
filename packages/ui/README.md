@@ -112,7 +112,17 @@ icon buttons beside the view options pause or resume and restart; after a verdic
 Try again is on the results card. Icon buttons have accessible names, tooltips,
 and `aria-keyshortcuts`. Opening Help while
 `phase` is `flying` emits a `pause` request first. The host applies requests to its
-session and sets `phase`. Keyboard flight controls belong to the host.
+session and sets `phase`. Flight controls (keyboard, gamepad) belong to the host.
+
+## Input device
+
+`hud.inputDevice` (`'keyboard'` by default, or `'gamepad'`) names the device the
+host judges the player to be using. The "How to fly" card, Help's control list,
+the phase messages, the key-hint line, and the keycaps on Start and Try again
+describe that device: W A S D and P for the keyboard; the right stick, LB/RB,
+RT/LT, A, and Start (standard-mapping, Xbox-style names) for a gamepad. The HUD
+only presents; the host maps the devices. `hud.helpOpen` reports whether Help is
+open, so a host can ignore gamepad buttons, which do not move focus, meanwhile.
 
 The language selector emits `CustomEvent<LocaleRequest>` named `locale-request`,
 with `detail.locale` equal to `es-AR` or `en`. The host handles the asynchronous

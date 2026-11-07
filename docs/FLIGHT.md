@@ -135,7 +135,27 @@ and applied to every 60 Hz tick in that frame:
 | P     | Start, pause, or resume             | Immediate; pausing releases held keys   |
 | Enter | Restart from the opening            | Immediate; returns to the ready phase   |
 
-Opposite keys cancel. The keyboard is one input source among those the game
+Opposite keys cancel.
+
+### Gamepad bindings
+
+Standard-mapping gamepads (W3C "standard" layout, Xbox names) are polled once per
+animation frame; other mappings are ignored. The first connected standard pad is
+read.
+
+| Control     | Input                                | Mapping                                                          |
+| ----------- | ------------------------------------ | ---------------------------------------------------------------- |
+| Right stick | Pitch and roll, proportional         | Up = −X (like W), right = −Z (like D); 15% radial dead zone      |
+| LB / RB     | Yaw left / right                     | +Y / −Y, full rate (like Q / E)                                  |
+| RT / LT     | Raise / lower the lever, by pressure | Lever speed = RT − LT after a 5% dead zone, × 0.5 of range per s |
+| A           | Start, resume, or try again          | Immediate, once per press; ignored while Help is open            |
+| Start       | Start, pause, or resume (like P)     | Immediate, once per press; ignored while Help is open            |
+
+Stick deflection beyond the dead zone is rescaled from zero and shaped by
+`0.5 t + 0.5 t³`, so half deflection asks for 31% of `maxRate` and full deflection
+for all of it. A lost pad pauses the flight.
+
+The keyboard and gamepad are input sources the game
 merges each frame ([ADR 0016](decisions/0016-input-layer.md)): per axis the
 strongest rotation request wins, and the lever follows the source that last began
 moving it. Keys from the language selector, the help dialog, or with

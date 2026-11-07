@@ -165,7 +165,8 @@ Main deployments publish all three.
 
 1. `apps/game/src/main.ts` registers the HUD, creates a `FlightSession` from the
    lander and opening scenario, and attaches its input sources (`KeyboardControls`
-   on the window) through `PilotInputs` (`input.ts`), which merges them.
+   on the window, `GamepadControls` over `navigator.getGamepads`) through
+   `PilotInputs` (`input.ts`), which merges them.
    It selects the initial locale. The page's colours come from the theme, written
    into `index.html` at build time. `index.html` slots the app's mark into the
    HUD and carries the favicons and link-preview tags; `npm run icons` renders the
@@ -175,8 +176,8 @@ Main deployments publish all three.
 3. Viewport is constructed with the centre-of-mass height, receives the theme's
    scene accents and the opening pose, initializes Three.js, places its chase camera behind the heading, compiles
    materials, and attaches its own canvas. The session waits in `ready`.
-4. Each animation frame, the app passes elapsed time and the merged input to the
-   session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
+4. Each animation frame, the app polls gamepads (their commands act first), then
+   passes elapsed time and the merged input to the session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
    the current and previous tick poses and the remainder fraction. Viewport blends
    them, draws each leg compressed by its contact penetration (from `contactFacts`),
    shows the actuators the session actually applied (plume, thruster puffs, dust),
@@ -184,8 +185,10 @@ Main deployments publish all three.
 5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
    at once on any phase change. It includes heading-frame radar vectors (lean,
    drift, pad). HUD buttons emit `flight-request`; P and Enter reach the app through
-   `KeyboardControls`, like every input source's commands. All call the same
-   session operations. Restart also calls
+   `KeyboardControls`, A and Start through `GamepadControls`, like every input
+   source's commands. All call the same session operations. The HUD's
+   `inputDevice` names the device last used, so its start card, Help, and hints
+   describe that device's controls. Restart also calls
    `viewport.resetCamera()`, so the camera does not ease across the teleport.
    After each tick the session updates its touchdown record. On a final verdict it
    enters `complete` (engine cut, input ignored, physics continuing), and the app

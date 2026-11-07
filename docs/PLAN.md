@@ -298,6 +298,30 @@ provenance when assets arrive.
 
 ## Releases
 
+### v0.3.1 — Clear view on phones (2026-11-07)
+
+A phone HUD redesign after the first try on a real iPhone: the centre of the
+screen, between the lander and the pad, now stays clear in every phase.
+
+- **Phone HUD (4.4c):** on landscape phones, one compact readout card top left
+  (altitude, vertical speed, safe-sink bar, and a single line with horizontal
+  speed, tilt and fuel), pause and a ⋯ menu top right with the radar under them
+  and the yaw buttons beside it, a slim lever on the left and the stick zone
+  bottom right. The layout holds before the flight and behind the results card.
+  Language, sound, restart and Help move into the ⋯ menu, which pauses the
+  flight while open. See the ADR 0017 amendment.
+- **Upright start screen:** a slim header, a "How to fly" card whose text
+  wraps, a "turn your phone to fly" hint, and Start; no instruments.
+- **Layout tests:** browser tests at the iPhone and Galaxy A70 sizes (browser
+  toolbars, installed with insets, and upright) fail if anything enters the
+  centre corridor or if any text or panel overflows, in both languages.
+- Tablets and desktop are unchanged, apart from one Spanish line on the tablet
+  start card that now wraps instead of running into the padding.
+
+Known limits: phone sizes are emulated in Chromium; the ⋯ menu uses the native
+popover (iOS 17+, Chrome 114+). On-device acceptance on the owner's iPhone 15 Pro
+and Galaxy A70 follows this release.
+
 ### v0.3.0 — Phones and pads (2026-11-07)
 
 Gravitas leaves the keyboard: one input layer feeds keyboard, gamepad, and touch,

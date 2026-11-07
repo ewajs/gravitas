@@ -26,7 +26,7 @@ test('the game serves its icons, link preview, and theme colour', async ({ page 
     expect(response.ok(), selector).toBe(true);
     if (size) expect(await pngSize(response)).toEqual({ width: size, height: size });
   }
-  // Install icons for 4.4's manifest.
+  // Install icons, listed in the web app manifest (pwa.spec.ts).
   for (const [file, size] of [
     ['icon-192.png', 192],
     ['icon-512.png', 512],

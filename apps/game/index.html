@@ -18,6 +18,12 @@
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
     <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Installed to a home screen: the manifest (vite.config.ts) for Android and
+         iOS; these older tags give iOS its title and a translucent status bar. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Gravitas" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <!-- Link previews need absolute URLs: the Pages deployment. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Gravitas" />

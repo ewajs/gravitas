@@ -11,6 +11,7 @@
     "playwright.measure.config.ts",
     "manual/.vitepress/learn/**/*.ts",
     "manual/.vitepress/theme/**/*.ts",
-    "manual/.vitepress/shims.d.ts"
+    "manual/.vitepress/shims.d.ts",
+    "scripts/**/*.ts"
   ]
 }

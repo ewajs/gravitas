@@ -61,3 +61,11 @@ The software renderer is a test environment, not a player target. Its numbers ar
 recorded only to keep browser tests tolerant of slow frames. Other devices,
 including integrated GPUs, phones, and Windows/Linux, are unmeasured; add them to
 this table when available.
+
+## After the Glass UI (v0.2.0, 2026-11-07)
+
+`npm run measure` on `main` after step 4.2 (backdrop-blurred panels, self-hosted
+fonts), same machine and workload: WebGPU 60.00 fps, main-thread work 0.7 ms p50
+and 0.8 ms p95, 0.05 s discarded, 45 draw calls, 19,501 triangles; SwiftShader
+WebGL 2 15.19 fps. All proposed budgets still hold on the reference device. The
+blur's cost on the test phones is measured in 4.4.

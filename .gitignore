@@ -6,3 +6,6 @@ coverage/
 test-results/
 playwright-report/
 manual/.vitepress/cache/
+
+# Local agent worktrees
+.claude/worktrees/

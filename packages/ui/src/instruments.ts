@@ -1,27 +1,14 @@
 import { html, nothing, type TemplateResult } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { msg } from '@lit/localize';
+import { numberFormats, toDegrees } from './format';
 import type { Locale } from './localization';
 import { RADAR_RADIUS, RADAR_SCALE, radarPoint } from './radar';
 import type { FlightTelemetry } from './types';
 
 /** Readouts, fuel and throttle gauges, and the landing radar for one snapshot. */
 export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult {
-  const decimal = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  const signed = new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-    signDisplay: 'exceptZero',
-  });
-  const whole = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-  const percent = new Intl.NumberFormat(locale, {
-    style: 'percent',
-    maximumFractionDigits: 0,
-  });
-  // Intl supplies each locale's grouping, decimal mark, and percent pattern.
+  const { decimal, signed, whole, percent } = numberFormats(locale);
   const item = (id: string, label: string, value: string, unit?: string, primary = false) =>
     html`<div class=${primary ? 'primary' : ''}>
       <dt>${label}</dt>
@@ -41,7 +28,7 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
           'm/s',
           true,
         )}
-        ${item('tilt', msg('Inclinación', { id: 'tilt' }), `${whole.format((t.tilt * 180) / Math.PI)}°`)}
+        ${item('tilt', msg('Inclinación', { id: 'tilt' }), `${whole.format(toDegrees(t.tilt))}°`)}
         ${item(
           'horizontal-speed',
           msg('Vel. horizontal', { id: 'horizontal-speed' }),
@@ -86,7 +73,7 @@ function landingRadar(t: FlightTelemetry): TemplateResult {
   const drift = radarPoint(t.drift, RADAR_SCALE.drift);
   const pad = radarPoint(t.pad, RADAR_SCALE.pad);
   const driftLength = Math.hypot(drift.x, drift.y);
-  const angle = (Math.atan2(drift.y, drift.x) * 180) / Math.PI;
+  const angle = toDegrees(Math.atan2(drift.y, drift.x));
   const r = RADAR_RADIUS;
   return html`<figure>
     <svg

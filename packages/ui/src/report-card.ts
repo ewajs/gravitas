@@ -1,5 +1,6 @@
 import { html, type TemplateResult } from 'lit';
 import { msg } from '@lit/localize';
+import { numberFormats, toDegrees } from './format';
 import type { Locale } from './localization';
 import type { LandingCheck, LandingReport } from './types';
 
@@ -23,11 +24,7 @@ export function reportCard(
   locale: Locale,
   onRetry: () => void,
 ): TemplateResult {
-  const whole = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
-  const percent = new Intl.NumberFormat(locale, {
-    style: 'percent',
-    maximumFractionDigits: 0,
-  });
+  const { whole, percent, fixed } = numberFormats(locale);
   const summaries = {
     landed: msg('Tocaste suave y quedaste quieto sobre las cuatro patas.', {
       id: 'summary-landed',
@@ -54,15 +51,11 @@ export function reportCard(
   // met its limit (2.04 m/s would round to "2.0"): it gains decimals until it reads above.
   const display = (check: LandingCheck) =>
     check.id === 'tilt'
-      ? { scale: 180 / Math.PI, unit: '°', digits: 0 }
+      ? { scale: toDegrees(1), unit: '°', digits: 0 } // Degrees per radian.
       : { scale: 1, unit: check.id === 'pad-distance' ? ' m' : ' m/s', digits: 1 };
   const shown = (check: LandingCheck, value: number, digits: number) => {
     const { scale, unit } = display(check);
-    const format = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    });
-    return `${format.format(value * scale)}${unit}`;
+    return `${fixed(digits).format(value * scale)}${unit}`;
   };
   const valueDigits = (check: LandingCheck) => {
     const { scale, digits } = display(check);

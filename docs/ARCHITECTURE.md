@@ -2,8 +2,8 @@
 
 **Status:** workspace boundaries, viewport, hosted delivery, engine flight
 dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
-bilingual flight HUD with landing radar implemented (M1). Ground contact and
-landing outcomes (M2) are pending. See [the flight model](FLIGHT.md),
+bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
+contact implemented (M2 step 2.1); landing outcomes are pending. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -31,7 +31,8 @@ type (centre of mass in world metres and a body-to-world quaternion), imported
 directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 `rateControlTorque` assistance; `FlightState` extends `VehiclePose`. Its
 `headingAngle` and `bodyToWorld` helpers give viewport's camera and the app's radar
-one heading definition. Viewport exposes lifecycle, pose, interpolated-render, and
+one heading definition. `contactFacts` and the `Surface` seam report surface contact
+without deciding outcomes ([ADR 0011](decisions/0011-contact-model.md)). Viewport exposes lifecycle, pose, interpolated-render, and
 camera-reset operations. UI exposes
 `FlightHud`, explicit registration, telemetry/request types, and localized messages.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
@@ -140,7 +141,8 @@ its build remain planned for M2.
 4. Each animation frame, the app passes elapsed time and sampled input to the
    session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
    the current and previous tick poses and the remainder fraction. Viewport blends
-   them, advances the chase camera on its own presentation clock, and draws.
+   them, draws each leg compressed by its contact penetration (from `contactFacts`),
+   advances the chase camera on its own presentation clock, and draws.
 5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
    at once on any phase change. It includes heading-frame radar vectors (lean,
    drift, pad). HUD buttons emit `flight-request`; P and Enter reach the app through

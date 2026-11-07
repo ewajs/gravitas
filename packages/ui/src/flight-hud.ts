@@ -13,7 +13,7 @@ export interface LocaleRequest {
 }
 
 /** Session phase decided by the host; the HUD only presents it. */
-export type FlightPhase = 'ready' | 'flying' | 'paused' | 'contact';
+export type FlightPhase = 'ready' | 'flying' | 'paused';
 
 /** A player action the host may apply to its flight session. */
 export interface FlightRequest {
@@ -515,11 +515,6 @@ export class FlightHud extends LitElement {
         return msg('Listo para descender. Pulsá P o Comenzar.', { id: 'phase-ready' });
       case 'paused':
         return msg('En pausa. Pulsá P o Reanudar.', { id: 'phase-paused' });
-      case 'contact':
-        return msg(
-          'Contacto con la superficie. Revisá las velocidades finales y pulsá Enter para reintentar.',
-          { id: 'phase-contact' },
-        );
       case 'flying':
         return '';
     }
@@ -539,8 +534,6 @@ export class FlightHud extends LitElement {
         return html`<button @click=${() => this.request('resume')}>
           ${msg('Reanudar', { id: 'resume' })}
         </button>`;
-      case 'contact':
-        return nothing;
     }
   }
 

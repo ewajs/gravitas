@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ATTITUDE, ENVIRONMENT, LANDER } from './lander';
-import { START_STATE } from './scenario';
+import { contactFacts } from '@gravitas/engine';
+import { ATTITUDE, FEET, LANDER } from './lander';
+import { ENVIRONMENT, START_STATE } from './scenario';
 import { FIXED_STEP, FlightSession, MAX_STEPS_PER_FRAME, type PilotInput } from './session';
 import { footClearance } from './telemetry';
 
@@ -11,7 +12,6 @@ const flying = (start = START_STATE) => {
     vehicle: LANDER,
     attitude: ATTITUDE,
     environment: ENVIRONMENT,
-    clearance: footClearance,
   });
   session.start();
   return session;
@@ -63,7 +63,6 @@ describe('fixed-step runtime', () => {
       vehicle: LANDER,
       attitude: ATTITUDE,
       environment: ENVIRONMENT,
-      clearance: footClearance,
     });
     expect(session.phase).toBe('ready');
     expect(session.advance(1, idle)).toBe(0);
@@ -134,22 +133,28 @@ describe('pilot input', () => {
   });
 });
 
-describe('placeholder ground halt', () => {
-  it('stops at first foot contact with feet on the surface and touchdown velocity kept', () => {
+describe('surface contact in the session', () => {
+  it('keeps flying through an unpowered impact and comes to rest on the surface', () => {
     const session = flying();
-    // Unpowered from 80 m at -4 m/s: contact after ~7.77 s at ~-16.6 m/s.
-    run(session, FIXED_STEP, 10);
-    expect(session.phase).toBe('contact');
-    expect(footClearance(session.state)).toBeCloseTo(0, 12);
-    expect(session.previous).toBe(session.state);
+    // Unpowered from 80 m at -4 m/s: first foot contact after ~7.77 s at ~-16.6 m/s.
     const fallTime = (-4 + Math.sqrt(16 + 2 * 1.62 * 80)) / 1.62;
-    expect(session.ticks).toBe(Math.ceil(fallTime / FIXED_STEP));
-    expect(session.state.velocity.y).toBeCloseTo(-4 - 1.62 * session.ticks * FIXED_STEP, 9);
-    const frozen = session.state;
-    expect(session.advance(1, idle)).toBe(0);
-    expect(session.state).toBe(frozen);
-    session.restart();
-    expect(session.phase).toBe('ready');
+    let touchdown: number | undefined;
+    let highestAfterTouchdown = -Infinity;
+    for (let n = 0; n < 60 * 20; n++) {
+      session.advance(FIXED_STEP, idle);
+      if (touchdown === undefined && footClearance(session.state) <= 0) touchdown = session.ticks;
+      if (touchdown !== undefined) {
+        highestAfterTouchdown = Math.max(highestAfterTouchdown, session.state.position.y);
+      }
+    }
+    expect(session.phase).toBe('flying');
+    expect(touchdown).toBe(Math.ceil(fallTime / FIXED_STEP));
+    // Crumpling structure, not rubber: the crash must not throw the lander back up.
+    expect(highestAfterTouchdown).toBeLessThan(1.5 + 0.5);
+    expect(Math.hypot(session.state.velocity.x, session.state.velocity.y)).toBeLessThan(0.05);
+    // Resting on something: feet or hull, but not falling through the ground.
+    expect(session.state.position.y).toBeGreaterThan(0);
+    expect(session.state.position.y).toBeLessThan(1.6);
   });
 });
 
@@ -158,7 +163,7 @@ describe('opening scenario', () => {
     // Pilot commands sink rate proportional to altitude, tracking it with throttle only.
     const session = flying();
     const g = -ENVIRONMENT.gravity.y;
-    while (session.phase === 'flying' && session.ticks < 60 * 120) {
+    while (footClearance(session.state) > 0 && session.ticks < 60 * 120) {
       const s = session.state;
       const altitude = footClearance(s);
       const mass = LANDER.dryMass + s.fuelMass;
@@ -168,8 +173,13 @@ describe('opening scenario', () => {
       const change = throttle > lever + 0.02 ? 1 : throttle < lever - 0.02 ? -1 : 0;
       session.advance(FIXED_STEP, { ...idle, throttleChange: change });
     }
-    expect(session.phase).toBe('contact');
+    expect(footClearance(session.state)).toBeLessThanOrEqual(0);
     expect(session.state.velocity.y).toBeGreaterThan(-1.5);
     expect(session.state.fuelMass / LANDER.fuelCapacity).toBeGreaterThan(0.5);
+    // Engine off: the lander settles on its four legs, upright and still.
+    run(session, FIXED_STEP, 5, { ...idle, throttleSet: 0 });
+    const legs = contactFacts(session.state, FEET, ENVIRONMENT.surface!);
+    expect(legs.every((leg) => leg.normalForce > 0)).toBe(true);
+    expect(Math.hypot(session.state.velocity.x, session.state.velocity.y)).toBeLessThan(0.05);
   });
 });

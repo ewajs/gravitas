@@ -73,19 +73,45 @@ focus and tab changes as well as ordinary flight.
 
 ## M2 — A complete landing challenge
 
-- [ ] Define contact geometry, thresholds, start conditions, and boundary cases;
-      implement contact/outcomes in reviewable slices.
-- [ ] Add retry, understandable outcome feedback, bilingual control help.
-- [ ] Introduce the bilingual player manual and its build/deployment checks.
+On 2026-11-07 the owner approved these steps for an unattended overnight run as
+stacked PRs (each targets the previous step's branch), with decisions settled up
+front: own contact model (no Rapier yet), verdicts from engine contact facts with
+game-owned limits, a landing report without points, one scenario, procedural
+assets only.
+
+- [x] **2.1 Contact model:** spring-damper legs (separate compression/rebound
+      damping) and hull points with friction; flat ground and flush pad; a surface
+      seam; `contactFacts`; drawn leg compression; placeholder halt removed.
+      **Verify:** analytic references (rest compression, elastic bounce period,
+      sliding μg, 45° tip-over, hard-impact bell strike), no-bounce crash, settling,
+      both backends. Local checks passed on 2026-11-07; see
+      [ADR 0011](decisions/0011-contact-model.md) and
+      [contact verification](verification/contact.md).
+- [ ] **2.2 Landing outcomes:** reusable `classifyTouchdown(facts, limits)` in
+      engine, game limits (2 m/s vertical, 1 m/s horizontal, 10° tilt, settled 1 s;
+      crash on hull contact, leg impact above 5 m/s, or tip-over), verdicts (pad,
+      off pad, crash), an explanatory results panel, retry, a first-run control card,
+      reduced starting fuel, scripted whole-flight regression tests.
+- [ ] **2.3 Player manual:** bilingual VitePress manual at `/gravitas/manual/`,
+      `npm run manual`, CI build and link checks.
 
 **Acceptance:** start, fly, land/crash, understand the result, retry. No orbit,
 construction, staging, or progression required.
 
 ## M3 — Feel and evidence
 
-Plan after the first playable: tune camera/controls through playtesting, polish
-instruments and restrained effects/audio, measure simulation/rendering budgets.
-Developer diagnostics use an explicit switch, without per-frame logging.
+Owner playtesting tunes camera, controls, and limits. Steps that need no human
+playtest come first:
+
+- [ ] **3.1 Effects:** throttle-scaled engine plume, attitude-thruster puffs, dust
+      near the ground; restrained, reduced-motion aware.
+- [ ] **3.2 Audio and settings:** synthesized engine/thruster sound, mute, local
+      settings persisted at meaningful boundaries.
+- [ ] **3.3 Diagnostics (stretch):** an explicit `?debug` overlay (frame time,
+      discarded time, ticks) and a repeatable frame-rate measurement.
+- [ ] **3.4 Learn (stretch):** a Learn section in the manual explaining how
+      Gravitas works and its math, with rendered equations, plots, and interactive
+      explorers, built to grow into spaceflight and orbital mechanics.
 
 ## Later decisions
 

@@ -1,7 +1,8 @@
 # @gravitas/engine
 
 Pure flight dynamics over plain data, independent of rendering and browser APIs.
-It exports the shared `VehiclePose` contract, `stepFlight` for one rigid vehicle,
+It exports the shared `VehiclePose` contract, `stepFlight` for one rigid vehicle
+with optional surface contact, `contactFacts`,
 `rateControlTorque` for body-rate assistance, and the orientation helpers
 `bodyToWorld` and `headingAngle`. The host owns state, time,
 input mapping, and any mission rules.
@@ -57,6 +58,26 @@ does not notify Lit, so pass a new snapshot when presentation data changes.
 continuous at any tilt except exactly inverted, where it returns 0. Viewport's
 chase camera and the game's radar share it, so screen-up and radar-up agree.
 
+## Surface contact
+
+Give the environment a `surface` (`{ kind: 'flat', height: 0 }`) and the vehicle
+`contacts`, and `stepFlight` adds contact forces. Each `ContactPoint` is a body
+point with a one-sided spring (`stiffness`), separate compression and rebound
+damping, and Coulomb `friction`. `kind` marks legs, which are meant to touch,
+and hull points, which mean structure hit the ground. Steps with a surface run as
+RK4 substeps of at most `CONTACT_SUBSTEP` (1/240 s).
+
+```ts
+const facts = contactFacts(state, vehicle.contacts!, environment.surface!);
+// [{ id: 'foot-left-front', kind: 'leg', penetration: 0.03, normalForce: 607, ... }, ...]
+```
+
+`contactFacts` reports what each point is doing: penetration, push, approach and
+slip speeds, world position. It decides nothing; the host turns facts into
+outcomes. All ground knowledge goes through one internal seam, so terrain or a
+collision library can supply height and normal later
+([ADR 0011](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0011-contact-model.md)).
+
 `rateControlTorque` turns normalized rate requests in [−1, 1] into limited body
 torque. Zero input brakes rotation; it never auto-levels or cancels velocity.
 Equations, parameters, worked examples, and simplifications are in the
@@ -67,6 +88,6 @@ Equations, parameters, worked examples, and simplifications are in the
 
 Engine imports no Three.js, Lit, DOM, browser clock, storage, network, or other
 workspace. Its TypeScript project has no DOM or ambient Node types. There is no
-ground contact, landing classification, scheduler, or input handling: contact is
-planned for M2; the fixed-step session and input mapping live in the app
+landing classification (step 2.2), scheduler, or input handling; the fixed-step
+session and input mapping live in the app
 (`apps/game/src/session.ts`, `controls.ts`).

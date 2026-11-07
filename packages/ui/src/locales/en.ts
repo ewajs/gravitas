@@ -12,7 +12,6 @@ export const templates = {
   'locale-failed': 'We couldn’t change the language. Reload the page to try again.',
   'phase-ready': 'Ready to descend. Press P or Start.',
   'phase-paused': 'Paused. Press P or Resume.',
-  'phase-contact': 'Surface contact. Check your final speeds and press Enter to try again.',
   start: 'Start',
   pause: 'Pause',
   resume: 'Resume',

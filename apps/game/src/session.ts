@@ -7,7 +7,6 @@ import {
   type FlightState,
   type Vector3,
   type VehicleParameters,
-  type VehiclePose,
 } from '@gravitas/engine';
 
 /** Fixed simulation step in seconds (60 Hz), independent of display refresh rate. */
@@ -17,8 +16,8 @@ export const MAX_STEPS_PER_FRAME = 5;
 /** Throttle lever travel per second while a throttle key is held (full range in 2 s). */
 export const THROTTLE_RATE = 0.5;
 
-/** `ready` waits for the first start; `contact` is the placeholder ground halt until M2. */
-export type SessionPhase = 'ready' | 'flying' | 'paused' | 'contact';
+/** `ready` waits for the first start; only `flying` advances simulation time. */
+export type SessionPhase = 'ready' | 'flying' | 'paused';
 
 /** Pilot input for one animation frame. Held values apply to every tick in that frame. */
 export interface PilotInput {
@@ -35,9 +34,8 @@ export interface FlightScenario {
   readonly start: FlightState;
   readonly vehicle: VehicleParameters;
   readonly attitude: AttitudeSettings;
+  /** Gravity and the surface the vehicle's contact points can touch. */
   readonly environment: FlightEnvironment;
-  /** Lowest contact point above the surface for a pose, in metres. */
-  readonly clearance: (pose: VehiclePose) => number;
 }
 
 /**
@@ -69,7 +67,7 @@ export class FlightSession {
   get state(): FlightState {
     return this.#state;
   }
-  /** State after the tick before it; equal to `state` after start, restart, or contact. */
+  /** State after the tick before it; equal to `state` after start or restart. */
   get previous(): FlightState {
     return this.#previous;
   }
@@ -150,11 +148,6 @@ export class FlightSession {
       this.#accumulator -= FIXED_STEP;
       this.#ticks++;
       steps++;
-      const clearance = this.#scenario.clearance(next);
-      if (clearance <= 0) {
-        this.#halt(next, clearance);
-        return steps;
-      }
       this.#previous = this.#state;
       this.#state = next;
     }
@@ -165,18 +158,5 @@ export class FlightSession {
       this.#accumulator -= dropped;
     }
     return steps;
-  }
-
-  // Placeholder until M2 contact: lift the vehicle so its lowest foot rests on the
-  // surface, keep the touchdown velocities for display, and stop simulating.
-  #halt(next: FlightState, clearance: number): void {
-    const resting: FlightState = {
-      ...next,
-      position: { ...next.position, y: next.position.y - clearance },
-    };
-    this.#state = this.#previous = resting;
-    this.#accumulator = 0;
-    this.#pendingThrottle = undefined;
-    this.#phase = 'contact';
   }
 }

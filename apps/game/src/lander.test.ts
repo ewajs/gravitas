@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { rateControlTorque, stepFlight, type FlightState } from '@gravitas/engine';
-import { ATTITUDE, CENTER_OF_MASS_HEIGHT, ENVIRONMENT, LANDER } from './lander';
+import { ATTITUDE, CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
+import { ENVIRONMENT } from './scenario';
 
 it('provides a coherent first-lander preset and a supported flight step', () => {
   const wetMass = LANDER.dryMass + LANDER.fuelCapacity;

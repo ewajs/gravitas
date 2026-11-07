@@ -58,8 +58,8 @@ accessible name, and tilt, horizontal speed, and pad distance are also readouts.
 
 The HUD decides nothing about the flight. Its buttons emit
 `CustomEvent<FlightRequest>` named `flight-request`, which bubbles across the
-shadow root. The primary button follows the phase (Start, Pause, Resume; none
-after contact), and Restart appears once a flight has begun. Opening Help while
+shadow root. The primary button follows the phase (Start, Pause, Resume), and
+Restart appears once a flight has begun. Opening Help while
 `phase` is `flying` emits a `pause` request first. The host applies requests to its
 session and sets `phase`. Keyboard flight controls belong to the host.
 

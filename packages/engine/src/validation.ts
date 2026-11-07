@@ -27,3 +27,8 @@ export function bounded(value: number, min: number, max: number, name: string): 
   finite(value, name);
   if (value < min || value > max) throw new RangeError(`${name} is outside [${min}, ${max}]`);
 }
+
+export function nonNegative(value: number, name: string): void {
+  finite(value, name);
+  if (value < 0) throw new RangeError(`${name} must not be negative`);
+}

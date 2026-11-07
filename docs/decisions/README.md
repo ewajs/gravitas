@@ -16,3 +16,4 @@ does not imply implemented code.
 | [0008](0008-flight-model.md)                 | Rigid-body flight model, RK4, and rate-command assistance      | Implemented                         |
 | [0009](0009-flight-runtime.md)               | Fixed-step flight runtime, input, and interpolation ownership  | Implemented; camera amended by 0010 |
 | [0010](0010-chase-camera-and-instruments.md) | Heading-following chase camera and landing radar               | Implemented; accepted with M1       |
+| [0011](0011-contact-model.md)                | Own penalty contact behind a surface seam; no Rapier yet       | Implemented                         |

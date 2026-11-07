@@ -45,7 +45,7 @@ handle that promise as well as awaiting disposal. Create a new instance to remou
 
 The camera supports pointer orbit, wheel zoom, and arrow-key pan while the canvas
 is focused. Render after controls change. Frame scheduling deliberately belongs
-to the host; see [the application integration](../../apps/game/src/main.ts).
+to the host; see [the application integration](https://github.com/ewajs/gravitas/blob/main/apps/game/src/main.ts).
 
 WebGPU and forced WebGL use one `WebGPURenderer` implementation and compatible
 materials. No renderer, mutable scene, or physical state is exposed publicly.

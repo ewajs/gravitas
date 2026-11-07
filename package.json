@@ -13,7 +13,9 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:game && npm run docs",
+    "build:game": "vite build",
+    "docs": "typedoc",
     "preview": "vite preview",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "lint": "eslint . --max-warnings 0",
@@ -22,21 +24,22 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:e2e": "npm run build && playwright test --project=webgl2",
-    "test:e2e:webgpu": "npm run build && playwright test --project=webgpu"
+    "test:e2e": "npm run build:game && playwright test --project=webgl2",
+    "test:e2e:webgpu": "npm run build:game && playwright test --project=webgpu"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
+    "@types/three": "0.187.0",
     "eslint": "10.14.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-boundaries": "7.4.1",
     "prettier": "3.9.10",
+    "typedoc": "0.28.20",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
     "vite": "8.3.5",
-    "vitest": "5.1.0",
-    "@types/three": "0.187.0",
-    "@playwright/test": "1.64.1"
+    "vitest": "5.1.0"
   }
 }

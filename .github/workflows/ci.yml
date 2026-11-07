@@ -28,7 +28,7 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run build
-      - name: Upload production build
+      - name: Upload game and developer docs
         id: build-artifact
         uses: actions/upload-artifact@v7.0.2
         with:

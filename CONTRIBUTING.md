@@ -57,7 +57,9 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run typecheck`                       | Strict TypeScript in each workspace and build/test config   |
 | `npm test` / `npm run test:watch`         | Vitest in Node; tests live beside source as `*.test.ts`     |
 | `npm run format` / `npm run format:check` | Write/check formatting                                      |
-| `npm run build` / `npm run preview`       | Build/serve `apps/game/dist`                                |
+| `npm run build` / `npm run preview`       | Build/serve game and developer docs in `apps/game/dist`     |
+| `npm run build:game`                      | Build only the game (also used by local browser suites)     |
+| `npm run docs`                            | Generate library API references and developer guides        |
 
 Vitest covers pose validation and inspection measurements; empty suites are not allowed.
 Engine source has no DOM/ambient Node types; browser workspaces and build tooling
@@ -68,7 +70,7 @@ type-only imports, re-exports, and dynamic imports. UI can import engine types
 with `import type`; engine cannot depend on other workspaces or runtime packages.
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
-`npm run docs` and `npm run manual` remain planned. Browser suites run locally
+`npm run manual` remains planned for M2. Browser suites run locally
 when UI, rendering, lifecycle, or delivery changes need them; record the results
 and backend/device limits in the PR. Do not run heavy browser suites, simulation
 matrices, or benchmarks in routine CI. For local browser checks:
@@ -83,7 +85,7 @@ The first test script runs the forced-WebGL project. The second runs full Chromi
 with automatic backend selection and requires actual WebGPU/image-content checks
 to pass; automatic fallback is not success. Both suites test production app assets
 and a separate public-API fixture, which is never included in `apps/game/dist`.
-Both npm scripts build before testing. Playwright itself serves the existing build
+Both npm scripts build the game before testing. Playwright itself serves the existing build
 under `/gravitas/`, exercising the Pages asset prefix and both locales. When running
 `npx playwright test` directly, build first or supply the CI artifact.
 
@@ -96,7 +98,7 @@ report WebGPU as unverified on those hosts, preserving the strict hardware test.
 
 ### CI and delivery
 
-The CI workflow runs format, lint, types, unit tests, and the production build,
+The CI workflow runs format, lint, types, unit tests, and the combined game/docs build,
 then uploads `apps/game/dist`. It does not install browsers or run Playwright.
 Browser reports and retained failure traces stay local; use
 `npx playwright show-report`. Lifecycle fixtures run on a separate development
@@ -141,3 +143,19 @@ evaluate a component library when concrete controls justify it.
 Document engine, viewport, and UI separately, then explain the game integration.
 Keep player help separate from technical docs. Commands and current-behavior docs
 must stay accurate; label roadmap material as planned.
+
+TypeDoc reads the three libraries' public entry points and package READMEs.
+Edit [the developer landing page](docs/developer/README.md),
+[integration walkthrough](docs/developer/integration.md), package guides, and
+exported TSDoc comments alongside code changes. `typedoc.json` controls the site;
+missing local paths, unresolved symbol links, and undocumented public API kinds
+listed there fail the build. Inherited Lit/DOM members are hidden by default;
+implementation hooks marked `@internal` are omitted.
+
+`npm run build` builds the game first, then writes docs into `apps/game/dist/docs`.
+`npm run docs` regenerates just that subdirectory. `npm run build:game` clears the
+combined output, so run the full build again before previewing or shipping docs.
+Use `npm run preview -- --base /gravitas/` to check both `/gravitas/` and
+`/gravitas/docs/` with the Pages prefix. The existing main deployment publishes
+both from the same artifact; there is no separate docs job or deployment build.
+See [developer-docs verification](docs/verification/developer-docs.md).

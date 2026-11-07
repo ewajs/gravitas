@@ -32,8 +32,11 @@ to the next step unless the owner authorizes otherwise.
       switch without state reset; desktop/narrow readability; owner reviews visuals.
       Local WebGL/WebGPU checks passed on 2026-11-06; screenshots await owner review.
       See [UI verification](verification/ui.md).
-- [ ] **0.5 Developer docs:** separate library/API guides and integration walkthrough;
+- [x] **0.5 Developer docs:** separate library/API guides and integration walkthrough;
       build checks and deployment. **Verify:** real exports documented, links/build pass.
+      TypeDoc and local prefixed browser checks passed; the existing Pages artifact
+      includes game and docs. Live docs publication awaits owner merge/deployment.
+      See [developer-docs verification](verification/developer-docs.md).
 
 ## M1 — First flight
 

@@ -112,9 +112,12 @@ configs use the same settings because they consume UI source directly.
 only presentation properties are reactive. Native select/button/dialog elements
 provide language selection and help. No component kit is needed yet.
 
-TypeDoc covers each library's API/guides and application integration walkthroughs.
-A separate VitePress player manual is bilingual. Introduce each build with its
-content, and do not claim published docs before deployment exists.
+TypeDoc generates each library's API/guide and the application integration
+walkthrough from public exports, TSDoc comments, and Markdown. `npm run build`
+combines the game and docs in one Pages artifact, with docs under `/gravitas/docs/`.
+See [the developer guides](developer/README.md). Live docs publication awaits this
+step's merge and deployment. A separate bilingual VitePress player manual and
+its build remain planned for M2.
 
 ## Current integration: a fixture becomes a scene
 

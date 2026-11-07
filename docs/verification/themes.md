@@ -113,3 +113,43 @@ did before; 4.4 owns that layout. The results card scrolls inside itself there.
 - No playtest on the target phones; backdrop blur's frame cost on them is 4.4's
   measurement.
 - Font rendering was checked in Chromium on macOS only.
+
+## 4.2c Identity
+
+Verified locally on 2026-11-07 on the same machine, Node, and Playwright.
+
+### Results
+
+- `npm run check`: 138 unit tests in 24 files passed (132 before: colour-arithmetic
+  reference values, and the manual's brand contrast).
+- `npm run build`: game (now with `public/` icons), TypeDoc, and manual built.
+- `npm run test:e2e`: 35 passed on forced WebGL 2 (32 before, plus three).
+  `npm run test:e2e:webgpu`: 28 passed on hardware WebGPU; 7 static-page tests run
+  only on WebGL 2.
+- New `identity.spec.ts`: every icon link resolves, PNG sizes are right (16, 32,
+  180, 192, 512, maskable 512, and 1200 × 630), the link-preview tags point at the
+  deployment, `theme-color` is the theme's surface, both slotted marks load in the
+  HUD (decorative `alt=""`, the heading named "Gravitas"), and the manual's nav
+  logo loads, its favicon resolves, and its dark brand colour is the accent.
+- `npm run icons` twice: all 13 outputs byte-identical.
+
+### Contrast
+
+The manual keeps VitePress's backgrounds, on which Learn's plot palette was
+validated. Brand links on dark pages use the accent (`#4CC3E0`); on light pages,
+the accent darkened 45 % (`#2a6b7b`) and, on hover, 55 %. Their contrast on every
+VitePress background and of button text on brand fills is at least 4.5:1, by unit
+test.
+
+### Screenshots reviewed
+
+The start card with the lockup and the header mark in both languages at 1280 ×
+720, 1000 × 750, 375 × 667 (the lockup is hidden on narrow screens, where the
+header shows the mark), and 800 × 420; the icons at their sizes on light and dark
+backgrounds; the link preview; and the manual (home, a manual page, and a Learn
+chapter) in dark and light appearances and at 375 px.
+
+### Not covered
+
+- Link previews were not tested in real social apps; they need the deployed URL.
+- The icons on a physical home screen await 4.4's manifest.

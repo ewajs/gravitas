@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitepress';
+import { gravitasTheme } from '@gravitas/ui/themes';
+import { brandCss } from './theme/brand';
 
 // Player manual, separate from the developer docs. Served under the game at
 // /gravitas/manual/ (Spanish) and /gravitas/manual/en/ (English) from one build.
@@ -70,7 +72,16 @@ export default defineConfig({
   // Equations render to SVG at build time (MathJax); no runtime math JavaScript.
   markdown: { math: true },
   lastUpdated: false,
-  head: [['link', { rel: 'icon', href: 'data:,' }]],
+  // Head links are not rewritten for the base, so they carry it. The brand colours
+  // and fonts come from the game's theme, written into every page at build time.
+  head: [
+    ['link', { rel: 'icon', href: '/gravitas/manual/favicon.svg', type: 'image/svg+xml' }],
+    [
+      'link',
+      { rel: 'icon', href: '/gravitas/manual/favicon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    ['style', {}, brandCss(gravitasTheme)],
+  ],
   locales: {
     root: {
       label: 'Español',
@@ -109,6 +120,9 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    // The mark and name in the nav; its icon files come from `npm run icons`.
+    logo: { light: '/mark-light.svg', dark: '/mark.svg', alt: '' },
+    siteTitle: 'Gravitas',
     search: {
       provider: 'local',
       options: {

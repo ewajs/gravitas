@@ -171,6 +171,32 @@ export const hudStyles = css`
   .identity {
     padding-inline-start: 14px;
   }
+  /* The host's mark: the small cut beside the name, a larger one on the start card. */
+  ::slotted([slot='mark']) {
+    display: block;
+    inline-size: 22px;
+    block-size: 22px;
+    flex: none;
+  }
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gravitas-line);
+  }
+  ::slotted([slot='mark-large']) {
+    display: block;
+    inline-size: 34px;
+    block-size: 34px;
+    flex: none;
+  }
+  .wordmark {
+    font: 600 18px var(--gravitas-font-display);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
   h1 {
     font: 600 14px var(--gravitas-font-display);
     letter-spacing: 0.22em;
@@ -847,7 +873,9 @@ export const hudStyles = css`
     .card {
       padding: 14px 16px;
     }
+    /* The header already shows the mark and name; keep the card short. */
     .goal,
+    .lockup,
     #controls {
       display: none;
     }
@@ -987,6 +1015,7 @@ export const hudStyles = css`
     }
     figcaption,
     .sink-labels,
+    .lockup,
     #controls {
       display: none;
     }

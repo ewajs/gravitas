@@ -34,6 +34,9 @@ Colours, type, and shape live in one typed **theme** object, plain data in
   muted text at 4.5:1 or more on the page and on every panel composited over it;
   accent, focus, and status colours at 3:1 or more; accent ink on accent at 4.5:1;
   instrument marks visible in wells.
+- **Contrast helpers ship with the themes.** `contrastRatio` and `composite` are
+  exported so every consumer checks its colours the same way; the manual's brand
+  test uses them for its light-page accent steps (4.2c).
 - **One theme for now.** `themes` lists `gravitasTheme` only, and nothing offers a
   switcher. A second theme is a new object in that list; switching at runtime
   would set the generated properties on the HUD host and call `setAccents()`.

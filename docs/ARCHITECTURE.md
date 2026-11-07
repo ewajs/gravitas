@@ -153,6 +153,8 @@ manual (`manual/`) builds into `/gravitas/manual/` (Spanish) and
 `/gravitas/manual/en/` in the same artifact; Help links to it in the current
 language. Its Learn section imports `@gravitas/engine` and the game's lander values
 so explorers run the real simulation ([ADR 0013](decisions/0013-learn-section.md)).
+Its config imports `@gravitas/ui/themes` for brand colours (with darker accent
+steps on light pages, contrast-tested) and loads the game's typefaces and logo.
 Main deployments publish all three.
 
 ## Current integration: one flight
@@ -160,7 +162,9 @@ Main deployments publish all three.
 1. `apps/game/src/main.ts` registers the HUD, creates a `FlightSession` from the
    lander and opening scenario, and attaches `KeyboardControls` to the window.
    It selects the initial locale. The page's colours come from the theme, written
-   into `index.html` at build time.
+   into `index.html` at build time. `index.html` slots the app's mark into the
+   HUD and carries the favicons and link-preview tags; `npm run icons` renders the
+   mark into them.
 2. The HUD displays loading text, then the app dynamically imports viewport so the
    larger 3D download does not block the initial status presentation.
 3. Viewport is constructed with the centre-of-mass height, receives the theme's

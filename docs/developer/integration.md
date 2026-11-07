@@ -54,6 +54,22 @@ hud.addEventListener('flight-request', flightRequested);
 window.addEventListener('blur', () => keyboard.clear());
 ```
 
+Branding belongs to the app, so `index.html` puts the mark inside the element,
+and the HUD shows it through slots: the small cut beside the name, a larger one
+on the start card.
+
+```html
+<gravitas-flight-hud>
+  <img slot="mark" src="/mark-small.svg" alt="" width="22" height="22" />
+  <img slot="mark-large" src="/mark.svg" alt="" width="34" height="34" />
+</gravitas-flight-hud>
+```
+
+The mark's two SVG cuts live in `apps/game/public/`. `npm run icons`
+(`scripts/icons.ts`) renders them with the pinned Playwright Chromium into the
+favicons, the Apple touch icon, the install icons, the 1200 × 630 link preview,
+and the manual's logos. Its output is committed and reproducible byte for byte.
+
 `KeyboardControls` (`controls.ts`) tracks physical keys. Held rotation and
 throttle keys are sampled once per frame. Z/X queue a one-shot lever setting. P
 and Enter call back immediately as `toggle-pause` or `restart`. Keys from the

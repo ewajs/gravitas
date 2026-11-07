@@ -75,6 +75,13 @@ a crossed-out speaker. Clicking it emits
 the host applies, persists, and sets `muted`. `hud.showControls` (default true)
 shows the "How to fly" card while ready; hosts can hide it once read.
 
+## Mark
+
+Branding belongs to the host. Put the mark inside the element: `slot="mark"`
+shows beside the name in the header (22 px; the game uses its small cut), and
+`slot="mark-large"` shows with the name at the top of the start card (34 px). Both
+are decorative, so give images `alt=""`; `heading` is the accessible name.
+
 ## Manual link
 
 Set `hud.manualHref` to the player manual for the current locale; Help and the
@@ -145,6 +152,10 @@ themeCss(gravitasTheme, ':root'); // ':root { --gravitas-text: …; … }'
 themeProperties(gravitasTheme)['--gravitas-accent']; // One property's value
 viewport.setAccents(gravitasTheme.scene); // Sky, pad ring, marker (host code)
 ```
+
+`contrastRatio(foreground, background)` (WCAG 2, compositing a translucent
+foreground first) and `composite(top, bottom)` check colours against a theme; the
+theme and manual tests use them.
 
 A `Theme` names colours by role (`surface`, `panel`, `panelStrong`, `panelSolid`,
 `line`, `text`, `muted`, `accent`, `accentInk`, `accentHover`, `focus`, `good`,

@@ -169,6 +169,7 @@ export class FlightHud extends LitElement {
       <header class=${underway ? 'underway' : ''}>
         <div class="brand">
           <div class="identity">
+            <slot name="mark"></slot>
             <h1>${this.heading}</h1>
           </div>
           <p class="mission">
@@ -215,7 +216,7 @@ export class FlightHud extends LitElement {
         this.status === 'ready'
           ? html`<div class="overlay">
                 <p id="phase" role="status" class=${quiet ? 'sr' : ''}>${message}</p>
-                ${this.phase === 'ready' && this.showControls ? quickCard() : nothing}
+                ${this.phase === 'ready' && this.showControls ? quickCard(this.heading) : nothing}
                 ${
                   this.phase === 'ready'
                     ? html`<div class="actions">

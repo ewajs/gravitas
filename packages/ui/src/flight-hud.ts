@@ -1,5 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
-import { property } from 'lit/decorators.js';
+import { property, state } from 'lit/decorators.js';
 import { msg, updateWhenLocaleChanges } from '@lit/localize';
 import { confirmKey, helpDialog, quickCard } from './help';
 import { icons } from './icons';
@@ -39,6 +39,14 @@ export class FlightHud extends LitElement {
    */
   @property({ type: Boolean, reflect: true, attribute: 'touch-controls' }) touchControls = false;
   /**
+   * Whether the player flies with the on-screen touch controls, in every phase
+   * (the controls themselves show only during a flight). On a phone-sized screen
+   * the HUD then keeps one compact layout from the start to the results: corner
+   * readouts and radar that leave the centre clear, and a menu (⋯) for the view
+   * options. Tablets and larger screens keep their layout.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'touch-layout' }) touchLayout = false;
+  /**
    * Ask the player to turn the device sideways: the host shows it while a flight
    * is under way in portrait on a phone, and pauses the flight meanwhile.
    */
@@ -65,6 +73,12 @@ export class FlightHud extends LitElement {
    */
   @property({ type: Boolean, reflect: true, attribute: 'reduce-transparency' })
   reduceTransparency = false;
+
+  /** Whether the phone menu (⋯) is open; mirrors its popover for `aria-expanded`. */
+  @state() private menuOpen = false;
+  // Where focus returns when Help closes after being opened from the menu, whose
+  // Help button is hidden by then; otherwise the dialog restores focus itself.
+  #helpReturn: HTMLElement | undefined;
 
   constructor() {
     super();
@@ -137,6 +151,47 @@ export class FlightHud extends LitElement {
   private closeHelp() {
     this.renderRoot.querySelector('dialog')?.close();
   }
+  private helpClosed() {
+    const target = this.#helpReturn;
+    this.#helpReturn = undefined;
+    target?.focus();
+  }
+
+  // ---- Phone menu ----
+  // A native popover: Escape or a tap outside closes it and focus returns to ⋯.
+
+  private get menu(): HTMLElement | null {
+    return this.renderRoot.querySelector<HTMLElement>('#menu');
+  }
+  private menuToggled(event: Event) {
+    this.menuOpen = (event as ToggleEvent).newState === 'open';
+    // Like Help: opening the menu mid-flight pauses, so a thumb can leave the controls.
+    if (this.menuOpen && this.phase === 'flying') this.request('pause');
+  }
+  private closeMenu() {
+    if (this.menu?.matches(':popover-open')) this.menu.hidePopover();
+  }
+  private helpFromMenu() {
+    this.closeMenu();
+    this.#helpReturn = this.renderRoot.querySelector<HTMLElement>('.menu-toggle') ?? undefined;
+    this.openHelp();
+  }
+  private restartFromMenu() {
+    this.closeMenu();
+    this.request('restart');
+  }
+
+  /** @internal */
+  protected firstUpdated(): void {
+    // Escape closes the dialog without its Close button, so listen for the close itself.
+    this.renderRoot.querySelector('dialog')?.addEventListener('close', () => this.helpClosed());
+  }
+
+  /** @internal */
+  protected updated(changed: Map<PropertyKey, unknown>): void {
+    // The menu belongs to the touch layout; leaving it (a key press) closes the menu.
+    if (changed.has('touchLayout') && !this.touchLayout) this.closeMenu();
+  }
 
   private phaseMessage() {
     const device = this.inputDevice;
@@ -178,7 +233,7 @@ export class FlightHud extends LitElement {
         ${flying ? icons.pause() : icons.play()}
       </button>
       <button
-        class="icon"
+        class="icon restart"
         @click=${() => this.request('restart')}
         aria-label=${restart}
         title=${restart}
@@ -187,6 +242,68 @@ export class FlightHud extends LitElement {
         ${icons.restart()}
       </button>
     </div>`;
+  }
+
+  // The view options (and restart) on phones: one ⋯ button and a popover, so the
+  // top corner holds two buttons. Desktop and tablet styles hide it.
+  private phoneMenu(underway: boolean, mute: string, help: string) {
+    const label = msg('Menú', { id: 'menu' });
+    const language = msg('Idioma', { id: 'language' });
+    const restart = msg('Reiniciar', { id: 'restart' });
+    return html`<button
+        class="icon menu-toggle"
+        popovertarget="menu"
+        aria-controls="menu"
+        aria-expanded=${this.menuOpen ? 'true' : 'false'}
+        aria-label=${label}
+        title=${label}
+      >
+        ${icons.more()}
+      </button>
+      <div
+        id="menu"
+        class="menu"
+        popover
+        role="group"
+        aria-label=${label}
+        @toggle=${this.menuToggled}
+      >
+        <label class="menu-item">
+          <span>${language}</span>
+          <select
+            aria-label=${language}
+            .value=${this.locale}
+            aria-disabled=${this.localePending}
+            aria-busy=${this.localePending}
+            @change=${this.requestLocale}
+          >
+            <option value="es-AR">ES</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+        <button
+          class="menu-item"
+          @click=${this.toggleSound}
+          aria-pressed=${this.muted ? 'true' : 'false'}
+          aria-keyshortcuts="M"
+        >
+          ${this.muted ? icons.muted() : icons.sound()}<span>${mute}</span>
+        </button>
+        ${
+          underway
+            ? html`<button
+                class="menu-item"
+                @click=${this.restartFromMenu}
+                aria-keyshortcuts="Enter"
+              >
+                ${icons.restart()}<span>${restart}</span>
+              </button>`
+            : nothing
+        }
+        <button class="menu-item" @click=${this.helpFromMenu} aria-haspopup="dialog">
+          ${icons.help()}<span>${help}</span>
+        </button>
+      </div>`;
   }
 
   /** Lit template implementation, separate from the host-facing property/event contract. @internal */
@@ -243,14 +360,28 @@ export class FlightHud extends LitElement {
             ${icons.help()}
           </button>
         </nav>
+        ${this.phoneMenu(underway, mute, help)}
       </header>
       ${this.localeError ? html`<p class="locale-error" role="alert">${msg('No pudimos cambiar el idioma. Actualizá la página para volver a intentarlo.', { id: 'locale-failed' })}</p>` : nothing}
       ${this.status !== 'ready' ? html`<p id="status" class="status" role=${this.status === 'failed' ? 'alert' : 'status'}>${this.status === 'failed' ? text.failed : text.loading}</p>` : nothing}
       ${
         this.status === 'ready'
-          ? html`<div class="overlay">
-                <p id="phase" role="status" class=${quiet ? 'sr' : ''}>${message}</p>
+          ? html`<div
+                class="overlay ${this.phase === 'ready' && this.showControls ? 'with-card' : ''}"
+              >
+                <p id="phase" role="status" class="${quiet ? 'sr' : ''} ${this.phase}">
+                  ${message}
+                </p>
                 ${this.phase === 'ready' && this.showControls ? quickCard(this.heading, this.inputDevice) : nothing}
+                ${
+                  this.phase === 'ready'
+                    ? html`<p class="turn-hint">
+                        ${icons.rotate(30)}<span
+                          >${msg('Girá el teléfono para volar: en horizontal entran los dos pulgares.', { id: 'turn-hint' })}</span
+                        >
+                      </p>`
+                    : nothing
+                }
                 ${
                   this.phase === 'ready'
                     ? html`<div class="actions">

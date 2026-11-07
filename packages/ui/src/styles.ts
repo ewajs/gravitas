@@ -291,7 +291,8 @@ export const hudStyles = css`
   }
   .quick-keys {
     display: grid;
-    grid-template-columns: auto 1fr;
+    /* minmax(0, …): the descriptions wrap in a narrow card instead of widening it. */
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 8px 16px;
     align-items: center;
     margin: 0 0 12px;
@@ -308,6 +309,7 @@ export const hudStyles = css`
   .quick-keys dd {
     margin: 0;
     font-size: 14px;
+    white-space: normal;
   }
   .goal {
     font-size: 13px;
@@ -1093,109 +1095,499 @@ export const hudStyles = css`
     }
   }
 
-  /* Touch controls showing: the lower part of each side belongs to a thumb, so
-     the readouts become one strip along the top, the radar sits between the
-     thumbs, and the throttle gauge gives way to the lever. */
-  :host([touch-controls]) {
-    --gap: 12px;
+  /* Touch controls showing on a tablet or larger screen: the lower part of each
+     side belongs to a thumb, so the readouts become one strip along the top, the
+     radar sits between the thumbs, and the throttle gauge gives way to the lever.
+     Landscape phones use the corner layout further down instead. */
+  @media (min-height: 501px), (orientation: portrait) {
+    :host([touch-controls]) {
+      --gap: 12px;
+    }
+    :host([touch-controls]) header .brand,
+    :host([touch-controls]) #controls,
+    :host([touch-controls]) .throttle,
+    :host([touch-controls]) figcaption,
+    :host([touch-controls]) .sink,
+    :host([touch-controls]) .bar.fuel {
+      display: none;
+    }
+    :host([touch-controls]) header .actions {
+      margin-inline-start: auto;
+    }
+    :host([touch-controls]) .instruments {
+      position: static;
+      display: block;
+      padding: 0;
+      border: 0;
+      background: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :host([touch-controls]) .instruments .panel {
+      position: absolute;
+      border: 1px solid var(--gravitas-line);
+      border-radius: var(--gravitas-radius);
+      background: var(--gravitas-panel);
+      -webkit-backdrop-filter: var(--gravitas-panel-filter);
+      backdrop-filter: var(--gravitas-panel-filter);
+    }
+    :host([touch-controls]) .flight-panel {
+      top: max(var(--gap), env(safe-area-inset-top));
+      left: max(var(--gap), env(safe-area-inset-left));
+      /* Room for the five icon buttons on the right of the header. */
+      right: auto;
+      inline-size: max-content;
+      max-inline-size: calc(
+        100% - max(var(--gap), env(safe-area-inset-left)) - max(
+            var(--gap),
+            env(safe-area-inset-right)
+          ) -
+          284px
+      );
+      min-inline-size: 0;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px 14px;
+      padding: 6px 14px;
+    }
+    :host([touch-controls]) .headline,
+    :host([touch-controls]) .details {
+      display: flex;
+      gap: 14px;
+      padding: 0;
+      border: 0;
+    }
+    :host([touch-controls]) .details {
+      padding-inline-start: 14px;
+      border-inline-start: 1px solid var(--gravitas-line);
+    }
+    :host([touch-controls]) .instruments dt {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    :host([touch-controls]) .instruments dd {
+      margin-top: 1px;
+    }
+    :host([touch-controls]) dl.headline dd {
+      font-size: 22px;
+    }
+    :host([touch-controls]) dl.headline .unit,
+    :host([touch-controls]) .instruments .unit {
+      font-size: 11px;
+    }
+    :host([touch-controls]) .details dd,
+    :host([touch-controls]) .pad-readout dd {
+      font-size: 15px;
+    }
+    :host([touch-controls]) .navigation-panel {
+      bottom: max(var(--gap), env(safe-area-inset-bottom));
+      /* Centred between the thumb zones of the touch controls. */
+      left: min(32%, 240px);
+      right: min(46%, 400px);
+      inline-size: fit-content;
+      margin-inline: auto;
+      padding: 8px 12px;
+    }
+    :host([touch-controls]) .navigation {
+      display: grid;
+      gap: 4px;
+    }
+    :host([touch-controls]) .radar {
+      inline-size: 92px;
+      block-size: 92px;
+    }
+    :host([touch-controls]) .overlay {
+      top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px);
+    }
   }
-  :host([touch-controls]) header .brand,
-  :host([touch-controls]) #controls,
-  :host([touch-controls]) .throttle,
-  :host([touch-controls]) figcaption,
-  :host([touch-controls]) .sink,
-  :host([touch-controls]) .bar.fuel {
+
+  /* The phone menu (⋯): hidden on larger screens; on phones it replaces the view
+     options. Its popover sits in the top layer below the ⋯ button. */
+  header .menu-toggle,
+  .turn-hint,
+  .short {
     display: none;
   }
-  :host([touch-controls]) header .actions {
-    margin-inline-start: auto;
+  header .menu-toggle,
+  .menu {
+    pointer-events: auto;
   }
-  :host([touch-controls]) .instruments {
-    position: static;
-    display: block;
-    padding: 0;
-    border: 0;
+  .menu {
+    position: fixed;
+    inset: auto;
+    top: calc(var(--phone-top, 10px) + 46px);
+    right: var(--phone-right, 10px);
+    margin: 0;
+    padding: 6px;
+    min-inline-size: 196px;
+    max-block-size: calc(100% - var(--phone-top, 10px) - 56px);
+    overflow-y: auto;
+    border-radius: 14px;
+    color: var(--gravitas-text);
+    background: var(--gravitas-panel-strong);
+    -webkit-backdrop-filter: var(--gravitas-panel-filter);
+    backdrop-filter: var(--gravitas-panel-filter);
+    border: 1px solid var(--gravitas-line);
+    animation: fade 130ms ease-out both;
+  }
+  .menu:popover-open {
+    display: grid;
+    gap: 2px;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    inline-size: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border-color: transparent;
+    border-radius: 10px;
     background: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+    font: 500 15px var(--gravitas-font-body);
+    text-align: start;
   }
-  :host([touch-controls]) .instruments .panel {
-    position: absolute;
-    border: 1px solid var(--gravitas-line);
-    border-radius: var(--gravitas-radius);
-    background: var(--gravitas-panel);
-    -webkit-backdrop-filter: var(--gravitas-panel-filter);
-    backdrop-filter: var(--gravitas-panel-filter);
+  label.menu-item {
+    justify-content: space-between;
+    cursor: default;
   }
-  :host([touch-controls]) .flight-panel {
-    top: max(var(--gap), env(safe-area-inset-top));
-    left: max(var(--gap), env(safe-area-inset-left));
-    /* Room for the five icon buttons on the right of the header. */
-    right: auto;
-    inline-size: max-content;
-    max-inline-size: calc(
-      100% - max(var(--gap), env(safe-area-inset-left)) - max(
-          var(--gap),
-          env(safe-area-inset-right)
-        ) -
-        284px
-    );
-    min-inline-size: 0;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 14px;
-    padding: 6px 14px;
+  .menu-item select {
+    min-height: 36px;
   }
-  :host([touch-controls]) .headline,
-  :host([touch-controls]) .details {
-    display: flex;
-    gap: 14px;
-    padding: 0;
-    border: 0;
+  .menu-item[aria-pressed='true'] {
+    border-color: transparent;
   }
-  :host([touch-controls]) .details {
-    padding-inline-start: 14px;
-    border-inline-start: 1px solid var(--gravitas-line);
+  button.menu-item:hover {
+    border-color: transparent;
+    background: var(--gravitas-track);
   }
-  :host([touch-controls]) .instruments dt {
-    font-size: 9px;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
+
+  /* Phones on their side with the touch layout ("corner chips"): the centre, from
+     the lander down to the pad, stays clear. One readout card top left, pause and
+     ⋯ top right, the radar card under them; the touch controls (their own element)
+     put the yaw buttons left of the radar, the lever on the left edge, and the
+     stick bottom right. The same layout holds before the start and behind the
+     results card. In Safari the browser insets the page; installed, the safe-area
+     insets keep the notch and home indicator clear. */
+  @media (max-height: 500px) and (orientation: landscape) {
+    :host([touch-layout]) {
+      --phone-top: calc(env(safe-area-inset-top) + 10px);
+      --phone-left: calc(env(safe-area-inset-left) + 10px);
+      --phone-right: calc(env(safe-area-inset-right) + 10px);
+      --phone-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    :host([touch-layout]) header {
+      top: var(--phone-top);
+      left: var(--phone-left);
+      right: var(--phone-right);
+      justify-content: flex-end;
+      gap: 6px;
+    }
+    :host([touch-layout]) header .brand,
+    :host([touch-layout]) header nav,
+    :host([touch-layout]) header .restart,
+    :host([touch-layout]) #controls,
+    :host([touch-layout]) .instruments .throttle,
+    :host([touch-layout]) .instruments figcaption,
+    :host([touch-layout]) .instruments .sink-labels,
+    :host([touch-layout]) .instruments .bar.fuel {
+      display: none;
+    }
+    :host([touch-layout]) header .actions {
+      margin-inline-start: auto;
+      padding: 0;
+      border: 0;
+    }
+    :host([touch-layout]) header .menu-toggle {
+      display: grid;
+    }
+    :host([touch-layout]) header button.icon {
+      inline-size: 40px;
+      min-height: 40px;
+      block-size: 40px;
+      border-radius: 12px;
+    }
+
+    /* Phase line and Start in the top band between the corner chips; the start
+       card, which hides the readouts behind it, may use the width. */
+    :host([touch-layout]) .overlay {
+      top: var(--phone-top);
+      left: calc(var(--phone-left) + 232px);
+      right: calc(var(--phone-right) + 232px);
+      gap: 8px;
+    }
+    :host([touch-layout]) .overlay.with-card {
+      left: calc(var(--phone-left) + 50px);
+      right: calc(var(--phone-right) + 50px);
+    }
+    :host([touch-layout]) #phase {
+      padding: 8px 14px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    /* Start says it; the live region still announces "ready". */
+    :host([touch-layout]) #phase.ready {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    :host([touch-layout]) .overlay .actions button {
+      min-height: 40px;
+    }
+
+    :host([touch-layout]) .instruments {
+      position: static;
+      display: block;
+      padding: 0;
+      border: 0;
+      background: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    :host([touch-layout]) .instruments.behind-card {
+      display: none;
+    }
+    :host([touch-layout]) .instruments .panel {
+      position: absolute;
+      border: 1px solid var(--gravitas-line);
+      border-radius: 14px;
+      background: var(--gravitas-panel);
+      -webkit-backdrop-filter: var(--gravitas-panel-filter);
+      backdrop-filter: var(--gravitas-panel-filter);
+    }
+
+    /* The readout card: altitude and vertical speed large, the safe-sink bar,
+       then one short line. Never wider than its content, never wrapping. */
+    :host([touch-layout]) .flight-panel {
+      top: var(--phone-top);
+      left: var(--phone-left);
+      inline-size: max-content;
+      min-inline-size: 0;
+      max-inline-size: none;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      gap: 5px;
+      padding: 8px 14px 9px;
+      white-space: nowrap;
+    }
+    :host([touch-layout]) .headline,
+    :host([touch-layout]) .details {
+      display: flex;
+      gap: 18px;
+      padding: 0;
+      border: 0;
+    }
+    :host([touch-layout]) .instruments dt {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+    :host([touch-layout]) .instruments dd {
+      margin-top: 1px;
+    }
+    :host([touch-layout]) dl.headline dd {
+      font-size: 22px;
+      line-height: 1;
+    }
+    :host([touch-layout]) .instruments .unit {
+      font-size: 11px;
+    }
+    :host([touch-layout]) .caution svg {
+      inline-size: 11px;
+      block-size: 11px;
+    }
+    :host([touch-layout]) .sink {
+      display: block;
+    }
+    :host([touch-layout]) .sink-track {
+      display: block;
+      block-size: 9px;
+    }
+    :host([touch-layout]) .sink-track::before {
+      top: 3px;
+      block-size: 3px;
+      border-radius: 2px;
+    }
+    :host([touch-layout]) .safe {
+      inset-block: 3px;
+      border-inline-width: 0;
+      border-radius: 2px;
+    }
+    :host([touch-layout]) .tick {
+      inset-block: 0;
+      inline-size: 2px;
+      margin-inline-start: -1px;
+    }
+    :host([touch-layout]) .details {
+      gap: 12px;
+    }
+    :host([touch-layout]) .details > div {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    :host([touch-layout]) .details dd {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    :host([touch-layout]) .long {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    :host([touch-layout]) .short {
+      display: inline;
+    }
+
+    /* The radar card, under the top-right buttons, with the pad distance. */
+    :host([touch-layout]) .navigation-panel {
+      top: calc(var(--phone-top) + 48px);
+      right: var(--phone-right);
+      left: auto;
+      bottom: auto;
+      inline-size: 86px;
+      display: block;
+      padding: 6px 6px 5px;
+    }
+    :host([touch-layout]) .navigation {
+      display: grid;
+      gap: 2px;
+      justify-items: center;
+    }
+    :host([touch-layout]) .radar {
+      inline-size: 72px;
+      block-size: 72px;
+    }
+    :host([touch-layout]) .pad-readout {
+      text-align: center;
+    }
+    :host([touch-layout]) .pad-readout dt {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    :host([touch-layout]) .pad-readout dd {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    :host([touch-layout]) .pad-readout .unit {
+      font-size: 11px;
+    }
   }
-  :host([touch-controls]) .instruments dd {
-    margin-top: 1px;
-  }
-  :host([touch-controls]) dl.headline dd {
-    font-size: 22px;
-  }
-  :host([touch-controls]) dl.headline .unit,
-  :host([touch-controls]) .instruments .unit {
-    font-size: 11px;
-  }
-  :host([touch-controls]) .details dd,
-  :host([touch-controls]) .pad-readout dd {
-    font-size: 15px;
-  }
-  :host([touch-controls]) .navigation-panel {
-    bottom: max(var(--gap), env(safe-area-inset-bottom));
-    /* Centred between the thumb zones of the touch controls. */
-    left: min(32%, 240px);
-    right: min(46%, 400px);
-    inline-size: fit-content;
-    margin-inline: auto;
-    padding: 8px 12px;
-  }
-  :host([touch-controls]) .navigation {
-    display: grid;
-    gap: 4px;
-  }
-  :host([touch-controls]) .radar {
-    inline-size: 92px;
-    block-size: 92px;
-  }
-  :host([touch-controls]) .overlay {
-    top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px);
+
+  /* Phones upright with the touch layout, before a flight or after it: a slim
+     header (mark and name, ⋯), "How to fly" that wraps, a hint to turn the phone,
+     and Start. No instruments: they return in landscape. */
+  @media (max-width: 500px) and (orientation: portrait) {
+    :host([touch-layout]) {
+      --phone-top: calc(env(safe-area-inset-top) + 12px);
+      --phone-left: calc(env(safe-area-inset-left) + 16px);
+      --phone-right: calc(env(safe-area-inset-right) + 16px);
+    }
+    :host([touch-layout]) header {
+      top: var(--phone-top);
+      left: var(--phone-left);
+      right: var(--phone-right);
+      align-items: center;
+      gap: 6px;
+    }
+    :host([touch-layout]) header nav,
+    :host([touch-layout]) header .restart,
+    :host([touch-layout]) .instruments {
+      display: none;
+    }
+    :host([touch-layout]) header .actions {
+      margin-inline-start: auto;
+      padding: 0;
+      border: 0;
+    }
+    :host([touch-layout]) header .menu-toggle {
+      display: grid;
+    }
+    :host([touch-layout]) header button.icon {
+      inline-size: 40px;
+      min-height: 40px;
+      block-size: 40px;
+      border-radius: 12px;
+    }
+    :host([touch-layout]) .identity {
+      block-size: 40px;
+      gap: 8px;
+      padding: 0 14px 0 10px;
+      border-radius: 12px;
+    }
+    :host([touch-layout]) h1 {
+      font-size: 13px;
+    }
+    :host([touch-layout]) ::slotted([slot='mark']) {
+      inline-size: 20px;
+      block-size: 20px;
+    }
+    :host([touch-layout]) .overlay {
+      top: calc(var(--phone-top) + 60px);
+      left: var(--phone-left);
+      right: var(--phone-right);
+      gap: 12px;
+    }
+    :host([touch-layout]) #phase.ready {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    :host([touch-layout]) .card {
+      width: 100%;
+      padding: 18px;
+      border-radius: 18px;
+    }
+    :host([touch-layout]) .quick-keys {
+      gap: 10px 12px;
+    }
+    :host([touch-layout]) .goal {
+      display: block;
+    }
+    :host([touch-layout]) .turn-hint {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      inline-size: 100%;
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--gravitas-panel);
+      -webkit-backdrop-filter: var(--gravitas-panel-filter);
+      backdrop-filter: var(--gravitas-panel-filter);
+      border: 1px solid var(--gravitas-line);
+      font-size: 14px;
+    }
+    :host([touch-layout]) .turn-hint .icon {
+      flex: none;
+      color: var(--gravitas-accent);
+    }
+    :host([touch-layout]) .overlay .actions button {
+      min-inline-size: 220px;
+      min-height: 50px;
+      border-radius: 14px;
+      font-size: 17px;
+    }
   }
 
   /* Portrait during a flight on a phone: ask for landscape over a dimmed scene,

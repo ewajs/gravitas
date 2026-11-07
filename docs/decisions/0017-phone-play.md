@@ -1,6 +1,7 @@
 # 0017. Phone play: landscape flight, no page zoom, clear thumb zones
 
-- Status: Implemented in 4.4a and 4.4b; checks on the owner's phones follow
+- Status: Implemented in 4.4a and 4.4b; amended in 4.4c (phone HUD) after the
+  owner's first iPhone check; checks on the owner's phones follow
   deployment.
 - Date: 2026-11-07
 
@@ -50,6 +51,48 @@ has to be right in emulation and easy to diagnose on device.
   screen; iOS, which reads only `display`, standalone. iOS also gets
   `apple-mobile-web-app-*` tags for its title and a translucent status bar.
   No service worker: offline play and update prompts remain a later decision.
+
+## Amendment (4.4c): corner chips on phones
+
+The owner tried v0.3.0 on an iPhone 15 Pro in Safari. With the toolbar showing,
+the page is 734 × 331: the readout strip wrapped to two rows and covered about a
+quarter of the screen, the radar sat bottom centre exactly over the pad, the yaw
+buttons were oversized, and upright the "How to fly" text ran off the right edge
+over the full desktop instrument panel. After a verdict the HUD switched back to
+the desktop panels. The emulation had used the full 852 × 393 screen. On
+2026-11-07 the owner chose design option A, "corner chips":
+
+- **A clear centre.** On a phone in landscape (`max-height: 500px`) with the touch
+  layout, nothing sits in the middle third of the width below the top corner
+  chips, where the chase camera keeps the lander and the opening faces the pad.
+  One readout card top left (it never wraps); pause and ⋯ (40 px) top right; an
+  86 px radar card under them with the pad distance; the 40 px yaw buttons in a
+  column left of it; a slim lever on the left edge below the card; the stick zone
+  bottom right, starting below the radar. The phase line and Start sit in the top
+  band between the corners.
+- **One layout in every phase.** The HUD's new `touchLayout` (attribute
+  `touch-layout`) says the player uses the touch controls, in every phase; the
+  game sets it from the touch-controls setting and the device in use.
+  `touchControls` still says whether they show now. Ready and complete keep the
+  corner layout; the start card hides the readouts behind it as before.
+- **A ⋯ menu.** On phones, language, sound, restart, and Help move into a native
+  popover (`popover`/`popovertarget`): Escape or a tap outside closes it and
+  focus returns to ⋯; opening it mid-flight pauses, like Help. Help opened from
+  it returns focus to ⋯.
+- **Upright start screen.** In portrait (`max-width: 500px`) with the touch
+  layout: a slim header (mark and name, ⋯), "How to fly" with wrapping text, a
+  "turn your phone to fly" row, and Start; no instruments before or after a
+  flight. The rotate prompt during a flight is unchanged.
+- **Tablets and desktops unchanged.** The 4.4a strip applies only when the
+  screen is taller than 500 px or upright; screenshots before and after are
+  identical at desktop and tablet sizes.
+- **Tested sizes** now model the browsers: iPhone Safari 734 × 331 and 393 × 652,
+  installed 852 × 393 with 59/59/0/21 px insets; A70 Chrome about 914 × 355 and
+  411 × 786, installed 914 × 411.
+
+The HUD and the touch controls are sibling elements, so the yaw column and the
+zone tops follow the HUD's card positions by shared numbers, commented on both
+sides; the browser tests check the result at every size.
 
 ## Alternatives
 

@@ -61,10 +61,17 @@ Enter) restarts.
 On phones, flight is landscape-only. Turning the phone upright during a flight
 shows a "Turn your phone sideways" prompt and pauses; turning back leaves it
 paused until the player resumes. Menus, Help, the start card, and the results
-card work in both orientations. With the touch controls showing, the readouts
-become one strip along the top, the radar sits between the thumbs, the HUD's
-throttle gauge gives way to the lever, and nothing sits in the lower part of
-either side. The page never zooms (pinch or double tap); a pinch on the scene
+card work in both orientations. On a phone held sideways with the touch controls
+in use, the HUD keeps to the corners so the centre, from the lander down to the
+pad, stays clear: one readout card top left (altitude and vertical speed large,
+the safe-sink bar, then horizontal speed, tilt, and fuel on one short line), pause
+and a ⋯ menu top right (language, sound, restart, Help; opening it pauses), the
+radar card with the pad distance under them, the yaw buttons in a column beside
+it, the lever on the left edge, and the stick bottom right. The same layout holds
+before the start and behind the results card. Upright before a flight, the start
+screen shows only "How to fly", a hint to turn the phone, and Start. Tablets keep
+the 4.4a layout: a readout strip along the top and the radar between the thumbs.
+The page never zooms (pinch or double tap); a pinch on the scene
 zooms the camera. The game installs to a phone's home screen (a web app manifest
 with the theme's colours and the Kepler icons) and opens full screen on Android,
 standalone on iOS, in landscape; it still needs a connection. The layout respects the notch and the home indicator. On short

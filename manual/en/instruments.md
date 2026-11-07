@@ -12,6 +12,12 @@
 | **Fuel**             | Percentage of the tank. The first descent starts at 20%.                      |
 | **Throttle**         | Lever position. The white mark shows the throttle that hovers.                |
 
+On a phone held sideways the readouts share one small card at the top left:
+altitude and vertical speed large, the safe-sink scale as a thin bar, and one line
+with short labels: **H** (horizontal speed), **Tilt**, and **Fuel**. The radar
+card at the top right shows the distance to the pad under the radar, and the lever
+on the left shows the throttle.
+
 ## The landing radar
 
 The radar faces where the lander points: **up is forward** (the W direction),

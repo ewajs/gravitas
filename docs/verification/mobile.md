@@ -84,6 +84,86 @@ under `/gravitas/`):
   Home Screen), full screen on the A70, and the status bar over the notch in the
   installed iPhone app. Try both after deployment.
 
+## 4.4c Phone HUD
+
+The owner's first check of v0.3.0 on the iPhone 15 Pro in Safari showed what
+the 4.4a emulation missed: the browser's toolbar leaves the page 734 × 331, not
+852 × 393. The emulated sizes now model the browsers:
+
+| Phone         | Browser                 | Landscape                    | Upright   |
+| ------------- | ----------------------- | ---------------------------- | --------- |
+| iPhone 15 Pro | Safari with its toolbar | 734 × 331 (Safari insets)    | 393 × 652 |
+| iPhone 15 Pro | installed               | 852 × 393, insets 59/59/0/21 |           |
+| Galaxy A70    | Chrome with its toolbar | 914 × 355                    | 411 × 786 |
+| Galaxy A70    | installed (full screen) | 914 × 411                    |           |
+
+The Safari sizes are the owner's report; the A70's upright size assumes Chrome's
+top bar, the status bar, and three-button navigation, and may be taller with
+gesture navigation. Verified locally on 2026-11-07 on the machine above
+(`tests/browser/mobile.spec.ts`, `touch.spec.ts`, `touch-settings.spec.ts`,
+helpers in `tests/browser/layout.ts`), on both Playwright projects:
+
+- **Clear centre.** The corridor is the middle third of the width, from the
+  bottom of the top corner chips (the readout card or the top buttons) to the
+  bottom edge: the chase camera keeps the lander centred and the opening faces the
+  pad, so both lie in it. No HUD panel, button, card, phase line, or drawn touch
+  control (lever, yaw buttons, the stick's resting hint) intersects it while
+  ready, flying, or paused, at every landscape size in both languages. The
+  transparent touch zones are not drawn and not checked, and the stick under a
+  thumb is the player's own. The first-visit start card is the one deliberate
+  exception: it covers the centre until Start, with the readouts hidden behind
+  it. Run against the v0.3.0 build, the check flags its radar panel.
+- **No overflow.** At every phone size, in both languages and in every phase
+  (ready with and without the card, flying, paused with the widest readouts, the
+  ⋯ menu, Help, results, upright start, rotate prompt, upright results), no
+  rendered element or text run leaves the screen (below the fold of a scrolling
+  Help or results card only horizontally), no text run leaves its block
+  container, and no HUD element's content is wider than its box. Run against the
+  v0.3.0 build upright, it flags the start card, its key list, and the throttle
+  text running off the screen, which the owner saw.
+- **Corners and thumbs.** Readouts top left, the radar card top right below pause
+  and ⋯, the 40 px yaw buttons in a column just left of it; none of them, nor the
+  top buttons, overlaps the lever, the lever zone, the stick zone, or a yaw
+  button; the readout card keeps its height with three-digit altitude, a fast sink
+  with the caution, and a full tank (one detail line); the phase line stays clear
+  of it. Installed, everything keeps clear of the 59 px notch insets and the
+  21 px home indicator.
+- **Every phase, one layout.** Ready and complete keep the corner chips (the
+  results card two-column over them, Try again reachable); after a real crash
+  the HUD keeps `touch-layout` and no view options in the header.
+- **The ⋯ menu.** `aria-expanded` follows it; language, sound, restart, and Help
+  are inside; Help from it scrolls by touch and returns focus to ⋯; Escape closes
+  the menu and returns focus to ⋯; upright, the language changes from it during
+  the rotate prompt. Opening it mid-flight pauses (`touch-settings.spec.ts`).
+- **Upright start screen:** the slim header (mark and name, ⋯), "How to fly"
+  without horizontal overflow, the turn hint, Start, and no instruments.
+- **Tablets and desktops unchanged.** A new test keeps the 4.4a strip and view
+  options on an emulated 1180 × 820 touch tablet. A throwaway script captured 112
+  screenshots before and after with the scene hidden (desktop 1280 × 720,
+  1000 × 750, 375 × 667, 800 × 420; touch tablets 1024 × 768, 768 × 1024,
+  1180 × 820; both languages; ready with and without the card, flying, fast sink,
+  paused and muted, Help, two verdicts). Compared pixel by pixel (two baseline
+  runs agree within 8/255 per channel), 109 are identical. The three that differ
+  are the Spanish touch start card on the tablets: its first description used to
+  run about 20 px past the card's inner padding and now wraps, the fix for the
+  upright overflow.
+
+The screenshots of every phone size and state in both languages were inspected
+for overlap, overflow, clipped text, and legibility over the sunlit regolith.
+
+Results: `npm run check` (167 unit tests in 27 files) and `npm run build` passed;
+`npm run test:e2e` passed 86 tests on forced WebGL 2; the WebGPU project passed
+78 on hardware WebGPU, with the 8 static-page tests run only on WebGL 2 by
+design. `git diff --check` passed.
+
+### Still to check on the phones
+
+- The real Safari toolbar (it can collapse while scrolling elsewhere, giving
+  more height), Chrome's toolbar on the A70, and the installed apps' insets.
+- The native popover in Safari 17 and later (older iOS has no `popover`, so ⋯
+  would not open); the native language picker inside it.
+- Whether 40 px buttons and the slim lever are comfortable for thumbs.
+
 ## Measuring the glass blur on a phone
 
 Open the deployed game with `?debug` (for English, `?lang=en&debug`). The overlay

@@ -141,11 +141,14 @@ function useDevice(device: InputDevice): void {
 
 // Touch controls show during a flight when the setting asks for them: always, or
 // (automatic) while touch is the device in use. Paused, they stay but are inert.
+// The HUD keeps its touch layout in every phase while they are wanted, so a phone
+// does not switch to the desktop panels before the start or behind the results.
 function syncTouchControls(): void {
   if (stopped) {
     // After a graphics failure there is nothing to steer.
     touchControls.hidden = true;
     hud.touchControls = false;
+    hud.touchLayout = false;
     return;
   }
   const mode = settings.touchControls;
@@ -154,6 +157,7 @@ function syncTouchControls(): void {
   touchControls.hidden = !shown;
   touchControls.disabled = session.phase !== 'flying';
   hud.touchControls = shown;
+  hud.touchLayout = wanted;
 }
 
 function underway(): boolean {

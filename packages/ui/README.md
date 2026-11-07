@@ -161,10 +161,26 @@ stays), the radar and pad distance sit at the bottom between the zones, and the
 throttle gauge and legend hide because the lever shows the throttle and hover.
 Both elements respect `env(safe-area-inset-*)`.
 
+That strip is the tablet layout. Hosts also set `hud.touchLayout` (the
+`touch-layout` attribute) whenever the player uses the touch controls, in every
+phase, including before the start and after a verdict; set it whenever you set
+`touchControls`. On a phone on its side (at most 500 px tall) the HUD then keeps
+a "corner chips" layout that leaves the middle third of the screen clear: one
+readout card top left (altitude and vertical speed, a thin safe-sink bar, then
+short-labelled horizontal speed, tilt, and fuel on one line), pause and a ⋯ menu
+button top right, and an 86 px radar card with the pad distance under them. The
+⋯ button opens a native popover with the language, sound, restart, and Help;
+opening it during a flight requests a pause. The touch controls follow with the
+same media query: a column of 40 px yaw buttons left of the radar card, a slim
+lever on the left edge below the readouts, and zones starting below the cards.
+Upright (at most 500 px wide), the HUD shows a slim header, the start card, a
+"turn your phone" row, and Start, without instruments.
+
 ## Phone prompts and short screens
 
 `hud.rotatePrompt` shows a "Turn your phone sideways" card over a dimmed scene,
-below the header, so language, sound, and Help stay usable. The host decides when
+below the header, so language, sound, and Help (on phones, in the ⋯ menu) stay
+usable. The host decides when
 (the game: a phone in portrait during a flight) and pauses the flight. On screens
 at most 500 px tall, the start card shows without the instruments behind it, and
 the results card puts the checks in a second column from 600 px wide.

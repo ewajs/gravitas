@@ -2,7 +2,7 @@ import { centre, openPhone, PHONES, reading } from './phone';
 import { test, expect } from './test';
 
 test.describe('touch controls follow the device and the setting', () => {
-  const phone = PHONES['iPhone 15 Pro'];
+  const phone = PHONES['iPhone 15 Pro installed']!;
   test.use({
     viewport: { width: phone.width, height: phone.height },
     deviceScaleFactor: phone.deviceScaleFactor,
@@ -27,7 +27,10 @@ test.describe('touch controls follow the device and the setting', () => {
     await page.touchscreen.tap(phone.width / 2, phone.height / 2);
     await expect(controls).toBeVisible();
 
-    // Help pauses (the controls stay, inert) and lists the touch controls.
+    // On a phone the view options and Help live in the ⋯ menu. Opening the menu
+    // pauses (the controls stay, inert); Help lists the touch controls.
+    await page.getByRole('button', { name: 'Menú' }).tap();
+    await expect(controls).toHaveAttribute('disabled', '');
     await page.getByRole('button', { name: 'Ayuda', exact: true }).tap();
     const dialog = page.getByRole('dialog', { name: 'Controles de vuelo' });
     await expect(dialog).toContainText('el control aparece donde tocás');
@@ -101,10 +104,10 @@ test.describe('on a short phone screen (browser bars showing)', () => {
     await page.getByRole('button', { name: 'Start', exact: true }).tap();
     const controls = page.locator('gravitas-touch-controls');
     await expect(controls).toBeVisible();
-    const nav = (await page.locator('gravitas-flight-hud').locator('nav').boundingBox())!;
+    const menu = (await page.getByRole('button', { name: 'Menu' }).boundingBox())!;
     for (const id of ['touch-yaw-left', 'touch-yaw-right']) {
       const yaw = (await controls.getByTestId(id).boundingBox())!;
-      expect(yaw.y, id).toBeGreaterThanOrEqual(nav.y + nav.height);
+      expect(yaw.y, id).toBeGreaterThanOrEqual(menu.y + menu.height);
     }
     const zone = (await controls.getByTestId('touch-stick-zone').boundingBox())!;
     const yaw = (await controls.getByTestId('touch-yaw-left').boundingBox())!;

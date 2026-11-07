@@ -9,6 +9,7 @@ import {
   type LocaleRequest,
   type SoundRequest,
 } from '@gravitas/ui';
+import { gravitasTheme } from '@gravitas/ui/themes';
 import { FlightAudio } from './audio';
 import { DiagnosticsOverlay } from './diagnostics';
 import { KeyboardControls, type KeyCommand } from './controls';
@@ -323,6 +324,8 @@ async function start(): Promise<void> {
     label: viewportMessages().scene,
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });
+  // Scene marks match the interface; physical materials keep their own colours.
+  viewport.setAccents(gravitasTheme.scene);
   viewport.setVehiclePose(session.state);
   await viewport.init();
   if (destroyed) return;

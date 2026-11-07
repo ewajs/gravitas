@@ -15,11 +15,13 @@ TypeScript 7 is deferred because the chosen typescript-eslint release supports
 TypeScript below 6.1. Node type declarations match the Node 24 development target.
 
 ESLint's boundaries plugin enforces the agreed dependency direction, public entry
-points, and UI's type-only engine access. It handles resolved relative imports,
-re-exports, and dynamic imports without custom architecture-checking code.
-Resolve workspace symlinks to real paths; otherwise the Node resolver misclassifies
-local packages as external dependencies. Package `main` entries support the
-resolver; `exports` remains the public interface used by Vite/TypeScript.
+points, and UI's limited engine access (types, plus the pure `@gravitas/engine/math`
+entry since 2026-11-07). It handles resolved relative imports, re-exports, and
+dynamic imports without custom architecture-checking code. Resolve workspace
+symlinks to real paths; otherwise local packages are misclassified as external
+dependencies. ESLint resolves imports with `eslint-import-resolver-typescript`, so
+it honours `package.json` `exports` subpaths exactly as TypeScript and Vite do; the
+Node resolver, which ignores `exports`, remains as a fallback.
 
 The engine's type environment excludes DOM and automatic ambient Node globals.
 Browser libraries/app opt into DOM types; build configuration opts into Node types.

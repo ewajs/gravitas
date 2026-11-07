@@ -52,7 +52,7 @@ const vehicle: VehicleParameters = {
 const mass = 1500;
 const g = 1.62;
 const lunar: FlightEnvironment = {
-  gravity: { x: 0, y: -g, z: 0 },
+  gravity: { kind: 'uniform', acceleration: { x: 0, y: -g, z: 0 } },
   surface: { kind: 'flat', height: 0 },
 };
 const zero = { x: 0, y: 0, z: 0 };
@@ -103,7 +103,7 @@ describe('surface contact references', () => {
       ...vehicle,
       contacts: legs.map((point) => ({ ...point, damping: 0, reboundDamping: 0, friction: 0 })),
     };
-    const space = { ...lunar, gravity: zero };
+    const space = { ...lunar, gravity: { kind: 'uniform', acceleration: zero } } as const;
     const dt = 1 / 2400;
     let contactTicks = 0;
     const after = simulate(
@@ -125,7 +125,7 @@ describe('surface contact references', () => {
   });
 
   it('absorbs most impact energy with damped legs', () => {
-    const space = { ...lunar, gravity: zero };
+    const space = { ...lunar, gravity: { kind: 'uniform', acceleration: zero } } as const;
     const after = simulate(
       state({ position: { x: 0, y: 1.51, z: 0 }, velocity: { x: 0, y: -2, z: 0 } }),
       1,
@@ -137,7 +137,7 @@ describe('surface contact references', () => {
   });
 
   it('keeps a hard hit from springing back when rebound damping is strong', () => {
-    const space = { ...lunar, gravity: zero };
+    const space = { ...lunar, gravity: { kind: 'uniform', acceleration: zero } } as const;
     const valved = {
       ...vehicle,
       contacts: legs.map((point) => ({ ...point, reboundDamping: 40000 })),

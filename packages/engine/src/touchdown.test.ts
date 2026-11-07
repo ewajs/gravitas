@@ -179,7 +179,7 @@ describe('touchdowns simulated with the contact model', () => {
     ],
   };
   const environment: FlightEnvironment = {
-    gravity: { x: 0, y: -1.62, z: 0 },
+    gravity: { kind: 'uniform', acceleration: { x: 0, y: -1.62, z: 0 } },
     surface: { kind: 'flat', height: 0 },
   };
   const drop = (speed: number) => {

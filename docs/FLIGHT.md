@@ -3,19 +3,33 @@
 **Status:** implemented in engine (step 1.1) and flyable in the game (step 1.2)
 with keyboard controls, a fixed-step runtime, and instruments. Surface contact
 (step 2.1) lets the lander touch down, bounce, slide, and tip over; landing
-verdicts arrive in 2.2. [ADR 0011](decisions/0011-contact-model.md) covers contact. [ADR 0008](decisions/0008-flight-model.md) covers
+verdicts arrive in 2.2. Central-body gravity and rotating frames arrive in 5.1
+([ADR 0018](decisions/0018-gravity-and-frames.md)); the game still flies the
+opening under uniform gravity. [ADR 0011](decisions/0011-contact-model.md) covers contact. [ADR 0008](decisions/0008-flight-model.md) covers
 the model and integrator; [ADR 0009](decisions/0009-flight-runtime.md) covers the
 runtime, input, and interpolation.
 
 ## State and frames
 
 The app owns one `FlightState`: centre-of-mass position (world m), velocity (world
-m/s), body-to-world unit quaternion, angular velocity (body rad/s), and fuel (kg).
+m/s), body-to-world unit quaternion, angular velocity relative to inertial space
+(body rad/s, what gyroscopes measure), and fuel (kg).
 Axes follow [ARCHITECTURE.md](ARCHITECTURE.md): world +Y up, body +Y up, body −Z
 forward, body +X right. `VehiclePose` is the position/orientation subset, so
 viewport and HUD consume flight state directly. The pose origin is the **centre of
 mass**, not the feet; the viewport offsets its artwork by the app-supplied
 centre-of-mass height (1.5 m for the first lander).
+
+**World frames.** "World" is whichever frame the host flies in; the environment
+says how it moves. The opening uses a flat local world with uniform gravity. For
+planetary flight, engine defines three frames of a spherical `CelestialBody`
+(`MOON` is built in): **body-fixed**, centred on the body and turning with it
+(+Y the north pole, +X latitude 0 longitude 0, longitude 90° east along −Z), where
+the ground stands still; **inertial**, centred on the body but not turning, its
+axes matching the body-fixed ones at time 0; and a **surface frame** at any site
+(+Y up, +X east, −Z north), which is the body-fixed frame moved and turned. Pure
+functions convert positions, velocities, and orientations between them; body
+rates and fuel are the same in all three.
 
 **Heading.** `headingAngle(q)` (engine) is the yaw left after removing the shortest
 tilt of body +Y from upright. Zero faces world −Z, positive turns left, and forward
@@ -28,7 +42,8 @@ toward +y (radar up), A toward −x (left).
 
 | Effect           | Model                                                                                    |
 | ---------------- | ---------------------------------------------------------------------------------------- |
-| Gravity          | Uniform world acceleration from the environment; lunar preset −1.62 m/s² on Y            |
+| Gravity          | Uniform acceleration (the opening: −1.62 m/s² on Y), or a central body's −μr/r³          |
+| Rotating frame   | With an environment rotation Ω: Coriolis −2Ω×v and centrifugal −Ω×(Ω×r) accelerations    |
 | Main engine      | `throttle × maxThrust` along body +Y through the centre of mass, so it creates no torque |
 | Attitude control | Per-axis pure couples: torque without net force                                          |
 | Mass             | Dry mass plus remaining fuel; current mass sets thrust acceleration                      |
@@ -41,6 +56,15 @@ Main flow is `thrust / exhaustVelocity`. An attitude couple producing torque `T`
 about an axis uses total thruster force `|T| / attitudeLeverArm`, so its flow is
 `|T| / (attitudeLeverArm × attitudeExhaustVelocity)`. Both torque signs cost
 propellant. Continuous torque represents the time average of pulsed firings.
+
+**Rotating frames.** In a frame turning at Ω (the body-fixed or a surface frame),
+velocity gains −2Ω×v − Ω×(Ω×r), with r measured from the spin axis, and the
+orientation, measured against the turning axes, follows
+q̇ = ½ q ⊗ ω_body − ½ Ω ⊗ q. Angular velocity stays inertial, so Euler's equations
+are unchanged. On the Moon Ω is 2.66 × 10⁻⁶ rad/s: the equator moves at 4.6 m/s
+in inertial space, centrifugal acceleration is at most 1.2 × 10⁻⁵ m/s², and
+Coriolis reaches about 0.009 m/s² at orbital speed. Small, but they decide where a
+long descent lands, so they are modelled rather than dropped.
 
 **Exhaustion.** A step whose combined demand would empty the tank splits at the
 exact burnout instant: powered flight up to that time, then an unpowered coast.
@@ -234,7 +258,10 @@ Simplifications, each revisitable when gameplay needs it:
 - Thrusters respond instantly. There is no throttle lag, minimum impulse, engine
   gimbal, or attitude-thruster translation.
 - Attitude thrusters are ideal couples. Their force never translates the vehicle.
-- Constant uniform gravity on a flat local surface. No orbits or curvature.
+- Gravity is uniform or a point mass. Mascons, oblateness, the Earth's and Sun's
+  pull, and the Moon's libration and axial tilt are ignored; the Moon spins at a
+  constant rate about body-fixed +Y.
+- Surfaces are still flat planes; a curved surface and terrain arrive in 5.4.
 - Contact is penalty-based: small penetration stands for leg compression and
   structural give. Legs do not break; 2.2 judges structural limits from contact
   facts.
@@ -256,6 +283,17 @@ validation.
 throttle ramp and one-shot timing, first-contact timing against the free-fall
 formula, a crash coming to rest without bouncing, and the opening's landability
 ending at rest on four legs.
+
+`packages/engine/src/gravity.test.ts` checks central gravity and rotating frames:
+μ/r² toward an arbitrary centre; a circular orbit 100 km up closing after one
+Kepler period (1.63 km/s, 117.8 min) to within micrometres; energy and angular
+momentum on a 15 × 100 km descent orbit, with periapsis half a period after
+apoapsis; radial escape along the parabola r(t) = (r₀^{3/2} + 3/2 √(2μ) t)^{2/3};
+the Jacobi constant in the Moon-fixed frame; and a tumbling, thrusting vehicle
+flown in the Moon-fixed frame and in inertial space agreeing after conversion,
+with the difference shrinking at fourth order. `frames.test.ts` checks the axes,
+surface frames against analytic east, north, and up, and round trips between all
+three frames.
 
 `packages/engine/src/contact.test.ts` checks contact against analytic references:
 resting compression `mg/4k`, an elastic bounce with equal exit speed lasting

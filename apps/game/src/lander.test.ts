@@ -1,12 +1,12 @@
 import { expect, it } from 'vitest';
 import { rateControlTorque, stepFlight, type FlightState } from '@gravitas/engine';
 import { ATTITUDE, CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
-import { ENVIRONMENT } from './scenario';
+import { ENVIRONMENT, SURFACE_GRAVITY } from './scenario';
 
 it('provides a coherent first-lander preset and a supported flight step', () => {
   const wetMass = LANDER.dryMass + LANDER.fuelCapacity;
   expect(wetMass).toBe(1500);
-  expect((-ENVIRONMENT.gravity.y * wetMass) / LANDER.maxThrust).toBeCloseTo(0.54, 12);
+  expect((SURFACE_GRAVITY * wetMass) / LANDER.maxThrust).toBeCloseTo(0.54, 12);
   expect(LANDER.maxThrust / LANDER.exhaustVelocity).toBe(1.5);
   // Resting upright on the pad: centre of mass at its height above level feet.
   const state: FlightState = {

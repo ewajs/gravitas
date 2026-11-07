@@ -5,7 +5,8 @@ dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
 bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
 contact, touchdown judging, and the bilingual player manual implemented (M2).
 Actuator effects, sound and settings, diagnostics, and the manual's Learn section
-implemented (M3). See [the flight model](FLIGHT.md),
+implemented (M3). Engine central-body gravity, rotating frames, and frame
+conversions implemented (5.1); the game does not use them yet. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -44,7 +45,11 @@ one heading definition. Its shared math (`math.ts`: vector and quaternion operat
 `clamp`, `toRadians`/`toDegrees`, `rotationAbout`) serves the dynamics, the app, and
 the manual's Learn models, so none keeps its own copy. Viewport uses Three.js math and
 converts only at its pose boundary; UI takes `clamp` and `toDegrees` from the math
-entry point. `contactFacts` and the `Surface` seam report surface contact
+entry point. Its gravity fields (`GravityField`: uniform or central) and optional
+`FrameRotation` make up the environment's physics; `CelestialBody`, the built-in
+`MOON`, and pure frame conversions (body-fixed, inertial, surface) let a host fly
+anywhere on or around a spherical body
+([ADR 0018](decisions/0018-gravity-and-frames.md)). `contactFacts` and the `Surface` seam report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,
@@ -106,7 +111,12 @@ resize, and initialization failure without leaking resources.
 
 - Plain serializable simulation data; identifiers instead of meshes/DOM nodes.
 - SI: metres, seconds, kilograms, newtons, radians. Display conversion is at the UI edge.
-- Right-handed world coordinates, Y up. Initial ground is XZ; gravity is -Y.
+- Right-handed world coordinates. A local world (the opening, and surface frames)
+  has Y up with ground on XZ. Engine's planetary frames are body-fixed (+Y the
+  north pole, turning with the body), inertial (body-centred, not turning), and
+  surface frames (+Y up, +X east, −Z north); the environment's gravity field and
+  optional rotation say which one a flight uses
+  ([ADR 0018](decisions/0018-gravity-and-frames.md)).
 - Vehicle-local +Y is up, -Z forward, +X right. Orientation maps body to world;
   document force and control frames explicitly. Main thrust acts along body +Y;
   torque and angular velocity use body axes; poses locate the centre of mass. See
@@ -115,9 +125,11 @@ resize, and initialization failure without leaking resources.
   presentation/input conveniences.
 - Time/randomness are explicit; physical assumptions and assist parameters are named.
 
-Planetary frames, floating origins, and orbital propagators need new decisions
-when planetary distances arrive. A local lander does not solve orbital integration
-or high-speed contact.
+Engine state is float64 in every frame: at lunar distances one unit in the last
+place is under a nanometre, and a 100 km circular orbit integrated at 60 Hz closes
+to micrometres after a full period. Rendering is float32, so the viewport will
+draw relative to the camera (a floating origin) when planetary distances reach
+the screen (5.3). Orbital propagation for time warp is decided in 5.2.
 
 ## Workers, saves, and reproduction
 

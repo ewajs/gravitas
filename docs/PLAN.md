@@ -299,16 +299,22 @@ restart limits) is tabled until the vehicles and missions work, where vehicle tu
 belongs. The opening hop stays available and its regression flights stay
 bit-identical unless a step says otherwise.
 
-- [ ] **5.1 Central-body gravity and frames:** a gravity model the scenario selects:
-      today's uniform field, or an inverse-square point mass (the Moon: mean radius
-      1,737.4 km, GM 4,902.8 km³/s²). A Moon-centred inertial frame for orbital
-      state, a local surface frame (topocentric, Y up) for the lander, and
-      engine-side conversions between them; a precision budget for float64 state
-      at lunar distances. An ADR for frames, rotation of the Moon (likely ignored at
-      first, documented), and what the viewport receives. **Verify:** two-body
-      reference cases (circular period, energy and angular momentum conservation
-      over many orbits, escape speed); frame round trips; opening flights
-      bit-identical under the uniform model.
+- [x] **5.1 Central-body gravity and frames:** a gravity field the environment
+      selects: today's uniform field, or an inverse-square point mass. The Moon
+      (`MOON`: mean radius 1,737.4 km, GM 4,902.800 km³/s² from GRAIL and DE440,
+      sidereal day 27.321661 days) as engine data. Flight in the Moon-fixed
+      rotating frame, where the ground stands still, with Coriolis and
+      centrifugal terms; body-fixed, inertial, and surface frames (+Y up, +X east,
+      −Z north) with pure conversions for positions and whole flight states; body
+      rates documented as inertial. The Learn cannon uses the engine's constants
+      and gravity. **Verify:** Kepler period and closure of a circular orbit,
+      energy and angular momentum on a 15 × 100 km orbit, the radial escape
+      parabola, the Jacobi constant, Moon-fixed against inertial flight converging
+      at fourth order, surface-frame against body-fixed flight, frame axes and
+      round trips; the opening's scripted flights and leg-drop model bit-identical
+      (9,717 hashed ticks). Local checks passed on 2026-11-07; see
+      [ADR 0018](decisions/0018-gravity-and-frames.md) and
+      [frames verification](verification/frames.md).
 - [ ] **5.2 Orbits and time warp:** orbital elements from state and back (pure
       engine functions); unpowered coasting propagated analytically (Kepler) or
       integrated, with switching rules decided here; time-warp levels the session

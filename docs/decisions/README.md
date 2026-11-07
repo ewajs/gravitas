@@ -23,3 +23,4 @@ does not imply implemented code.
 | [0015](0015-glass-look-and-typefaces.md)     | The Glass look: self-hosted typefaces, translucent panels      | Implemented                           |
 | [0016](0016-input-layer.md)                  | One input layer: sources merged into one pilot input per frame | Implemented                           |
 | [0017](0017-phone-play.md)                   | Phone play: landscape flight, no page zoom, clear thumb zones  | Implemented; on-device checks pending |
+| [0018](0018-gravity-and-frames.md)           | Central-body gravity, a Moon-fixed rotating frame, conversions | Implemented; not used by the game yet |

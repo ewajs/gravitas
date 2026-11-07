@@ -3,9 +3,12 @@ import { ATTITUDE, CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
 import { LANDING_LIMITS } from './rules';
 import type { FlightScenario } from './session';
 
-/** Constant lunar surface gravity (rounded) over flat ground at y = 0, pad flush with it. */
+/** Lunar surface gravity, rounded, in metres per second squared; the opening treats it as uniform. */
+export const SURFACE_GRAVITY = 1.62;
+
+/** Uniform lunar surface gravity over flat ground at y = 0, pad flush with it. */
 export const ENVIRONMENT: FlightEnvironment = {
-  gravity: { x: 0, y: -1.62, z: 0 },
+  gravity: { kind: 'uniform', acceleration: { x: 0, y: -SURFACE_GRAVITY, z: 0 } },
   surface: { kind: 'flat', height: 0 },
 };
 

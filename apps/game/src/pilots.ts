@@ -1,6 +1,6 @@
 import { bodyToWorld, clamp } from '@gravitas/engine';
 import { ATTITUDE, LANDER } from './lander';
-import { ENVIRONMENT, PAD_POSITION } from './scenario';
+import { PAD_POSITION, SURFACE_GRAVITY } from './scenario';
 import type { FlightSession, PilotInput } from './session';
 import { footClearance } from './telemetry';
 
@@ -20,7 +20,7 @@ function lever(session: FlightSession, target: number): -1 | 0 | 1 {
 // Throttle for a sink rate proportional to altitude, compensating tilt and mass.
 function descentThrottle(session: FlightSession, sink: number): number {
   const s = session.state;
-  const g = -ENVIRONMENT.gravity.y;
+  const g = SURFACE_GRAVITY;
   const up = bodyToWorld(s.orientation, { x: 0, y: 1, z: 0 }).y;
   const mass = LANDER.dryMass + s.fuelMass;
   return (mass * (g + 1.5 * (sink - s.velocity.y))) / (LANDER.maxThrust * Math.max(0.5, up));
@@ -33,7 +33,7 @@ export const idlePilot: Pilot = () => ({ rates: { x: 0, y: 0, z: 0 }, throttleCh
 export const hoverPilot: Pilot = (session) => {
   const s = session.state;
   const mass = LANDER.dryMass + s.fuelMass;
-  const hold = (mass * (-ENVIRONMENT.gravity.y + 1.5 * (0 - s.velocity.y))) / LANDER.maxThrust;
+  const hold = (mass * (SURFACE_GRAVITY + 1.5 * (0 - s.velocity.y))) / LANDER.maxThrust;
   return { rates: { x: 0, y: 0, z: 0 }, throttleChange: lever(session, hold) };
 };
 
@@ -54,7 +54,7 @@ export const verticalPilot: Pilot = (session) => {
 export const padPilot: Pilot = (session) => {
   const s = session.state;
   const altitude = footClearance(s);
-  const g = -ENVIRONMENT.gravity.y;
+  const g = SURFACE_GRAVITY;
   const up = bodyToWorld(s.orientation, { x: 0, y: 1, z: 0 });
   // Lean along world X (forward) and Z (left of forward is −Z here).
   const steer = (offset: number, velocity: number) => {

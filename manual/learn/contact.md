@@ -26,9 +26,10 @@ $$
 \omega = \sqrt{\frac{4k}{m}}, \qquad \zeta = \frac{4c}{2\sqrt{4k\, m}}
 $$
 
-Con $\zeta < 1$ el módulo rebota; con $\zeta \approx 0{,}7$ se asienta rápido casi
-sin oscilar. Las patas de Gravitas usan $\zeta \approx 0{,}7$ al comprimirse y una
-amortiguación seis veces mayor al extenderse, como los amortiguadores de un auto:
+Con $\zeta$ chico el módulo rebota; cerca de $\zeta \approx 0{,}7$ se asienta rápido
+casi sin oscilar. Al comprimirse, las patas de Gravitas dan $\zeta \approx 0{,}8$ con
+los 60 kg del primer descenso ($\approx 0{,}7$ con el tanque lleno), y al extenderse
+usan una amortiguación seis veces mayor, como los amortiguadores de un auto:
 un golpe fuerte no lanza el módulo de vuelta al aire.
 
 <Legs />

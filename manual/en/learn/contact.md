@@ -26,9 +26,10 @@ $$
 \omega = \sqrt{\frac{4k}{m}}, \qquad \zeta = \frac{4c}{2\sqrt{4k\, m}}
 $$
 
-With $\zeta < 1$ the lander bounces; around $\zeta \approx 0.7$ it settles quickly
-with almost no oscillation. Gravitas legs use $\zeta \approx 0.7$ when compressing
-and six times more damping when extending, like a car's shock absorbers: a hard
+With a small $\zeta$ the lander bounces; around $\zeta \approx 0.7$ it settles quickly
+with almost no oscillation. Compressing, Gravitas legs give $\zeta \approx 0.8$ with
+the first descent's 60 kg ($\approx 0.7$ with a full tank), and extending they use six
+times more damping, like a car's shock absorbers: a hard
 hit doesn't throw the lander back into the air.
 
 <Legs />

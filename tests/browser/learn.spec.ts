@@ -63,3 +63,15 @@ test("Newton's cannon orbits at circular speed and crashes when slow", async ({ 
   await slider.fill('2400');
   await expect(outcome).toHaveText('escapa de la Luna');
 });
+
+test('the convergence table shows real values that change across rows', async ({ page }, info) => {
+  once(info.project.name);
+  await page.goto(`${base}/en/learn/integration.html`);
+  const table = page.locator('.lp-table').nth(1);
+  await table.locator('summary').click();
+  const rows = await table.locator('tbody tr').allTextContents();
+  expect(rows.length).toBe(11);
+  expect(new Set(rows).size).toBe(11); // Each row its own step size and errors.
+  expect(rows[0]).toMatch(/× 10⁻/); // Scientific notation, not a bare log exponent.
+  expect(rows.join(' ')).not.toMatch(/(^|\s)-\d/); // No negative "step sizes".
+});

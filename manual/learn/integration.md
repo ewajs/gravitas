@@ -30,8 +30,8 @@ x_{n+1} = x_n + \frac{h}{6}\left(k_1 + 2k_2 + 2k_3 + k_4\right)
 $$
 
 Su error total es proporcional a $h^4$: con la mitad del paso, el error baja 16
-veces. Gravitas integra con RK4 a 60 pasos por segundo, y en contacto con el suelo
-divide cada paso en cuatro, porque los resortes de las patas son rígidos.
+veces. Gravitas integra con RK4 a 60 pasos por segundo. Como el suelo siempre está
+presente, cada paso se divide en cuatro: los resortes de las patas son rígidos.
 
 <Integrators />
 

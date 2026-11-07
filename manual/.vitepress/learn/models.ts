@@ -277,7 +277,8 @@ export function integrators(h: number, duration = 3): Integrators {
 export function convergence(duration = 1): { euler: Point[]; rk4: Point[] } {
   const euler: Point[] = [];
   const rk4: Point[] = [];
-  for (const steps of [16, 32, 64, 128, 256, 512, 1024, 2048]) {
+  // Finest step first, so log₁₀(step) ascends like every other plotted series.
+  for (const steps of [2048, 1024, 512, 256, 128, 64, 32, 16]) {
     const h = duration / steps;
     let a: Oscillator = [1, 0];
     let b: Oscillator = [1, 0];

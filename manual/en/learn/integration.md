@@ -29,8 +29,8 @@ x_{n+1} = x_n + \frac{h}{6}\left(k_1 + 2k_2 + 2k_3 + k_4\right)
 $$
 
 Its total error is proportional to $h^4$: halve the step and the error drops sixteen
-times. Gravitas integrates with RK4 at 60 steps per second, and splits each step in
-four while touching the ground, because the leg springs are stiff.
+times. Gravitas integrates with RK4 at 60 steps per second. Because the ground is always
+present, each step is split into four: the leg springs are stiff.
 
 <Integrators />
 

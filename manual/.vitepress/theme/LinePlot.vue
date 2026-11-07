@@ -86,12 +86,24 @@ const yTicks = computed(() =>
     ? niceTicks(yDomain.value[0], yDomain.value[1], 5).filter(Number.isInteger)
     : niceTicks(yDomain.value[0], yDomain.value[1], 5),
 );
+const superscript = (n: number) =>
+  String(n)
+    .replace('-', '⁻')
+    .replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(d)]!);
 const tickText = (v: number, log: boolean, digits: number) =>
-  log
-    ? `10${String(v)
-        .replace('-', '⁻')
-        .replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(d)]!)}`
-    : format(v, digits);
+  log ? `10${superscript(v)}` : format(v, digits);
+// Values shown as text. On log axes the data is log₁₀ already, so show the real
+// quantity in scientific notation (3.2 × 10⁻⁵), never the bare exponent.
+const valueText = (v: number) => {
+  if (!props.logTicks) return format(v, props.digits);
+  let exponent = Math.floor(v);
+  let mantissa = Math.round(10 ** (v - exponent) * 10) / 10;
+  if (mantissa >= 10) {
+    mantissa /= 10; // 9.96 rounds to 10.0: show 1.0 × 10ⁿ⁺¹ instead.
+    exponent += 1;
+  }
+  return `${format(mantissa, 1)} × 10${superscript(exponent)}`;
+};
 // Decimals needed to tell ticks apart: 0.025 steps need three, 0.5 steps one.
 const tickDigits = (ticks: readonly number[]) => {
   for (let digits = 0; digits < 3; digits++) {
@@ -110,7 +122,9 @@ const path = (points: readonly Point[]) =>
   points.map(([px, py], i) => `${i ? 'L' : 'M'}${x(px).toFixed(1)},${y(py).toFixed(1)}`).join('');
 
 /** Linear interpolation of a series at x (clamped to its range). */
-function valueAt(points: readonly Point[], at: number): number | undefined {
+function valueAt(unsorted: readonly Point[], at: number): number | undefined {
+  // Lookups need ascending x; series may be sampled in either direction.
+  const points = [...unsorted].sort((a, b) => a[0] - b[0]);
   if (points.length === 0) return undefined;
   if (at <= points[0]![0]) return points[0]![1];
   for (let i = 1; i < points.length; i++) {
@@ -158,7 +172,7 @@ const summary = computed(() => {
   const parts = props.series.map((s) => {
     const end = s.points[s.points.length - 1];
     return end
-      ? `${s.label}: ${format(end[1], props.digits)} ${props.yUnit} ${english.value ? 'at' : 'en'} ${format(end[0], props.digits)} ${props.xUnit}`
+      ? `${s.label}: ${valueText(end[1])} ${props.yUnit} ${english.value ? 'at' : 'en'} ${valueText(end[0])} ${props.xUnit}`
       : s.label;
   });
   return `${props.title}. ${parts.join('; ')}.`;
@@ -317,11 +331,11 @@ const t = computed(() =>
       :style="{ left: `${(x(hover) / W) * 100}%` }"
     >
       <div>
-        {{ xLabel }}: <strong>{{ format(hover, digits) }} {{ xUnit }}</strong>
+        {{ xLabel }}: <strong>{{ valueText(hover) }} {{ xUnit }}</strong>
       </div>
       <div v-for="r in readout" :key="`r${r.s.id}`" class="row">
         <span class="lp-key" :style="{ background: color(r.s.slot) }" />
-        <strong>{{ r.value === undefined ? '—' : `${format(r.value, digits)} ${yUnit}` }}</strong>
+        <strong>{{ r.value === undefined ? '—' : `${valueText(r.value)} ${yUnit}` }}</strong>
         <span>{{ r.s.label }}</span>
       </div>
     </div>
@@ -336,9 +350,9 @@ const t = computed(() =>
         </thead>
         <tbody>
           <tr v-for="row in table" :key="row.at">
-            <td>{{ format(row.at, digits) }} {{ xUnit }}</td>
+            <td>{{ valueText(row.at) }} {{ xUnit }}</td>
             <td v-for="(v, i) in row.values" :key="i">
-              {{ v === undefined ? '—' : `${format(v, digits)} ${yUnit}` }}
+              {{ v === undefined ? '—' : `${valueText(v)} ${yUnit}` }}
             </td>
           </tr>
         </tbody>

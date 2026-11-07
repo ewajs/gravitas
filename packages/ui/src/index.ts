@@ -6,6 +6,7 @@ export type {
   FlightPhase,
   FlightRequest,
   FlightTelemetry,
+  InputDevice,
   LandingCheck,
   LandingReport,
   RadarVector,

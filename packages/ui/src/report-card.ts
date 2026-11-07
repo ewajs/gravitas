@@ -30,12 +30,14 @@ const BADGES = {
 
 /**
  * The verdict and why: each judged quantity against its limit, fuel and time,
- * Try again, and the manual when `manualHref` is set.
+ * Try again (with the key or button that also retries), and the manual when
+ * `manualHref` is set.
  */
 export function reportCard(
   report: LandingReport,
   locale: Locale,
   manualHref: string,
+  retryKey: string,
   onRetry: () => void,
 ): TemplateResult {
   const { whole, percent, fixed } = numberFormats(locale);
@@ -133,7 +135,7 @@ export function reportCard(
     </dl>
     <div class="card-actions">
       <button class="primary" @click=${onRetry} aria-keyshortcuts="Enter">
-        ${msg('Reintentar', { id: 'retry' })}<kbd aria-hidden="true">Enter</kbd>
+        ${msg('Reintentar', { id: 'retry' })}<kbd aria-hidden="true">${retryKey}</kbd>
       </button>
       ${
         manualHref

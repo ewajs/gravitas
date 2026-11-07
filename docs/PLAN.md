@@ -220,12 +220,15 @@ pinch zoom and double-tap zoom are blocked.
         flight bit-identical (34,619 hashed ticks); both browser suites unchanged.
         See [ADR 0016](decisions/0016-input-layer.md) and
         [input verification](verification/input.md).
-  - [ ] **4.3b Gamepad:** standard-mapping gamepads polled each frame:
-        proportional right-stick pitch and roll with a dead zone, bumpers for
-        yaw, triggers raising and lowering the lever in proportion to pressure, A
-        to start or try again, Start to pause; connect and disconnect; gamepad
-        hints in "How to fly" and Help while one is in use. **Verify:** mapping
-        unit tests; browser tests with a stubbed `navigator.getGamepads`.
+  - [x] **4.3b Gamepad:** standard-mapping gamepads polled each frame:
+        proportional right-stick pitch and roll with a dead zone and a gentle
+        curve, bumpers for yaw, triggers raising and lowering the lever in
+        proportion to pressure, A to start, resume, or try again, Start to pause;
+        a lost pad pauses; gamepad hints in "How to fly", Help, and the phase
+        messages while one is in use. **Verify:** mapping and source unit tests;
+        browser tests with a stubbed `navigator.getGamepads`; keyboard flights
+        still bit-identical. No physical controller was available; see
+        [input verification](verification/input.md).
   - [ ] **4.3c Touch controls:** a themed `@gravitas/ui` element: a non-centering
         left-thumb lever with a hover detent, a floating right-thumb stick, yaw
         buttons; multi-touch without stuck input; shown on touch, hidden after

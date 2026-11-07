@@ -21,4 +21,4 @@ does not imply implemented code.
 | [0013](0013-learn-section.md)                | A Learn section that runs the real engine                      | Implemented; content awaits review  |
 | [0014](0014-theme-system.md)                 | Typed themes that generate CSS variables and scene accents     | Implemented                         |
 | [0015](0015-glass-look-and-typefaces.md)     | The Glass look: self-hosted typefaces, translucent panels      | Implemented                         |
-| [0016](0016-input-layer.md)                  | One input layer: sources merged into one pilot input per frame | Implemented (keyboard source)       |
+| [0016](0016-input-layer.md)                  | One input layer: sources merged into one pilot input per frame | Implemented (keyboard, gamepad)     |

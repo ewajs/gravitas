@@ -45,3 +45,31 @@ All 33 scenarios (34,619 ticks over 45,171 frames) match. As a sensitivity check
 deliberately altered merge (returning `throttleSet: undefined` instead of omitting
 it, and a sign-dependent zero for cancelled axes) changed all 24 keyboard
 scenarios.
+
+## 4.3b Gamepad
+
+Verified locally on 2026-11-07, without a physical controller (the owner has
+none): every check uses a simulated pad.
+
+- `npm run check`: 159 unit tests in 26 files passed. New: `gamepadInput` (rest
+  and dead zone, keyboard signs for the right stick, proportional and gentle near
+  centre, left stick ignored, bumpers, trigger pressure with its dead zone,
+  opposing triggers), the source (A and Start fire once per press, polling before
+  sampling, deliberate input reported as active, non-standard mappings ignored,
+  connection changes by polling and by event, a throwing `getGamepads`), the
+  shared `stickResponse`, and the device the merge reports.
+- Browser (`tests/browser/gamepad.spec.ts`), with `navigator.getGamepads`
+  replaced before the app loads and `gamepadconnected`/`gamepaddisconnected`
+  dispatched: any button makes the gamepad the device in use (start card, phase
+  message, and Start keycap change); A starts; a 40% trigger ramps the lever
+  slowly and release holds it; the right stick leans the radar forward; Start
+  pauses; Help lists the pad's controls and ignores A while open; A resumes; a
+  lost pad pauses and returns the hints to the keyboard; after a crash, A tries
+  again; a pad without the standard mapping is ignored.
+- Keyboard flights stay bit-identical with the gamepad source present and no pad
+  connected: the 4.3a harness, rerun with `PilotInputs([keyboard, gamepad])`,
+  matches all 33 scenarios.
+- Not verified: real controllers. Chrome, Edge, Firefox, and Safari expose
+  common Xbox and PlayStation pads with the standard mapping, but button labels,
+  trigger ranges, and stick drift vary by pad and browser. Browsers reveal a pad
+  only after one of its buttons is pressed while the page is visible.

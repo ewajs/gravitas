@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
 import { msg, updateWhenLocaleChanges } from '@lit/localize';
-import { helpDialog, quickCard } from './help';
+import { confirmKey, helpDialog, quickCard } from './help';
 import { icons } from './icons';
 import { instruments } from './instruments';
 import { type Locale, viewportMessages } from './localization';
@@ -13,6 +13,7 @@ import type {
   FlightPhase,
   FlightRequest,
   FlightTelemetry,
+  InputDevice,
   LandingReport,
   LocaleRequest,
   SoundRequest,
@@ -26,6 +27,8 @@ export class FlightHud extends LitElement {
   @property({ attribute: false }) telemetry?: FlightTelemetry;
   /** Current session phase owned by the application. */
   @property() phase: FlightPhase = 'ready';
+  /** The device the player is using; the start card, Help, and hints describe its controls. */
+  @property() inputDevice: InputDevice = 'keyboard';
   /** Whether sound is muted; the Mute button shows it as pressed. */
   @property({ type: Boolean }) muted = false;
   /** Show the "How to fly" card while ready; hosts hide it once the player has read it. */
@@ -104,6 +107,14 @@ export class FlightHud extends LitElement {
     );
   }
 
+  /**
+   * Whether Help is open. Hosts ignore flight commands from devices that do not
+   * move focus (a gamepad) while it is, as keys inside the dialog are ignored.
+   */
+  get helpOpen(): boolean {
+    return this.renderRoot.querySelector('dialog')?.open ?? false;
+  }
+
   private openHelp() {
     // Reading help should never cost the player their flight.
     if (this.phase === 'flying') this.request('pause');
@@ -114,11 +125,16 @@ export class FlightHud extends LitElement {
   }
 
   private phaseMessage() {
+    const pad = this.inputDevice === 'gamepad';
     switch (this.phase) {
       case 'ready':
-        return msg('Listo para descender. Pulsá P o Comenzar.', { id: 'phase-ready' });
+        return pad
+          ? msg('Listo para descender. Pulsá A o Comenzar.', { id: 'phase-ready-pad' })
+          : msg('Listo para descender. Pulsá P o Comenzar.', { id: 'phase-ready' });
       case 'paused':
-        return msg('En pausa. Pulsá P o Reanudar.', { id: 'phase-paused' });
+        return pad
+          ? msg('En pausa. Pulsá A o Reanudar.', { id: 'phase-paused-pad' })
+          : msg('En pausa. Pulsá P o Reanudar.', { id: 'phase-paused' });
       case 'complete':
         // The live region announces the verdict; the card shows it, so it is hidden here.
         return this.report ? verdictTitle(this.report.verdict) : '';
@@ -216,7 +232,7 @@ export class FlightHud extends LitElement {
         this.status === 'ready'
           ? html`<div class="overlay">
                 <p id="phase" role="status" class=${quiet ? 'sr' : ''}>${message}</p>
-                ${this.phase === 'ready' && this.showControls ? quickCard(this.heading) : nothing}
+                ${this.phase === 'ready' && this.showControls ? quickCard(this.heading, this.inputDevice) : nothing}
                 ${
                   this.phase === 'ready'
                     ? html`<div class="actions">
@@ -225,7 +241,9 @@ export class FlightHud extends LitElement {
                           @click=${() => this.request('start')}
                           aria-keyshortcuts="P"
                         >
-                          ${msg('Comenzar', { id: 'start' })}<kbd aria-hidden="true">P</kbd>
+                          ${msg('Comenzar', { id: 'start' })}<kbd aria-hidden="true"
+                            >${confirmKey(this.inputDevice)}</kbd
+                          >
                         </button>
                       </div>`
                     : nothing
@@ -241,11 +259,19 @@ export class FlightHud extends LitElement {
                     </section>`
                   : nothing
               }
-              <p id="controls">${text.controls}</p>
+              <p id="controls">
+                ${
+                  this.inputDevice === 'gamepad'
+                    ? msg('Stick derecho: inclinar · LB/RB: girar · RT/LT: empuje · Start: pausa', {
+                        id: 'controls-pad',
+                      })
+                    : text.controls
+                }
+              </p>
               ${
                 this.phase === 'complete' && this.report
                   ? html`<div class="results">
-                      ${reportCard(this.report, this.locale, this.manualHref, () => this.request('restart'))}
+                      ${reportCard(this.report, this.locale, this.manualHref, this.inputDevice === 'gamepad' ? 'A' : 'Enter', () => this.request('restart'))}
                     </div>`
                   : nothing
               }`
@@ -254,6 +280,7 @@ export class FlightHud extends LitElement {
       ${helpDialog(
         this.manualHref,
         this.reduceTransparency,
+        this.inputDevice,
         () => this.closeHelp(),
         (reduce) => this.requestAppearance(reduce),
       )}

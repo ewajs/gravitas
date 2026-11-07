@@ -52,10 +52,14 @@ function ignored(event: KeyboardEvent): boolean {
  * Z and X queue a one-shot lever setting until sampled; commands call back at once.
  */
 export class KeyboardControls implements InputSource {
+  readonly device = 'keyboard';
   readonly #target: Window;
   readonly #onCommand: (command: InputCommand) => void;
   readonly #held = new Set<string>();
   #throttleSet: 0 | 1 | undefined;
+  // A flight key went down since the last sample; with held keys, makes the sample active.
+  #pressed = false;
+  #active = false;
 
   constructor(target: Window, onCommand: (command: InputCommand) => void) {
     this.#target = target;
@@ -64,10 +68,17 @@ export class KeyboardControls implements InputSource {
     target.addEventListener('keyup', this.#keyUp);
   }
 
+  /** Whether the latest sample had a key held, or followed a flight key press. */
+  get active(): boolean {
+    return this.#active;
+  }
+
   /** Current held input plus any queued throttle setting, which this call consumes. */
   sample(): PilotInput {
     const input = pilotInput(this.#held, this.#throttleSet);
     this.#throttleSet = undefined;
+    this.#active = this.#pressed || this.#held.size > 0;
+    this.#pressed = false;
     return input;
   }
 
@@ -96,6 +107,7 @@ export class KeyboardControls implements InputSource {
     } else {
       return;
     }
+    this.#pressed = true;
     event.preventDefault();
   };
 

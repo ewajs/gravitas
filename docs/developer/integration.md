@@ -49,7 +49,10 @@ interpolation.
 ```ts
 registerUi();
 const hud = document.querySelector('gravitas-flight-hud')!;
-const inputs = new PilotInputs([new KeyboardControls(window, inputCommand)]);
+const inputs = new PilotInputs([
+  new KeyboardControls(window, inputCommand),
+  new GamepadControls(navigator, window, inputCommand, gamepadConnection),
+]);
 hud.addEventListener('flight-request', flightRequested);
 window.addEventListener('blur', () => inputs.clear());
 ```
@@ -88,6 +91,16 @@ or with Ctrl/Meta/Alt are ignored, so menus and browser shortcuts keep working.
 HUD buttons emit `flight-request`. Both paths call the same `flightAction`.
 Pausing and restarting also release held input, because a keyup may never arrive
 after focus moves.
+
+`GamepadControls` (`gamepad.ts`) is the gamepad source. Browsers expose gamepads
+only by polling, so the frame loop calls `inputs.poll()` first: it reads the first
+connected pad with the standard mapping and turns fresh presses of A and Start
+into `confirm` and `toggle-pause`, before the frame's timing, so a start begins
+timing at once. `gamepadInput()` is the pure mapping (right stick through the
+shared `stickResponse` dead zone and curve, bumpers, trigger pressure). Each
+source reports whether its latest sample was deliberate input; the app sets the
+HUD's `inputDevice` when that device changes, never per frame. While Help is open
+(`hud.helpOpen`) the pad's buttons are ignored, and a lost pad pauses the flight.
 
 ## Sound and settings
 
@@ -133,9 +146,11 @@ the app sets the HUD status to `ready` and starts scheduling frames.
 
 ```ts
 function draw(timestamp: number) {
+  inputs.poll(); // Gamepads: their commands act before this frame's timing
   const elapsed = lastFrame === undefined ? 0 : (timestamp - lastFrame) / 1000;
   lastFrame = timestamp;
   session.advance(elapsed, inputs.sample()); // Whole 60 Hz ticks, at most 5
+  if (inputs.activeDevice) useDevice(inputs.activeDevice); // Help follows the device
   viewport.setVehiclePose(session.state, session.previous);
   viewport.setLegCompression(legCompression()); // contactFacts penetration per foot
   viewport.setActuators(session.actuation); // What the last tick applied: plume, puffs, dust

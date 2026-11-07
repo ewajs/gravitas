@@ -41,7 +41,7 @@ export const templates = {
   'radar-help':
     'The radar faces where the lander points: up is forward (W). The dot shows where thrust is leaning; the arrow, your horizontal drift; the diamond, the pad (hollow beyond 60 m). To stop drifting, lean against the arrow. The mark on the throttle bar shows what it takes to hover.',
   'flight-help':
-    'Rotation keys request a turn rate. When you release them, attitude control stops the rotation but does not level the lander. Rotating uses fuel from the same tank as the engine. Altitude is measured from the lowest foot.',
+    'Rotation controls request a turn rate; a stick, in proportion to how far you push it. When you release them, attitude control stops the rotation but does not level the lander. Rotating uses fuel from the same tank as the engine. Altitude is measured from the lowest foot.',
   retry: 'Try again',
   'quick-title': 'How to fly',
   'quick-tilt': 'Tilt the lander',
@@ -81,6 +81,13 @@ export const templates = {
     'The scale under vertical speed shades how fast it is wise to sink at your altitude. It is a guide: the landing limits do not change.',
   'display-title': 'Display',
   'reduce-transparency': 'Reduce transparency',
+  'pad-right-stick': 'Right stick',
+  'help-tilt-pad': 'Pitch and roll',
+  'help-throttle-pad': 'Raise / lower throttle (press harder, faster)',
+  'help-confirm-pad': 'Start, resume, or try again',
+  'phase-ready-pad': 'Ready to descend. Press A or Start.',
+  'phase-paused-pad': 'Paused. Press A or Resume.',
+  'controls-pad': 'Right stick: tilt · LB/RB: turn · RT/LT: throttle · Start: pause',
   'reduce-transparency-note':
     'Solid panels without blur. It is on anyway when your system asks for less transparency.',
 };

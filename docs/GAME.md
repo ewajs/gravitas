@@ -9,7 +9,12 @@ document distinguishes shipped behavior from future direction.
 The lander starts 80 m up, facing the pad 30 m ahead, sinking and drifting toward
 it. It waits until the player presses P or Start. Then the player flies with the
 keyboard: W/S pitch, A/D roll, Q/E yaw, R/F raise or lower the throttle lever,
-Z/X set full or cut, P pauses, Enter restarts. Rotation keys request a turn rate;
+Z/X set full or cut, P pauses, Enter restarts. A standard-layout gamepad also
+flies: the right stick pitches and rolls in proportion to how far it is pushed
+(gently near centre), LB/RB yaw, RT/LT raise and lower the lever faster the
+harder they are pressed, A starts, resumes, or tries again, and Start pauses.
+While a gamepad is in use, the start card, Help, and hints show its buttons;
+losing it mid-flight pauses. Rotation controls request a turn rate;
 releasing them stops rotation but does not level the lander. Rotation burns
 fuel from the same tank as the engine.
 

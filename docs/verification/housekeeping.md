@@ -47,8 +47,8 @@ that moved from the tests into `pilots.ts` fly with bit-identical inputs and
 states to the inline originals (5,825 and 467 ticks).
 
 The code wrote clamps in two operation orders. Over special values (signed
-zeros, infinities, NaN) both agree whenever min ≤ max; only the degenerate range
-[+0, −0] differs, and no call site can produce it.
+zeros, infinities, NaN) they agree on every range except [+0, −0], which
+JavaScript counts as min ≤ max; no call site can produce that range.
 
 ## Learn models
 

@@ -18,6 +18,9 @@ so W always tilts toward the top of the screen and A toward the left. It looks
 steeply down at altitude, keeping the pad ahead in view, and flattens near the
 ground. Drag to look around (it eases back) and scroll to zoom. A blue ring and
 line mark the ground straight below; rocks and craters show height and motion.
+The engine plume grows with the throttle and lights the ground; attitude
+thrusters puff where they fire; near the surface, the exhaust raises dust. Flicker
+and dust motion stop when the system asks for reduced motion.
 
 The instruments put altitude and vertical speed first. A heading-up landing
 radar shows where thrust is leaning (dot), horizontal drift (arrow), and the pad

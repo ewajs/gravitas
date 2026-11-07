@@ -1,7 +1,8 @@
 # @gravitas/viewport
 
 Three.js presentation library. It owns its canvas, chase camera, procedural
-artwork and surface detail, pose interpolation, resize observer, and GPU resources. The
+artwork and surface detail, actuator effects, pose interpolation, resize observer,
+and GPU resources. The
 host owns simulation state, vehicle poses, frame scheduling, and localization.
 
 ```ts
@@ -19,6 +20,9 @@ await viewport.init();
 // Each animation frame, after the host's fixed-step simulation:
 viewport.setVehiclePose(currentTickPose, previousTickPose);
 viewport.render(remainderFraction); // Blend in [0, 1]; the host schedules frames.
+
+// What the actuators did this tick: plume, light, thruster puffs, dust.
+viewport.setActuators({ throttle: 0.6, attitude: { x: -1, y: 0, z: 0 } });
 
 // Presentation of contact: each foot's penetration, in foot order.
 viewport.setLegCompression([0.03, 0.03, 0.03, 0.03]);
@@ -66,6 +70,23 @@ the screen.
 - Panning is disabled. At an exact inversion, where heading is undefined, the
   camera holds its last heading. `resetCamera()` snaps to the default chase
   position.
+
+## Effects
+
+`setActuators({ throttle, attitude })` shows what the vehicle's actuators did:
+
+- **`throttle`** in [0, 1] drives a two-layer additive plume (up to 4 m long) and a
+  warm point light below the bell.
+- **`attitude`** is torque per body axis as a fraction of its limit, each in
+  [−1, 1]. It lights puffs at the four thruster quads, aimed along each quad's
+  exhaust as the torque requires: pitch fires front and back, roll fires left and
+  right, yaw fires all four sideways.
+- **Dust:** below 12 m with the engine firing, a soft ring of dust spreads on the
+  ground beneath the vehicle.
+
+Flames are not tone-mapped, so they keep their colour. Flicker and dust motion use
+viewport's presentation clock and stop entirely under `prefers-reduced-motion`.
+Pass what the simulation actually applied: zero when the tank is empty.
 
 `setLegCompression` takes four non-negative metres in foot order: left-front,
 left-back, right-front, right-back (front is body −Z). It raises each drawn foot

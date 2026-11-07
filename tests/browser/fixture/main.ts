@@ -46,6 +46,9 @@ const fixture = {
     viewport!.setVehiclePose(pose);
     return before === JSON.stringify(pose);
   },
+  setActuators(throttle: number, attitude = { x: 0, y: 0, z: 0 }) {
+    viewport!.setActuators({ throttle, attitude });
+  },
   setLegCompression(compressions: number[]) {
     viewport!.setLegCompression(compressions);
   },
@@ -60,6 +63,7 @@ const fixture = {
     context.drawImage(canvas, 0, 0);
     const { data } = context.getImageData(0, 0, copy.width, copy.height);
     let gold = 0,
+      flame = 0,
       white = 0,
       sumX = 0,
       sumY = 0;
@@ -73,8 +77,10 @@ const fixture = {
         sumY += Math.floor(i / 4 / copy.width);
       }
       if (Math.min(r, g, b) > 140 && Math.max(r, g, b) - Math.min(r, g, b) < 80) white++;
+      // Brighter than anything lit by the sun alone: the additive flame core.
+      if (r + g + b > 600 && r >= b) flame++;
     }
-    return { gold, white, x: sumX / gold, y: sumY / gold };
+    return { gold, flame, white, x: sumX / gold, y: sumY / gold };
   },
   holdInitialization(backend: BackendRequest) {
     const gate = new Promise<void>((resolve) => {

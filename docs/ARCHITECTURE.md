@@ -34,8 +34,8 @@ directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 one heading definition. `contactFacts` and the `Surface` seam report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
-with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render, and
-camera-reset operations. UI exposes
+with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,
+camera-reset, leg-compression, and actuator-effect operations. UI exposes
 `FlightHud`, explicit registration, telemetry/request types, and localized messages.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
@@ -146,6 +146,7 @@ language. Main deployments publish all three.
    session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
    the current and previous tick poses and the remainder fraction. Viewport blends
    them, draws each leg compressed by its contact penetration (from `contactFacts`),
+   shows the actuators the session actually applied (plume, thruster puffs, dust),
    advances the chase camera on its own presentation clock, and draws.
 5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
    at once on any phase change. It includes heading-frame radar vectors (lean,

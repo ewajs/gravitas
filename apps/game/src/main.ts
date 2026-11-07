@@ -64,6 +64,7 @@ function draw(timestamp: number): void {
     session.advance(elapsed, keyboard.sample());
     viewport?.setVehiclePose(session.state, session.previous);
     viewport?.setLegCompression(legCompression());
+    viewport?.setActuators(session.actuation);
     viewport?.render(session.alpha);
     // Keep instruments live while a crash plays out after the verdict, too.
     const moving = session.phase === 'flying' || session.phase === 'complete';

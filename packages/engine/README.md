@@ -2,7 +2,8 @@
 
 Pure flight dynamics over plain data, independent of rendering and browser APIs.
 It exports the shared `VehiclePose` contract, `stepFlight` for one rigid vehicle
-with optional surface contact, `contactFacts`,
+with optional surface contact, gravity fields and planetary
+[frames](#gravity-and-frames) with the built-in `MOON`, `contactFacts`,
 `rateControlTorque` for body-rate assistance, the orientation helpers
 `bodyToWorld`, `headingAngle`, and `tiltAngle`, and the vector and angle
 [math helpers](#math-helpers) the dynamics use. The host owns state, time,
@@ -45,8 +46,8 @@ does not notify Lit, so pass a new snapshot when presentation data changes.
 
 ## Dynamics
 
-- Uniform gravity; main thrust along body +Y through the centre of mass; current
-  mass sets acceleration.
+- Uniform or central-body gravity, optionally in a rotating frame; main thrust
+  along body +Y through the centre of mass; current mass sets acceleration.
 - Euler's rigid-body equations about constant principal axes.
 - Main engine and attitude couples draw from one tank. A step that empties it
   splits at the burnout instant, leaving exactly zero fuel. Afterwards there is
@@ -58,6 +59,44 @@ does not notify Lit, so pass a new snapshot when presentation data changes.
 (swing-twist about world Y). Zero faces −Z, positive turns left, and it stays
 continuous at any tilt except exactly inverted, where it returns 0. Viewport's
 chase camera and the game's radar share it, so screen-up and radar-up agree.
+
+## Gravity and frames
+
+`environment.gravity` is a `GravityField`. The flat opening uses
+`{ kind: 'uniform', acceleration: { x: 0, y: -1.62, z: 0 } }`. For orbits and
+planet-scale descents, use a body's inverse-square field, and fly in the frame
+that suits the job:
+
+```ts
+import {
+  bodyFixedEnvironment,
+  bodyFixedToInertial,
+  MOON,
+  surfaceEnvironment,
+  surfaceFrame,
+  toRadians,
+} from '@gravitas/engine';
+
+// Moon-fixed: the ground stands still; Coriolis and centrifugal terms act.
+const moonFixed = bodyFixedEnvironment(MOON);
+// A site's local frame: +Y up, +X east, −Z north; the centre lies below.
+const site = surfaceFrame(MOON, {
+  latitude: toRadians(26.1),
+  longitude: toRadians(3.6),
+  altitude: 0,
+});
+const local = { ...surfaceEnvironment(MOON, site), surface: { kind: 'flat', height: 0 } } as const;
+// The same state seen from inertial space, t seconds after the frames coincided.
+const inertial = bodyFixedToInertial(state, MOON, t);
+```
+
+Body-fixed axes have +Y at the north pole, +X at latitude 0, longitude 0, and
+longitude 90° east along −Z. The inertial frame matches them at time 0 and does not
+turn. `surfaceToBodyFixed` and `bodyFixedToSurface` convert latitude, longitude,
+and altitude; `surfaceFrameToBodyFixed` and `bodyFixedToSurfaceFrame` move whole
+states. `FlightState.angularVelocity` is always relative to inertial space, so it
+is the same in every frame. Constants, equations, and the precision budget are in
+[ADR 0018](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0018-gravity-and-frames.md).
 
 ## Surface contact
 
@@ -108,7 +147,7 @@ Equations, parameters, worked examples, and simplifications are in the
 The dynamics use small helpers over the shared `Vector3` and `Quaternion` types,
 and hosts use the same ones instead of their own copies: `add`, `addScaled`,
 `dot`, `cross`, and `magnitude` for vectors; `normalizeQuaternion`, `conjugate`,
-and `rotationAbout` for rotations; and `clamp`, `toRadians`, and `toDegrees` for
+`multiplyQuaternions`, and `rotationAbout` for rotations; and `clamp`, `toRadians`, and `toDegrees` for
 numbers. They return new objects but, unlike the simulation functions, do not
 validate (NaN in gives NaN out), because they run in every integration stage.
 Engine angles are radians; convert degrees only at the edges. The main entry

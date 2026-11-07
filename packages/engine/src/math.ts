@@ -101,3 +101,17 @@ export function conjugate(q: Quaternion): Quaternion {
 export function rotationAbout(axis: 'x' | 'y' | 'z', angle: number): Quaternion {
   return { x: 0, y: 0, z: 0, [axis]: Math.sin(angle / 2), w: Math.cos(angle / 2) };
 }
+
+/**
+ * Hamilton product `a ⊗ b`: the rotation that applies `b` first, then `a`. For
+ * body-to-world quaternions, `frame ⊗ q` re-expresses `q` in another frame.
+ * @group Math
+ */
+export function multiplyQuaternions(a: Quaternion, b: Quaternion): Quaternion {
+  return {
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+  };
+}

@@ -5,6 +5,7 @@ import {
   stepFlight,
   type FlightCommand,
   type FlightState,
+  type GravityField,
   type VehicleParameters,
   type Vector3,
 } from './index';
@@ -24,7 +25,9 @@ const vehicle: VehicleParameters = {
 const attitudeFlow = (axis: 'x' | 'y' | 'z', torque: number) =>
   Math.abs(torque) / (vehicle.attitudeLeverArm[axis] * vehicle.attitudeExhaustVelocity);
 const coast: FlightCommand = { throttle: 0, bodyTorque: zero };
-const gravity = { x: 0, y: -1.62, z: 0 };
+const lunarAcceleration = { x: 0, y: -1.62, z: 0 };
+const gravity: GravityField = { kind: 'uniform', acceleration: lunarAcceleration };
+const weightless: GravityField = { kind: 'uniform', acceleration: zero };
 const initial = (changes: Partial<FlightState> = {}): FlightState => ({
   position: { x: 0, y: 100, z: 0 },
   velocity: zero,
@@ -39,10 +42,16 @@ function simulate(
   seconds = 1,
   dt = MAX_FLIGHT_STEP,
   parameters = vehicle,
-  acceleration = gravity,
+  acceleration = lunarAcceleration,
 ): FlightState {
   for (let n = 0; n < Math.round(seconds / dt); n++)
-    state = stepFlight(state, command, parameters, { gravity: acceleration }, dt);
+    state = stepFlight(
+      state,
+      command,
+      parameters,
+      { gravity: { kind: 'uniform', acceleration } },
+      dt,
+    );
   return state;
 }
 function expectVector(actual: Vector3, expected: Vector3, digits = 9) {
@@ -273,7 +282,7 @@ describe('body-rate assistance', () => {
         s,
         { throttle: 0, bodyTorque: rateControlTorque(s.angularVelocity, input, vehicle, settings) },
         vehicle,
-        { gravity: zero },
+        { gravity: weightless },
         MAX_FLIGHT_STEP,
       );
     };
@@ -343,7 +352,7 @@ describe('simulation boundary', () => {
         initial(),
         coast,
         vehicle,
-        { gravity: { x: Infinity, y: 0, z: 0 } },
+        { gravity: { kind: 'uniform', acceleration: { x: Infinity, y: 0, z: 0 } } },
         MAX_FLIGHT_STEP,
       ),
     ).toThrow(RangeError);

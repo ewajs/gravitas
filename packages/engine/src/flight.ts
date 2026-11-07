@@ -6,6 +6,15 @@ import {
   type ContactPoint,
   type Surface,
 } from './contact';
+import {
+  gravityAcceleration,
+  rotatingFrameAcceleration,
+  validateGravity,
+  validateGravityPosition,
+  validateRotation,
+  type FrameRotation,
+  type GravityField,
+} from './gravity';
 import { add, addScaled, normalizeQuaternion } from './math';
 import { bounded, positive, unitQuaternion, vector } from './validation';
 
@@ -13,7 +22,10 @@ import { bounded, positive, unitQuaternion, vector } from './validation';
 export interface FlightState extends VehiclePose {
   /** Centre-of-mass velocity in world metres per second. */
   readonly velocity: Vector3;
-  /** Angular velocity about body +X/+Y/+Z in radians per second (right-hand rule). */
+  /**
+   * Angular velocity relative to inertial space about body +X/+Y/+Z, in radians per
+   * second (right-hand rule): what gyroscopes measure, the same in every world frame.
+   */
   readonly angularVelocity: Vector3;
   /** Remaining propellant in the shared main/attitude tank, in kilograms. */
   readonly fuelMass: number;
@@ -44,10 +56,15 @@ export interface VehicleParameters {
   readonly contacts?: readonly ContactPoint[];
 }
 
-/** Constant environment during a step; the host chooses gravity and scenario. */
+/** Constant environment during a step; the host chooses gravity, frame, and scenario. */
 export interface FlightEnvironment {
-  /** Uniform world acceleration in metres per second squared. */
-  readonly gravity: Vector3;
+  /** Uniform gravity, or a central body's inverse-square pull. */
+  readonly gravity: GravityField;
+  /**
+   * The world frame's spin relative to inertial space, such as a moon's frame where
+   * the ground stands still; omit for a non-rotating frame.
+   */
+  readonly rotation?: FrameRotation;
   /** Ground the vehicle's contact points can touch; omit for free flight. */
   readonly surface?: Surface;
 }
@@ -141,7 +158,7 @@ function derivative(
   const q = s.orientation;
   const w = s.angularVelocity;
   const i = v.inertia;
-  const gravity = environment.gravity;
+  const gravity = gravityAcceleration(environment.gravity, s.position);
   const mass = v.dryMass + Math.max(0, s.fuelMass);
   const contact =
     environment.surface && v.contacts
@@ -151,7 +168,7 @@ function derivative(
   // Intermediate RK stages need a unit rotation for thrust, but q-dot uses the raw stage q.
   const normSquared = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
   const acceleration = a.thrust / mass;
-  return {
+  const derivatives: FlightState = {
     position: s.velocity,
     velocity: {
       x:
@@ -181,6 +198,26 @@ function derivative(
       w: -(q.x * w.x + q.y * w.y + q.z * w.z) / 2,
     },
     fuelMass: -a.massFlow,
+  };
+  return environment.rotation ? inRotatingFrame(s, derivatives, environment.rotation) : derivatives;
+}
+
+// The same derivatives seen from a turning frame: velocity gains the Coriolis and
+// centrifugal terms, and orientation, measured against the turning axes, falls
+// behind by the frame's own spin: q-dot = 1/2 q * omega_body - 1/2 Omega_world * q.
+function inRotatingFrame(s: FlightState, d: FlightState, rotation: FrameRotation): FlightState {
+  const fictitious = rotatingFrameAcceleration(rotation, s.position, s.velocity);
+  const q = s.orientation;
+  const o = rotation.angularVelocity;
+  return {
+    ...d,
+    velocity: add(d.velocity, fictitious),
+    orientation: {
+      x: d.orientation.x - (q.w * o.x + o.y * q.z - o.z * q.y) / 2,
+      y: d.orientation.y - (q.w * o.y + o.z * q.x - o.x * q.z) / 2,
+      z: d.orientation.z - (q.w * o.z + o.x * q.y - o.y * q.x) / 2,
+      w: d.orientation.w + (o.x * q.x + o.y * q.y + o.z * q.z) / 2,
+    },
   };
 }
 
@@ -225,6 +262,8 @@ function integrate(
  * splits into a powered interval and an unpowered coast, ending with exactly zero
  * fuel. With an environment surface and vehicle contacts, spring-damper contact
  * forces act at each point and the step is integrated in CONTACT_SUBSTEP pieces.
+ * With an environment rotation, the world frame turns relative to inertial space and
+ * the Coriolis and centrifugal accelerations act.
  * Rejects invalid inputs or a timestep outside (0, MAX_FLIGHT_STEP].
  */
 export function stepFlight(
@@ -238,7 +277,9 @@ export function stepFlight(
   if (dt > MAX_FLIGHT_STEP) throw new RangeError('dt exceeds MAX_FLIGHT_STEP');
   validateVehicle(vehicle);
   validateState(state, vehicle.fuelCapacity);
-  vector(environment.gravity, 'gravity');
+  validateGravity(environment.gravity);
+  validateGravityPosition(environment.gravity, state.position);
+  if (environment.rotation) validateRotation(environment.rotation);
   if (environment.surface) validateSurface(environment.surface);
   bounded(command.throttle, 0, 1, 'throttle');
   for (const axis of ['x', 'y', 'z'] as const) {

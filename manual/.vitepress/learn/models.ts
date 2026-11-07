@@ -3,7 +3,9 @@
 // reader can see the two agree. Pure functions; no DOM.
 import {
   contactFacts,
+  gravityAcceleration,
   MAX_FLIGHT_STEP,
+  MOON,
   rateControlTorque,
   rotationAbout,
   stepFlight,
@@ -11,6 +13,7 @@ import {
   toRadians,
   type ContactPoint,
   type FlightState,
+  type GravityField,
   type VehicleParameters,
 } from '@gravitas/engine';
 import { ATTITUDE, CENTER_OF_MASS_HEIGHT, CONTACTS, LANDER } from '../../../apps/game/src/lander';
@@ -23,6 +26,12 @@ const UPRIGHT = { x: 0, y: 0, z: 0, w: 1 } as const;
 const COAST = { throttle: 0, bodyTorque: ZERO } as const;
 // The game's lander without contact points, for explorers that never touch the ground.
 const FREE_FLIGHT_LANDER: VehicleParameters = { ...LANDER, contacts: [] };
+
+// Uniform downward gravity of g m/s², as the game's flat ground uses.
+const uniform = (g: number): GravityField => ({
+  kind: 'uniform',
+  acceleration: { x: 0, y: -g, z: 0 },
+});
 
 const state = (changes: Partial<FlightState>): FlightState => ({
   position: ZERO,
@@ -65,7 +74,7 @@ export function freeFall(h0: number, v0: number, g: number): FreeFall {
   }
   const engine: Point[] = [[0, h0]];
   let s = state({ position: { x: 0, y: h0, z: 0 }, velocity: { x: 0, y: v0, z: 0 } });
-  const environment = { gravity: { x: 0, y: -g, z: 0 } };
+  const environment = { gravity: uniform(g) };
   const every = Math.max(1, Math.round(impactTime / MAX_FLIGHT_STEP / 30));
   for (let n = 1; s.position.y > 0 && n < 60 * 600; n++) {
     s = stepFlight(s, COAST, FREE_FLIGHT_LANDER, environment, MAX_FLIGHT_STEP);
@@ -129,7 +138,7 @@ export function rocket(
       s,
       { throttle, bodyTorque: ZERO },
       FREE_FLIGHT_LANDER,
-      { gravity: { x: 0, y: -g, z: 0 } },
+      { gravity: uniform(g) },
       MAX_FLIGHT_STEP,
     );
     if (n % every === 0 || n === steps) engine.push([n * MAX_FLIGHT_STEP, s.velocity.y]);
@@ -187,7 +196,7 @@ export function rateResponse(fraction: number, responseTime: number, hold = 1.5)
       s,
       { throttle: 0, bodyTorque },
       FREE_FLIGHT_LANDER,
-      { gravity: ZERO },
+      { gravity: uniform(0) },
       MAX_FLIGHT_STEP,
     );
     pitch += s.angularVelocity.x * MAX_FLIGHT_STEP;
@@ -335,7 +344,7 @@ export function legDrop(
   );
   const vehicle: VehicleParameters = { ...LANDER, contacts: legs };
   const environment = {
-    gravity: { x: 0, y: -GRAVITY.moon, z: 0 },
+    gravity: uniform(GRAVITY.moon),
     surface: { kind: 'flat', height: 0 } as const,
   };
   const mass = LANDER.dryMass + 60;
@@ -377,8 +386,14 @@ export function legDrop(
 
 // ---------------------------------------------------------------- orbits preview
 
-/** The Moon: radius (m) and gravitational parameter μ = GM (m³/s²). */
-export const MOON = { radius: 1_737_400, mu: 4.9048695e12 } as const;
+export { MOON };
+
+// The engine's inverse-square field for the Moon, centred at the origin.
+const MOON_GRAVITY: GravityField = {
+  kind: 'central',
+  centre: ZERO,
+  gravitationalParameter: MOON.gravitationalParameter,
+};
 
 export interface Cannon {
   readonly outcome: 'crash' | 'orbit' | 'escape';
@@ -393,19 +408,22 @@ export interface Cannon {
 
 /**
  * Newton's cannon on the Moon: a horizontal shot from `altitude` metres at `speed`
- * m/s, under inverse-square gravity, integrated with RK4 (no atmosphere to stop it).
+ * m/s, under the engine's inverse-square gravity, integrated with RK4 at a 5 s step
+ * (no atmosphere to stop it). The game's 60 Hz step would take too long per slider move.
  */
 export function cannon(speed: number, altitude = 100_000): Cannon {
   const r0 = MOON.radius + altitude;
-  const circular = Math.sqrt(MOON.mu / r0);
-  const escape = Math.sqrt((2 * MOON.mu) / r0);
-  const energy = (speed * speed) / 2 - MOON.mu / r0;
-  const a = energy < 0 ? -MOON.mu / (2 * energy) : Infinity;
-  const period = energy < 0 ? (2 * Math.PI * Math.sqrt(a ** 3 / MOON.mu)) / 60 : undefined;
+  const mu = MOON.gravitationalParameter;
+  const circular = Math.sqrt(mu / r0);
+  const escape = Math.sqrt((2 * mu) / r0);
+  const energy = (speed * speed) / 2 - mu / r0;
+  const a = energy < 0 ? -mu / (2 * energy) : Infinity;
+  const period = energy < 0 ? (2 * Math.PI * Math.sqrt(a ** 3 / mu)) / 60 : undefined;
   type S = readonly [number, number, number, number];
+  // The shot stays in one plane, so z is always 0; the pull is the engine's.
   const f = ([x, y, vx, vy]: S): S => {
-    const r3 = Math.hypot(x, y) ** 3;
-    return [vx, vy, (-MOON.mu * x) / r3, (-MOON.mu * y) / r3];
+    const g = gravityAcceleration(MOON_GRAVITY, { x, y, z: 0 });
+    return [vx, vy, g.x, g.y];
   };
   let s: S = [0, r0, speed, 0];
   const h = 5;

@@ -76,13 +76,13 @@ describe('learn models agree with their formulas', () => {
   });
 
   it("fires Newton's cannon: circular speed circles, slower crashes, faster escapes", () => {
-    expect(MOON.mu / MOON.radius ** 2).toBeCloseTo(1.62, 2);
-    const shot = cannon(Math.sqrt(MOON.mu / (MOON.radius + 100_000)));
+    expect(MOON.gravitationalParameter / MOON.radius ** 2).toBeCloseTo(1.62, 2);
+    const shot = cannon(Math.sqrt(MOON.gravitationalParameter / (MOON.radius + 100_000)));
     expect(shot.outcome).toBe('orbit');
     const radii = shot.path.map(([x, y]) => Math.hypot(x, y));
     expect(Math.max(...radii) / Math.min(...radii)).toBeLessThan(1.001);
     expect(shot.period).toBeCloseTo(
-      (2 * Math.PI * Math.sqrt((MOON.radius + 100_000) ** 3 / MOON.mu)) / 60,
+      (2 * Math.PI * Math.sqrt((MOON.radius + 100_000) ** 3 / MOON.gravitationalParameter)) / 60,
       6,
     );
     expect(cannon(800).outcome).toBe('crash');

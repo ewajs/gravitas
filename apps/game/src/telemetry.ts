@@ -10,7 +10,7 @@ import {
 import type { FlightTelemetry, RadarVector } from '@gravitas/ui';
 import { FEET, LANDER } from './lander';
 import { safeSinkRate } from './rules';
-import { ENVIRONMENT, PAD_POSITION, padDistance } from './scenario';
+import { PAD_POSITION, padDistance, SURFACE_GRAVITY } from './scenario';
 
 /**
  * Height of the lowest unloaded foot above the flat surface plane (y = 0), in
@@ -51,7 +51,7 @@ export function flightTelemetry(state: FlightState, throttle: number): FlightTel
     tilt: tiltAngle(q),
     fuel: state.fuelMass / LANDER.fuelCapacity,
     throttle,
-    hoverThrottle: (mass * -ENVIRONMENT.gravity.y) / LANDER.maxThrust,
+    hoverThrottle: (mass * SURFACE_GRAVITY) / LANDER.maxThrust,
     lean: headingFrame(q, bodyToWorld(q, { x: 0, y: 1, z: 0 })),
     drift: headingFrame(q, state.velocity),
     pad: headingFrame(q, {

@@ -6,6 +6,7 @@ import {
   viewportMessages,
   type AppearanceRequest,
   type FlightRequest,
+  type InputDevice,
   type Locale,
   type LocaleRequest,
   type SoundRequest,
@@ -14,6 +15,7 @@ import { gravitasTheme } from '@gravitas/ui/themes';
 import { FlightAudio } from './audio';
 import { DiagnosticsOverlay } from './diagnostics';
 import { KeyboardControls } from './controls';
+import { GamepadControls } from './gamepad';
 import { PilotInputs, type InputCommand } from './input';
 import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import { landingReport } from './report';
@@ -36,7 +38,19 @@ const hud = document.querySelector('gravitas-flight-hud')!;
 const parameters = new URLSearchParams(location.search);
 const session = new FlightSession(FIRST_DESCENT);
 // Every input source reports commands to one handler; held input merges per frame.
-const inputs = new PilotInputs([new KeyboardControls(window, inputCommand)]);
+const inputs = new PilotInputs([
+  new KeyboardControls(window, inputCommand),
+  // A gamepad does not move focus, so its buttons wait while Help is open (keys
+  // typed inside Help never reach inputCommand at all).
+  new GamepadControls(
+    navigator,
+    window,
+    (command) => hud.helpOpen || inputCommand(command),
+    gamepadConnection,
+  ),
+]);
+// The device the player last used; help and hints describe its controls.
+let inputDevice: InputDevice = 'keyboard';
 const storage = browserStorage();
 let settings: Settings = loadSettings(storage);
 // Context state changes asynchronously; mirror it for observability (and tests).
@@ -59,6 +73,7 @@ hud.heading = 'Gravitas';
 hud.muted = settings.muted;
 hud.showControls = !settings.controlsSeen;
 hud.reduceTransparency = settings.reduceTransparency;
+hud.inputDevice = inputDevice;
 publish();
 
 // Settings change rarely and are saved only then, never per frame.
@@ -103,6 +118,20 @@ function soundEvents(): void {
   lastOutcome = outcome.status;
 }
 
+// Changes only when the player switches device, never per frame.
+function useDevice(device: InputDevice): void {
+  if (device === inputDevice) return;
+  inputDevice = device;
+  hud.inputDevice = device;
+}
+
+// A lost gamepad pauses its flight, like a lost window focus, and help returns to the keys.
+function gamepadConnection(connected: boolean): void {
+  if (connected || inputDevice !== 'gamepad') return;
+  useDevice('keyboard');
+  if (session.phase === 'flying') flightAction('pause');
+}
+
 // Presentation only: how far each foot is pressed into the surface, in artwork order.
 function legCompression(): number[] {
   return contactFacts(session.state, FEET, ENVIRONMENT.surface!).map((fact) => fact.penetration);
@@ -118,12 +147,16 @@ function publish(): void {
 function draw(timestamp: number): void {
   frame = undefined;
   if (stopped || document.hidden || !host.clientWidth || !host.clientHeight) return;
-  const elapsed = lastFrame === undefined ? 0 : (timestamp - lastFrame) / 1000;
-  lastFrame = timestamp;
   try {
     const workStart = diagnostics ? performance.now() : 0;
+    // Gamepads are read now. Their commands act first, so a start or resume
+    // begins timing at this frame, as one from a key does at the next.
+    inputs.poll();
+    const elapsed = lastFrame === undefined ? 0 : (timestamp - lastFrame) / 1000;
+    lastFrame = timestamp;
     const phase = session.phase;
     session.advance(elapsed, inputs.sample());
+    if (inputs.activeDevice) useDevice(inputs.activeDevice);
     viewport?.setVehiclePose(session.state, session.previous);
     viewport?.setLegCompression(legCompression());
     viewport?.setActuators(session.actuation);
@@ -202,10 +235,23 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   publish();
 }
 
+// Commands from any device.
 function inputCommand(command: InputCommand): void {
   if (stopped) return;
   if (command === 'toggle-mute') setMuted(!settings.muted);
-  else flightAction(command === 'toggle-pause' ? 'toggle' : 'restart');
+  else if (command === 'toggle-pause') flightAction('toggle');
+  else if (command === 'restart') flightAction('restart');
+  else {
+    // Confirm (the gamepad's A): start, resume, or try again; nothing while flying.
+    const confirmed: Record<SessionPhase, FlightRequest['action'] | undefined> = {
+      ready: 'start',
+      flying: undefined,
+      paused: 'resume',
+      complete: 'restart',
+    };
+    const action = confirmed[session.phase];
+    if (action) flightAction(action);
+  }
 }
 
 function appearanceRequested(event: Event): void {

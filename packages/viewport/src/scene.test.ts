@@ -28,10 +28,10 @@ it('draws compressed legs: feet stay on the surface and struts follow them', () 
     art.vehicle.updateMatrixWorld(true);
     // Feet stay on the surface while the body sinks.
     expect(bounds().min.y).toBeCloseTo(0, 6);
-    // Unmoved struts would poke 0.16 m below the surface above. Compression clamps at 0.6 m.
-    art.setLegCompression([2, 0, 0, 0]); // Clamped to the drawable stroke.
-    art.vehicle.updateMatrixWorld(true);
-    expect(bounds().min.y).toBeCloseTo(-0.2, 6);
+    // Unmoved struts would poke 0.16 m below the surface above. Drawing clamps at
+    // 0.6 m: each foot rises by its stroke, up to that limit (rest height 0.04 m).
+    art.setLegCompression([2, 0.6, 0.5, 0]);
+    expect(art.feet.map((foot) => +foot.position.y.toFixed(9))).toEqual([0.64, 0.64, 0.54, 0.04]);
   } finally {
     art.dispose();
   }

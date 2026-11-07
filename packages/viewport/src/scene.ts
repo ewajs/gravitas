@@ -223,6 +223,8 @@ export function createScene(centerOfMassHeight: number) {
   return {
     scene,
     vehicle,
+    /** Foot meshes in foot order; tests inspect them. Not part of any public API. */
+    feet: legs.map((leg) => leg.foot),
     /** Moves the below-vehicle marker; `altitude` is the feet's height above y = 0. */
     updateMarker(position: THREE.Vector3, altitude: number) {
       const surface = SURFACE_Y + 0.02;

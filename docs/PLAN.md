@@ -152,9 +152,17 @@ that takes the game to phones. Owner decisions on 2026-11-07: flight is
 landscape-only; the test devices are an iPhone 15 Pro and a Samsung Galaxy A70;
 pinch zoom and double-tap zoom are blocked.
 
-- [~] **4.1 Housekeeping:** a code review sweep; shared helpers in place of
-  scattered copies; the flight HUD split into focused modules. No behaviour
-  change.
+- [x] **4.1 Housekeeping:** a review sweep of all source. Engine `math.ts` (vector
+      and quaternion operations, `clamp`, degree conversions, `rotationAbout`) used
+      by the dynamics, the game, and the Learn models; the opening scenario, pad
+      distance, verdict check, and every scripted pilot named once in the game; the
+      1,090-line flight HUD split into element, types, styles, instruments, results
+      card, and help modules with cached number formats; one RK4 and shared plot
+      notation in the manual. No behaviour change. **Verify:** scripted flights and
+      contact integrations bit-identical (69,030 hashed ticks); HUD shadow DOM,
+      accessibility tree, CSS, and screenshots identical in 144 states; manual pages
+      identical; both browser suites unchanged. Local checks passed on 2026-11-07;
+      see [housekeeping verification](verification/housekeeping.md).
 - [ ] **4.2 Theme system and identity:** selectable, typed themes that generate CSS
       variables for the HUD and the manual, plus scene accent colours; a logo and
       icon set; a self-hosted typeface. A clean, professional look with subtle,

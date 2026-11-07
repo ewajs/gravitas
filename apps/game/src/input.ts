@@ -1,8 +1,13 @@
 import type { Vector3 } from '@gravitas/engine';
+import type { InputDevice } from '@gravitas/ui';
 import type { PilotInput } from './session';
 
-/** Discrete commands any input source may issue; the app applies them at once. */
-export type InputCommand = 'toggle-pause' | 'restart' | 'toggle-mute';
+/**
+ * Discrete commands any input source may issue; the app applies them at once.
+ * `confirm` is the gamepad's A: start when ready, resume when paused, and try
+ * again after a verdict.
+ */
+export type InputCommand = 'toggle-pause' | 'restart' | 'toggle-mute' | 'confirm';
 
 /**
  * One input device, such as the keyboard. Held input is sampled once per animation
@@ -10,6 +15,18 @@ export type InputCommand = 'toggle-pause' | 'restart' | 'toggle-mute';
  * source was created with, the same for every source.
  */
 export interface InputSource {
+  /** The kind of device, so help and on-screen controls can follow the one in use. */
+  readonly device: InputDevice;
+  /**
+   * Whether the latest sample came from deliberate input: something held, or a
+   * key, button, or touch since the previous sample.
+   */
+  readonly active: boolean;
+  /**
+   * Reads devices that must be polled (gamepads) and issues their commands.
+   * Called once per frame before `sample()`, never during it.
+   */
+  poll?(): void;
   /** This frame's held input plus any queued one-shot setting, which the call consumes. */
   sample(): PilotInput;
   /** Releases everything held or queued, e.g. on blur, pause, or restart. */
@@ -21,6 +38,20 @@ export interface InputSource {
 // Whether a sample asks to move the throttle lever this frame.
 function movesThrottle(input: PilotInput): boolean {
   return input.throttleChange !== 0 || input.throttleSet !== undefined;
+}
+
+/**
+ * Shapes a two-axis stick for gentle control near centre: a radial dead zone,
+ * rescaled so travel resumes from zero at its edge, then a response curve that
+ * blends linear and cubic travel equally (half deflection asks for 31%, full for
+ * 100%). The result keeps the stick's direction and is at most 1 long.
+ */
+export function stickResponse(x: number, y: number, deadZone: number): { x: number; y: number } {
+  const length = Math.hypot(x, y);
+  if (!(length > deadZone)) return { x: 0, y: 0 };
+  const travel = Math.min(1, (length - deadZone) / (1 - deadZone));
+  const response = 0.5 * travel + 0.5 * travel ** 3;
+  return { x: (x / length) * response, y: (y / length) * response };
 }
 
 /**
@@ -52,14 +83,30 @@ export class PilotInputs {
   // Sources moving the lever in the previous frame, and the one in control of it.
   #moving = new Set<InputSource>();
   #throttleOwner: InputSource | undefined;
+  #activeDevice: InputDevice | undefined;
 
   constructor(sources: readonly InputSource[]) {
     this.#sources = sources;
   }
 
+  /**
+   * The device that showed deliberate input in the latest sample (the later
+   * source in the list if several did), or undefined if none did.
+   */
+  get activeDevice(): InputDevice | undefined {
+    return this.#activeDevice;
+  }
+
+  /** Polls the sources that need it; their commands run now, before sampling. */
+  poll(): void {
+    for (const source of this.#sources) source.poll?.();
+  }
+
   /** Samples every source once (consuming one-shot settings) and merges them. */
   sample(): PilotInput {
     const samples = this.#sources.map((source) => ({ source, input: source.sample() }));
+    this.#activeDevice = undefined;
+    for (const { source } of samples) if (source.active) this.#activeDevice = source.device;
     const axis = (name: keyof Vector3) => strongest(samples.map(({ input }) => input.rates[name]));
     const rates = { x: axis('x'), y: axis('y'), z: axis('z') };
 

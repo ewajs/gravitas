@@ -1,17 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { PilotInputs, strongest, type InputSource } from './input';
+import { PilotInputs, stickResponse, strongest, type InputSource } from './input';
 import type { PilotInput } from './session';
 
 const IDLE: PilotInput = { rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 };
 
-// A source whose next samples are scripted; it repeats the last one.
-function scripted(...frames: Partial<PilotInput>[]): InputSource & { cleared: number } {
+// A source whose next samples are scripted; it repeats the last one. Any input
+// other than idle counts as deliberate.
+type Scripted = { -readonly [K in keyof InputSource]-?: InputSource[K] } & {
+  cleared: number;
+  polled: number;
+};
+function scripted(...frames: Partial<PilotInput>[]): Scripted {
   let frame = 0;
   return {
+    device: 'keyboard',
+    active: false,
     cleared: 0,
+    polled: 0,
+    poll() {
+      this.polled++;
+    },
     sample() {
       const input = { ...IDLE, ...frames[Math.min(frame, frames.length - 1)] };
       frame++;
+      this.active = JSON.stringify(input) !== JSON.stringify(IDLE);
       return input;
     },
     clear() {
@@ -33,6 +45,29 @@ describe('strongest request per axis', () => {
   it('cancels equal and opposite requests, as opposite keys do', () => {
     expect(strongest([1, -1])).toBe(0);
     expect(strongest([0.5, -0.5, 0.2])).toBe(0);
+  });
+});
+
+describe('stick response', () => {
+  it('ignores the dead zone and resumes from zero at its edge', () => {
+    expect(stickResponse(0.05, 0.05, 0.1)).toEqual({ x: 0, y: 0 });
+    expect(stickResponse(0.1, 0, 0.1)).toEqual({ x: 0, y: 0 });
+    expect(stickResponse(0.11, 0, 0.1).x).toBeGreaterThan(0);
+    expect(stickResponse(0.11, 0, 0.1).x).toBeLessThan(0.01);
+  });
+
+  it('is gentle near centre, proportional, and reaches full rate', () => {
+    const at = (travel: number) => stickResponse(travel, 0, 0).x;
+    expect(at(0.5)).toBeCloseTo(0.3125, 12);
+    expect(at(1)).toBe(1);
+    expect(at(0.25)).toBeLessThan(at(0.5));
+    expect(at(0.75)).toBeLessThan(at(1));
+  });
+
+  it('keeps the direction and never exceeds full deflection', () => {
+    const r = stickResponse(-3, 4, 0.08); // Beyond the rim.
+    expect(Math.hypot(r.x, r.y)).toBeCloseTo(1, 12);
+    expect(r.x / r.y).toBeCloseTo(-3 / 4, 12);
   });
 });
 
@@ -80,6 +115,21 @@ describe('merging input sources', () => {
     expect(inputs.sample()).toMatchObject({ throttleChange: 0, throttleSet: 0.4 });
     // X while R is held: the keyboard's own setting and ramp, together.
     expect(inputs.sample()).toMatchObject({ throttleChange: 1, throttleSet: 0 });
+  });
+
+  it('polls every source and reports the device that showed input in the latest sample', () => {
+    const keyboard = scripted({ rates: { x: 1, y: 0, z: 0 } }, {});
+    const pad = { ...scripted({}, { throttleChange: 0.5 }), device: 'gamepad' as const };
+    const inputs = new PilotInputs([keyboard, pad]);
+    inputs.poll();
+    expect([keyboard.polled, pad.polled]).toEqual([1, 1]);
+    expect(inputs.activeDevice).toBeUndefined();
+    inputs.sample();
+    expect(inputs.activeDevice).toBe('keyboard');
+    inputs.sample();
+    expect(inputs.activeDevice).toBe('gamepad');
+    inputs.sample(); // The trigger is still pressed.
+    expect(inputs.activeDevice).toBe('gamepad');
   });
 
   it('clears every source and forgets who held the lever', () => {

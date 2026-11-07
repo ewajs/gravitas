@@ -103,6 +103,31 @@ describe('pilot input', () => {
     expect(session.throttle).toBe(0);
   });
 
+  it('moves the lever at a fraction of the full rate for a partial request', () => {
+    const session = flying();
+    run(session, FIXED_STEP, 1, { ...idle, throttleChange: 0.25 });
+    expect(session.throttle).toBeCloseTo(0.125, 12);
+    run(session, FIXED_STEP, 0.5, { ...idle, throttleChange: -0.5 });
+    expect(session.throttle).toBeCloseTo(0, 12);
+    // Out-of-range speeds clamp to the full rate; non-finite ones hold the lever.
+    run(session, FIXED_STEP, 1, { ...idle, throttleChange: 4 });
+    expect(session.throttle).toBeCloseTo(0.5, 12);
+    run(session, FIXED_STEP, 1, { ...idle, throttleChange: Number.NaN });
+    expect(session.throttle).toBeCloseTo(0.5, 12);
+  });
+
+  it('sets the lever to any one-shot position in range, clamped', () => {
+    const session = flying();
+    session.advance(FIXED_STEP, { ...idle, throttleSet: 0.62 });
+    expect(session.throttle).toBe(0.62);
+    session.advance(FIXED_STEP, { ...idle, throttleSet: 1.4 });
+    expect(session.throttle).toBe(1);
+    session.advance(FIXED_STEP, { ...idle, throttleSet: -0.1 });
+    expect(session.throttle).toBe(0);
+    session.advance(FIXED_STEP, { ...idle, throttleSet: Number.NaN });
+    expect(session.throttle).toBe(0);
+  });
+
   it('discards one-shot settings received outside flight', () => {
     const session = flying();
     session.pause();

@@ -9,12 +9,12 @@ and UI into a landing challenge: fly, touch down physically, and get an explaine
 
 ## Ownership
 
-| Owner    | Data and work                                                                                         |
-| -------- | ----------------------------------------------------------------------------------------------------- |
-| Engine   | `stepFlight` dynamics and `rateControlTorque` assistance over plain `FlightState`                     |
-| App      | Session, fixed-step clock, keyboard, lander/scenario values, telemetry, frame loop, locale, lifecycle |
-| Viewport | Canvas, Three.js scene, pose interpolation, chase camera, resize observer, GPU resources              |
-| UI       | Presentation snapshots, number formatting, localized text, buttons, and the help dialog               |
+| Owner    | Data and work                                                                                              |
+| -------- | ---------------------------------------------------------------------------------------------------------- |
+| Engine   | `stepFlight` dynamics and `rateControlTorque` assistance over plain `FlightState`                          |
+| App      | Session, fixed-step clock, input sources, lander/scenario values, telemetry, frame loop, locale, lifecycle |
+| Viewport | Canvas, Three.js scene, pose interpolation, chase camera, resize observer, GPU resources                   |
+| UI       | Presentation snapshots, number formatting, localized text, buttons, and the help dialog                    |
 
 The app passes data down to both presentation layers. The HUD sends semantic
 requests up (`flight-request`, `locale-request`); it never calls viewport. Meshes
@@ -49,9 +49,9 @@ interpolation.
 ```ts
 registerUi();
 const hud = document.querySelector('gravitas-flight-hud')!;
-const keyboard = new KeyboardControls(window, keyCommand);
+const inputs = new PilotInputs([new KeyboardControls(window, inputCommand)]);
 hud.addEventListener('flight-request', flightRequested);
-window.addEventListener('blur', () => keyboard.clear());
+window.addEventListener('blur', () => inputs.clear());
 ```
 
 Branding belongs to the app, so `index.html` puts the mark inside the element,
@@ -70,13 +70,24 @@ The mark's two SVG cuts live in `apps/game/public/`. `npm run icons`
 favicons, the Apple touch icon, the install icons, the 1200 × 630 link preview,
 and the manual's logos. Its output is committed and reproducible byte for byte.
 
-`KeyboardControls` (`controls.ts`) tracks physical keys. Held rotation and
-throttle keys are sampled once per frame. Z/X queue a one-shot lever setting. P
-and Enter call back immediately as `toggle-pause` or `restart`. Keys from the
-language selector, the help dialog, or with Ctrl/Meta/Alt are ignored, so menus
-and browser shortcuts keep working. HUD buttons emit `flight-request`. Both
-paths call the same `flightAction`. Pausing and restarting also release held
-keys, because a keyup may never arrive after focus moves.
+Each input device is an `InputSource` (`input.ts`): `sample()` returns this
+frame's `PilotInput` and consumes any one-shot setting, `clear()` releases held
+input, and discrete commands (`toggle-pause`, `restart`, `toggle-mute`) go to one
+app callback. `PilotInputs` samples every source once per frame and merges them:
+each rotation axis takes the strongest request (an idle source adds nothing, and
+two sources never add up), and the throttle follows the source that most
+recently began moving the lever. A `PilotInput` asks for body rates in [-1, 1], a
+lever speed in [-1, 1] as a fraction of `THROTTLE_RATE` (0.5 per second), and an
+optional one-shot lever position in [0, 1].
+
+`KeyboardControls` (`controls.ts`) is the keyboard source. It tracks physical
+keys: held rotation keys request full rates, a held R or F moves the lever at full
+speed, and Z/X queue a one-shot lever setting. P and Enter call back immediately
+as `toggle-pause` or `restart`. Keys from the language selector, the help dialog,
+or with Ctrl/Meta/Alt are ignored, so menus and browser shortcuts keep working.
+HUD buttons emit `flight-request`. Both paths call the same `flightAction`.
+Pausing and restarting also release held input, because a keyup may never arrive
+after focus moves.
 
 ## Sound and settings
 
@@ -124,7 +135,7 @@ the app sets the HUD status to `ready` and starts scheduling frames.
 function draw(timestamp: number) {
   const elapsed = lastFrame === undefined ? 0 : (timestamp - lastFrame) / 1000;
   lastFrame = timestamp;
-  session.advance(elapsed, keyboard.sample()); // Whole 60 Hz ticks, at most 5
+  session.advance(elapsed, inputs.sample()); // Whole 60 Hz ticks, at most 5
   viewport.setVehiclePose(session.state, session.previous);
   viewport.setLegCompression(legCompression()); // contactFacts penetration per foot
   viewport.setActuators(session.actuation); // What the last tick applied: plume, puffs, dust
@@ -178,7 +189,7 @@ localized reload hint appears.
 ## 6. Distinguish graphics failure from application disposal
 
 An initialization or render error stops frames, pauses the session, releases the
-keyboard, disconnects the resize observer, and disposes viewport. The HUD shows a
+input sources, disconnects the resize observer, and disposes viewport. The HUD shows a
 localized failure; locale selection and help remain usable.
 
 Leaving the page normally or disposing the module during development also removes
@@ -190,7 +201,7 @@ canvas: viewport rejects initialization with `AbortError` and completes cleanup.
 
 - [Application loop and lifecycle](https://github.com/ewajs/gravitas/blob/main/apps/game/src/main.ts)
 - [Flight session and fixed-step clock](https://github.com/ewajs/gravitas/blob/main/apps/game/src/session.ts)
-- [Keyboard controls](https://github.com/ewajs/gravitas/blob/main/apps/game/src/controls.ts)
+- [Input sources and merging](https://github.com/ewajs/gravitas/blob/main/apps/game/src/input.ts) and [keyboard controls](https://github.com/ewajs/gravitas/blob/main/apps/game/src/controls.ts)
 - [Telemetry and foot clearance](https://github.com/ewajs/gravitas/blob/main/apps/game/src/telemetry.ts)
 - [Landing rules](https://github.com/ewajs/gravitas/blob/main/apps/game/src/rules.ts) and [report](https://github.com/ewajs/gravitas/blob/main/apps/game/src/report.ts)
 - [Lander parameters](https://github.com/ewajs/gravitas/blob/main/apps/game/src/lander.ts) and [opening scenario](https://github.com/ewajs/gravitas/blob/main/apps/game/src/scenario.ts)

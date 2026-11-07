@@ -22,7 +22,7 @@ import {
 export const FIXED_STEP = MAX_FLIGHT_STEP;
 /** Most steps run for one animation frame; older wall time is discarded and counted. */
 export const MAX_STEPS_PER_FRAME = 5;
-/** Throttle lever travel per second while a throttle key is held (full range in 2 s). */
+/** Fastest throttle lever travel per second, as when a throttle key is held (full range in 2 s). */
 export const THROTTLE_RATE = 0.5;
 
 /**
@@ -36,10 +36,17 @@ export type SessionPhase = 'ready' | 'flying' | 'paused' | 'complete';
 export interface PilotInput {
   /** Normalized body-axis rate requests in [-1, 1]. */
   readonly rates: Vector3;
-  /** Held throttle direction: raise (+1), lower (-1), or hold the lever (0). */
-  readonly throttleChange: -1 | 0 | 1;
-  /** One-shot lever position from a discrete key, applied once at the next tick. */
-  readonly throttleSet?: 0 | 1;
+  /**
+   * Lever speed as a fraction of THROTTLE_RATE in [-1, 1]: +1 raises it at full
+   * rate (a held key), −0.5 lowers it at half rate (a half-pressed trigger), 0 holds
+   * it. Values outside the range are clamped; non-finite values hold the lever.
+   */
+  readonly throttleChange: number;
+  /**
+   * One-shot lever position in [0, 1] (clamped), applied once at the next tick: a
+   * discrete key or a touch lever. Non-finite values are ignored.
+   */
+  readonly throttleSet?: number;
 }
 
 /** Everything a session needs; values come from the app's vehicle and scenario. */
@@ -88,7 +95,7 @@ export class FlightSession {
   #state: FlightState;
   #previous: FlightState;
   #throttle = 0;
-  #pendingThrottle: 0 | 1 | undefined;
+  #pendingThrottle: number | undefined;
   #accumulator = 0;
   #ticks = 0;
   #discarded = 0;
@@ -188,10 +195,17 @@ export class FlightSession {
    */
   advance(elapsedSeconds: number, pilot: PilotInput): number {
     if (this.#phase !== 'flying' && this.#phase !== 'complete') return 0;
-    if (this.#phase === 'flying' && pilot.throttleSet !== undefined) {
-      this.#pendingThrottle = pilot.throttleSet;
+    if (
+      this.#phase === 'flying' &&
+      pilot.throttleSet !== undefined &&
+      Number.isFinite(pilot.throttleSet)
+    ) {
+      this.#pendingThrottle = clamp(pilot.throttleSet, 0, 1);
     }
     if (!(elapsedSeconds > 0)) return 0;
+    const leverSpeed = Number.isFinite(pilot.throttleChange)
+      ? clamp(pilot.throttleChange, -1, 1)
+      : 0;
     this.#accumulator += elapsedSeconds;
     const { vehicle, attitude, environment, limits } = this.#scenario;
     let steps = 0;
@@ -204,11 +218,7 @@ export class FlightSession {
           this.#throttle = this.#pendingThrottle;
           this.#pendingThrottle = undefined;
         }
-        this.#throttle = clamp(
-          this.#throttle + pilot.throttleChange * THROTTLE_RATE * FIXED_STEP,
-          0,
-          1,
-        );
+        this.#throttle = clamp(this.#throttle + leverSpeed * THROTTLE_RATE * FIXED_STEP, 0, 1);
         bodyTorque = rateControlTorque(this.#state.angularVelocity, pilot.rates, vehicle, attitude);
       }
       const next = stepFlight(

@@ -1,4 +1,5 @@
 import type { Vector3 } from '@gravitas/engine';
+import type { InputCommand, InputSource } from './input';
 import type { PilotInput } from './session';
 
 // Physical key positions (KeyboardEvent.code), so layouts such as AZERTY keep the shape.
@@ -16,9 +17,7 @@ const THROTTLE_DOWN = 'KeyF';
 const HELD_KEYS = new Set([...Object.keys(RATE_KEYS), THROTTLE_UP, THROTTLE_DOWN]);
 const THROTTLE_SET_KEYS: Readonly<Record<string, 0 | 1>> = { KeyZ: 1, KeyX: 0 };
 
-/** Discrete commands handled immediately by the app rather than at a simulation tick. */
-export type KeyCommand = 'toggle-pause' | 'restart' | 'toggle-mute';
-const COMMAND_KEYS: Readonly<Record<string, KeyCommand>> = {
+const COMMAND_KEYS: Readonly<Record<string, InputCommand>> = {
   KeyP: 'toggle-pause',
   KeyM: 'toggle-mute',
   Enter: 'restart',
@@ -31,8 +30,7 @@ export function pilotInput(held: ReadonlySet<string>, throttleSet?: 0 | 1): Pilo
   for (const [code, [axis, sign]] of Object.entries(RATE_KEYS)) {
     if (held.has(code)) rates[axis] += sign;
   }
-  const throttleChange = ((held.has(THROTTLE_UP) ? 1 : 0) - (held.has(THROTTLE_DOWN) ? 1 : 0)) as
-    -1 | 0 | 1;
+  const throttleChange = (held.has(THROTTLE_UP) ? 1 : 0) - (held.has(THROTTLE_DOWN) ? 1 : 0);
   return throttleSet === undefined
     ? { rates, throttleChange }
     : { rates, throttleChange, throttleSet };
@@ -49,16 +47,17 @@ function ignored(event: KeyboardEvent): boolean {
 }
 
 /**
- * Tracks flight keys on a window. Held keys are sampled once per animation frame;
- * one-shot throttle settings are queued until sampled; commands call back at once.
+ * The keyboard input source. Tracks flight keys on a window: held keys are
+ * sampled once per animation frame (a held R or F moves the lever at full rate);
+ * Z and X queue a one-shot lever setting until sampled; commands call back at once.
  */
-export class KeyboardControls {
+export class KeyboardControls implements InputSource {
   readonly #target: Window;
-  readonly #onCommand: (command: KeyCommand) => void;
+  readonly #onCommand: (command: InputCommand) => void;
   readonly #held = new Set<string>();
   #throttleSet: 0 | 1 | undefined;
 
-  constructor(target: Window, onCommand: (command: KeyCommand) => void) {
+  constructor(target: Window, onCommand: (command: InputCommand) => void) {
     this.#target = target;
     this.#onCommand = onCommand;
     target.addEventListener('keydown', this.#keyDown);

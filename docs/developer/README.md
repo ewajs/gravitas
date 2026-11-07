@@ -1,5 +1,5 @@
 Gravitas currently runs a flyable first descent: engine dynamics on a fixed-step
-app session, keyboard input, an interpolated Three.js view, and a bilingual Lit
+app session, merged keyboard input, an interpolated Three.js view, and a bilingual Lit
 flight HUD. These guides cover the code that exists today.
 
 ## Start here
@@ -16,7 +16,7 @@ flight HUD. These guides cover the code that exists today.
 | [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, help dialog, and localization |
 
 The application in `apps/game` owns branding, the lander and scenario, the flight
-session and keyboard, locale loading, and browser scheduling. Libraries never import app code; viewport and UI are
+session and input sources, locale loading, and browser scheduling. Libraries never import app code; viewport and UI are
 siblings. They share plain engine data and are connected by the app.
 
 ## Work locally

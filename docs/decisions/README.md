@@ -15,4 +15,4 @@ does not imply implemented code.
 | [0007](0007-inspection-ui.md)                | Inspection HUD, shared pose, and live language switching       | Superseded in part by 0009 (HUD)    |
 | [0008](0008-flight-model.md)                 | Rigid-body flight model, RK4, and rate-command assistance      | Implemented                         |
 | [0009](0009-flight-runtime.md)               | Fixed-step flight runtime, input, and interpolation ownership  | Implemented; camera amended by 0010 |
-| [0010](0010-chase-camera-and-instruments.md) | Heading-following chase camera and landing radar               | Implemented; visuals await review   |
+| [0010](0010-chase-camera-and-instruments.md) | Heading-following chase camera and landing radar               | Implemented; accepted with M1       |

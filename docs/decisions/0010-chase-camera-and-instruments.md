@@ -1,6 +1,6 @@
 # 0010. Heading-following chase camera and landing radar
 
-- Status: Implemented in 1.3; visuals await owner review.
+- Status: Implemented in 1.3; accepted with M1 (v0.1.0).
 - Date: 2026-11-06
 
 ## Decision

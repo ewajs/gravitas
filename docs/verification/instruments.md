@@ -2,7 +2,8 @@
 
 Step 1.3 was verified locally on 2026-11-06. It adds a heading-following chase
 camera, a landing radar and instrument cluster, surface depth cues, and an
-opening that faces the pad. Owner visual review closes M1.
+opening that faces the pad. The owner accepted it on 2026-11-06, closing M1
+(v0.1.0).
 
 ## Environment and results
 

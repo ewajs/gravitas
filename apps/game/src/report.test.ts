@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { fly, padPilot, verticalPilot } from './pilots';
+import { fly, idlePilot, padPilot, verticalPilot } from './pilots';
 import { landingReport } from './report';
 import { PAD_RADIUS } from './rules';
 import { FIRST_DESCENT } from './scenario';
@@ -33,9 +33,7 @@ it('names the failed limit of a rough landing', () => {
 });
 
 it('gives the cause of a crash', () => {
-  const report = landingReport(
-    fly(session(), () => ({ rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 })),
-  )!;
+  const report = landingReport(fly(session(), idlePilot))!;
   expect(report).toMatchObject({ verdict: 'crashed', cause: 'impact' });
   expect(report.checks.find((check) => check.id === 'vertical-speed')!.value).toBeCloseTo(16.6, 0);
 });

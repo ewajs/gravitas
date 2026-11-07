@@ -26,6 +26,17 @@ function descentThrottle(session: FlightSession, sink: number): number {
   return (mass * (g + 1.5 * (sink - s.velocity.y))) / (LANDER.maxThrust * Math.max(0.5, up));
 }
 
+/** No input at all: the opening's unpowered fall. */
+export const idlePilot: Pilot = () => ({ rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 });
+
+/** Throttle only: holds a zero sink rate while upright, so it hovers until the tank runs dry. */
+export const hoverPilot: Pilot = (session) => {
+  const s = session.state;
+  const mass = LANDER.dryMass + s.fuelMass;
+  const hold = (mass * (-ENVIRONMENT.gravity.y + 1.5 * (0 - s.velocity.y))) / LANDER.maxThrust;
+  return { rates: { x: 0, y: 0, z: 0 }, throttleChange: lever(session, hold) };
+};
+
 /** Throttle only: holds a sink rate of altitude/6 and ignores drift. */
 export const verticalPilot: Pilot = (session) => {
   const altitude = footClearance(session.state);

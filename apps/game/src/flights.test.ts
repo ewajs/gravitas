@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LANDER } from './lander';
-import { fly, padPilot, verticalPilot, type Pilot } from './pilots';
+import { fly, hoverPilot, idlePilot, padPilot, verticalPilot } from './pilots';
 import { LANDING_LIMITS, PAD_RADIUS } from './rules';
 import { FIRST_DESCENT, padDistance, START_FUEL } from './scenario';
 import { FlightSession } from './session';
@@ -28,22 +27,14 @@ describe('regression flights of the opening', () => {
   });
 
   it('no input at all crashes: the legs strike at about 16.6 m/s', () => {
-    const flight = fly(session(), () => ({ rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 }));
+    const flight = fly(session(), idlePilot);
     // Judged on the first leg contact, before the bell reaches the ground.
     expect(flight.outcome).toMatchObject({ status: 'crashed', cause: 'impact' });
     expect(flight.flightTime).toBeCloseTo(7.8, 0);
   });
 
   it('hovering without descending runs the tank dry, then crashes', () => {
-    const hover: Pilot = (s) => {
-      const mass = LANDER.dryMass + s.state.fuelMass;
-      const hold = (mass * (1.62 + 1.5 * (0 - s.state.velocity.y))) / LANDER.maxThrust;
-      return {
-        rates: { x: 0, y: 0, z: 0 },
-        throttleChange: hold > s.throttle + 0.02 ? 1 : hold < s.throttle - 0.02 ? -1 : 0,
-      };
-    };
-    const flight = fly(session(), hover, 300);
+    const flight = fly(session(), hoverPilot, 300);
     expect(flight.state.fuelMass).toBe(0);
     expect(flight.outcome.status).toBe('crashed');
   });

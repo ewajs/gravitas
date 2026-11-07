@@ -46,3 +46,21 @@ test('sound waits for a gesture, follows pause, and M toggles mute', async ({ pa
   await page.keyboard.press('p');
   await expect(host).toHaveAttribute('data-audio', 'running');
 });
+
+test('a hidden tab silences the crash playout after a verdict', async ({ page }, info) => {
+  await page.goto(url(info.project.name, '&lang=en'));
+  await ready(page, info.project.name);
+  const host = page.locator('#viewport');
+  await page.keyboard.press('p'); // Unpowered: crashes after about 7.8 s.
+  await expect(page.locator('#report')).toBeVisible({ timeout: 30_000 });
+  await expect(host).toHaveAttribute('data-audio', 'running');
+  const hide = (hidden: boolean) =>
+    page.evaluate((value) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => value });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  await hide(true);
+  await expect(host).toHaveAttribute('data-audio', 'suspended');
+  await hide(false);
+  await expect(host).toHaveAttribute('data-audio', 'running');
+});

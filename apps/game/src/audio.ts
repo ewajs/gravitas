@@ -45,6 +45,7 @@ export class FlightAudio {
   #noise: AudioBuffer | undefined;
   #muted: boolean;
   #active = false;
+  #disposed = false;
   readonly #onState: (state: FlightAudio['state']) => void;
 
   /** `onState` hears every state change, including asynchronous resume/suspend. */
@@ -62,7 +63,7 @@ export class FlightAudio {
 
   /** Creates the audio graph; call from a user gesture such as a key press. */
   unlock(): void {
-    if (this.#context || typeof AudioContext === 'undefined') return;
+    if (this.#disposed || this.#context || typeof AudioContext === 'undefined') return;
     const context = new AudioContext();
     this.#context = context;
     context.addEventListener('statechange', () => this.#onState(this.state));
@@ -163,7 +164,9 @@ export class FlightAudio {
     this.#apply();
   }
 
+  /** Closes the context; later unlock() calls do nothing. */
   dispose(): void {
+    this.#disposed = true;
     void this.#context?.close();
     this.#context = undefined;
   }

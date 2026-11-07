@@ -161,3 +161,46 @@ describe('surface contact in the session', () => {
     expect(session.state.position.y).toBeLessThan(1.6);
   });
 });
+
+describe('after a verdict', () => {
+  const near = (changes: Partial<typeof START_STATE>) =>
+    new FlightSession({
+      start: { ...START_STATE, position: { x: 0, y: 1.8, z: 0 }, ...changes },
+      vehicle: LANDER,
+      attitude: ATTITUDE,
+      environment: ENVIRONMENT,
+      limits: LANDING_LIMITS,
+    });
+
+  it('cuts the engine even when the verdict lands mid-frame with throttle held', () => {
+    const session = near({ velocity: { x: 0, y: -9, z: 0 } });
+    session.start();
+    // Three ticks per frame and a bit: the verdict tick is rarely a frame's last.
+    const frame = FIXED_STEP * 3.001;
+    const held: PilotInput = { rates: { x: -1, y: 0, z: 0 }, throttleChange: 1 };
+    while (session.phase === 'flying') session.advance(frame, held);
+    expect(session.outcome.status).toBe('crashed');
+    const fuel = session.state.fuelMass;
+    for (let n = 0; n < 600; n++) session.advance(frame, held);
+    expect(session.throttle).toBe(0);
+    expect(session.state.fuelMass).toBe(fuel);
+  });
+
+  it('stops the attitude thrusters while a crash tumbles', () => {
+    const tilt = 0.5;
+    const session = near({
+      orientation: { x: 0, y: 0, z: Math.sin(tilt / 2), w: Math.cos(tilt / 2) },
+      velocity: { x: 0, y: -3, z: 0 },
+    });
+    session.start();
+    while (session.phase === 'flying') session.advance(FIXED_STEP, idle);
+    const fuel = session.state.fuelMass;
+    run(session, FIXED_STEP, 10);
+    expect(session.state.fuelMass).toBe(fuel);
+    // The verdict state stays as judged while the playout continues.
+    expect(session.verdictState).toBeDefined();
+    expect(session.verdictState).not.toBe(session.state);
+    session.restart();
+    expect(session.verdictState).toBeUndefined();
+  });
+});

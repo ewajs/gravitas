@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <title>Gravitas</title>
   <rect width="48" height="48" rx="11" fill="#070b11" />
-  <svg x="6" y="6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" color="#4cc3e0" width="36" height="36"> <mask id="gravitas-mark-small-gap"> <rect x="-10" y="-10" width="68" height="68" fill="#fff" /> <circle cx="13.8" cy="24" r="8.5" fill="#000" /> </mask> <g transform="rotate(-24 24 24)"> <ellipse cx="24" cy="24" rx="17" ry="13.6" fill="none" stroke="currentColor" stroke-width="3.5" mask="url(#gravitas-mark-small-gap)" /> <circle cx="13.8" cy="24" r="5" fill="currentColor" /> </g> </svg> 
+  <svg x="6" y="6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" color="#4cc3e0" width="36" height="36"> <mask id="gravitas-mark-small-gap"> <rect x="-10" y="-10" width="68" height="68" fill="#fff" /> <circle cx="13.8" cy="24" r="8.5" fill="#000" /> </mask> <g transform="rotate(-24 24 24)"> <ellipse cx="24" cy="24" rx="17" ry="13.6" fill="none" stroke="currentColor" stroke-width="3.5" mask="url(#gravitas-mark-small-gap)" /> <circle cx="13.8" cy="24" r="5" fill="currentColor" /> </g> </svg>
 </svg>

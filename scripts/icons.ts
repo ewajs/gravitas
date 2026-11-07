@@ -44,7 +44,10 @@ const recolour = (svg: string, color: string) =>
 
 /** The small cut on a rounded dark tile, as an SVG favicon. */
 function faviconSvg(): string {
-  const mark = inline(small, accent, 36).replace('<svg ', '<svg x="6" y="6" ').replace(/\s+/g, ' ');
+  const mark = inline(small, accent, 36)
+    .replace('<svg ', '<svg x="6" y="6" ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <title>Gravitas</title>
   <rect width="48" height="48" rx="11" fill="${TILE}" />

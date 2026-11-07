@@ -7,13 +7,16 @@ import {
   type FlightRequest,
   type Locale,
   type LocaleRequest,
+  type SoundRequest,
 } from '@gravitas/ui';
+import { FlightAudio } from './audio';
 import { KeyboardControls, type KeyCommand } from './controls';
 import { ATTITUDE, CENTER_OF_MASS_HEIGHT, FEET, LANDER } from './lander';
 import { landingReport } from './report';
 import { LANDING_LIMITS } from './rules';
 import { ENVIRONMENT, START_STATE } from './scenario';
 import { FlightSession } from './session';
+import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
 import { flightTelemetry } from './telemetry';
 import './style.css';
 
@@ -32,15 +35,66 @@ const session = new FlightSession({
   limits: LANDING_LIMITS,
 });
 const keyboard = new KeyboardControls(window, keyCommand);
+const storage = browserStorage();
+let settings: Settings = loadSettings(storage);
+// Context state changes asynchronously; mirror it for observability (and tests).
+const audio = new FlightAudio(settings.muted, (state) => {
+  if (!stopped) host.dataset.audio = state;
+});
 let viewport: Viewport | undefined;
 let frame: number | undefined;
 let lastFrame: number | undefined;
 let lastPublished = -Infinity;
 let stopped = false;
 let destroyed = false;
+let lastOutcome = session.outcome.status;
 
 hud.heading = 'Gravitas';
+hud.muted = settings.muted;
+hud.showControls = !settings.controlsSeen;
 publish();
+
+// Settings change rarely and are saved only then, never per frame.
+function updateSettings(changes: Partial<Settings>): void {
+  settings = { ...settings, ...changes };
+  saveSettings(storage, settings);
+}
+
+// Sound follows the flight: running while flying (or a crash plays out), else suspended.
+function syncAudio(): void {
+  audio.setActive(session.phase === 'flying' || session.phase === 'complete');
+  host.dataset.audio = audio.state;
+}
+
+// Browsers allow audio only after a gesture; the first key or click unlocks it.
+function unlockAudio(): void {
+  audio.unlock();
+  syncAudio();
+  window.removeEventListener('keydown', unlockAudio, true);
+  window.removeEventListener('pointerdown', unlockAudio, true);
+}
+
+function setMuted(muted: boolean): void {
+  audio.setMuted(muted);
+  hud.muted = muted;
+  updateSettings({ muted });
+  syncAudio();
+}
+
+// Touchdown thud and verdict cue, from outcome transitions.
+function soundEvents(): void {
+  const outcome = session.outcome;
+  if (lastOutcome === 'airborne' && outcome.status !== 'airborne') {
+    const touchdown = 'touchdown' in outcome ? outcome.touchdown : null;
+    audio.touchdown(touchdown ? touchdown.verticalSpeed : 2);
+  }
+  if (outcome.status !== lastOutcome) {
+    if (outcome.status === 'landed' || outcome.status === 'rough' || outcome.status === 'crashed') {
+      audio.cue(outcome.status);
+    }
+  }
+  lastOutcome = outcome.status;
+}
 
 // Presentation only: how far each foot is pressed into the surface, in artwork order.
 function legCompression(): number[] {
@@ -66,6 +120,8 @@ function draw(timestamp: number): void {
     viewport?.setLegCompression(legCompression());
     viewport?.setActuators(session.actuation);
     viewport?.render(session.alpha);
+    audio.update(session.actuation);
+    soundEvents();
     // Keep instruments live while a crash plays out after the verdict, too.
     const moving = session.phase === 'flying' || session.phase === 'complete';
     const due = moving && timestamp - lastPublished >= TELEMETRY_INTERVAL_MS;
@@ -97,8 +153,11 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
     if (!next) return;
     action = next;
   }
-  if (action === 'start') session.start();
-  else if (action === 'resume') session.resume();
+  if (action === 'start') {
+    session.start();
+    // Seen once is enough: later visits start without the card (Help keeps the keys).
+    if (!settings.controlsSeen) updateSettings({ controlsSeen: true });
+  } else if (action === 'resume') session.resume();
   else if (action === 'pause') {
     session.pause();
     keyboard.clear();
@@ -108,13 +167,22 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
     // The vehicle teleports back to the opening; do not ease the camera across it.
     viewport?.setVehiclePose(session.state);
     viewport?.resetCamera();
+    lastOutcome = session.outcome.status;
   }
+  hud.showControls = !settings.controlsSeen;
+  syncAudio();
   publish();
 }
 
 function keyCommand(command: KeyCommand): void {
   if (stopped) return;
-  flightAction(command === 'toggle-pause' ? 'toggle' : 'restart');
+  if (command === 'toggle-mute') setMuted(!settings.muted);
+  else flightAction(command === 'toggle-pause' ? 'toggle' : 'restart');
+}
+
+function soundRequested(event: Event): void {
+  const muted = (event as CustomEvent<SoundRequest>).detail?.muted;
+  if (typeof muted === 'boolean') setMuted(muted);
 }
 
 function flightRequested(event: Event): void {
@@ -135,6 +203,8 @@ function stopRendering(): void {
   frame = undefined;
   session.pause();
   keyboard.dispose();
+  audio.dispose();
+  delete host.dataset.audio;
   sizeObserver.disconnect();
   document.removeEventListener('visibilitychange', visibilityChanged);
   void viewport
@@ -147,6 +217,9 @@ function destroy(): void {
   stopRendering();
   hud.removeEventListener('locale-request', localeRequested);
   hud.removeEventListener('flight-request', flightRequested);
+  hud.removeEventListener('sound-request', soundRequested);
+  window.removeEventListener('keydown', unlockAudio, true);
+  window.removeEventListener('pointerdown', unlockAudio, true);
   window.removeEventListener('blur', windowBlurred);
   window.removeEventListener('pagehide', pageHidden);
 }
@@ -183,6 +256,7 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     document.documentElement.lang = locale;
     if (viewport && !stopped) viewport.setLabel(viewportMessages().scene);
     if (updateUrl) {
+      updateSettings({ locale });
       const url = new URL(location.href);
       url.searchParams.set('lang', locale);
       history.replaceState(null, '', url);
@@ -203,11 +277,19 @@ function localeRequested(event: Event): void {
 
 hud.addEventListener('locale-request', localeRequested);
 hud.addEventListener('flight-request', flightRequested);
+hud.addEventListener('sound-request', soundRequested);
+// Capture phase: unlock before any handler, including the first flight key.
+window.addEventListener('keydown', unlockAudio, true);
+window.addEventListener('pointerdown', unlockAudio, true);
 window.addEventListener('blur', windowBlurred);
 window.addEventListener('pagehide', pageHidden);
 
 async function start(): Promise<void> {
-  await changeLocale(parameters.get('lang') === 'en' ? 'en' : 'es-AR', false);
+  // An explicit ?lang= wins; otherwise the last language chosen here; else Spanish.
+  const requested = parameters.get('lang');
+  const initial =
+    requested === 'en' || requested === 'es-AR' ? requested : (settings.locale ?? 'es-AR');
+  await changeLocale(initial, false);
   if (destroyed) return;
   const { Viewport } = await import('@gravitas/viewport');
   if (destroyed) return;

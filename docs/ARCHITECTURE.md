@@ -159,9 +159,13 @@ language. Main deployments publish all three.
 6. Window blur releases held keys. A hidden document stops frames and pauses the
    flight. Resuming drawing resets the frame timestamp, so hidden time is never
    simulated.
-7. A HUD `locale-request` loads translations and updates the HUD locale, document
+7. Audio (`audio.ts`) is synthesized with Web Audio, created on the first key or
+   click as autoplay rules require, suspended unless flying or playing out a crash,
+   and muted on request. Settings (`settings.ts`: language, mute, start card seen)
+   load once, validated as external data, and are saved only when they change.
+8. A HUD `locale-request` loads translations and updates the HUD locale, document
    language, canvas label, and URL. The renderer, camera, and session remain intact.
-8. Device loss becomes a render error; the app stops, disposes, pauses the session,
+9. Device loss becomes a render error; the app stops, disposes, pauses the session,
    releases the keyboard, and presents a localized failure. Language and help
    remain usable.
 

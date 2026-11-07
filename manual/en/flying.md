@@ -12,6 +12,7 @@ Keys are physical keyboard positions (shown here for QWERTY).
 | **R / F** | Raise / lower the throttle (hold) |
 | **Z / X** | Full throttle / cut               |
 | **P**     | Start, pause, or resume           |
+| **M**     | Mute or unmute sound              |
 | **Enter** | Restart                           |
 
 Drag the scene to look around (the camera returns behind the lander on its own)
@@ -40,7 +41,20 @@ The camera follows from behind and turns with the lander, so **W always leans
 toward the top of the screen** and **A toward the left**. It looks further down
 when you are high, keeping the pad in view, and flattens near the ground.
 
+## Sound
+
+The engine rumbles with throttle, attitude thrusters hiss as you turn, the legs
+thud on touchdown, and a short tone announces the result. All sound is synthesized
+in the browser. **M** or the **Mute** button silences it, and the game remembers
+that choice.
+
 ## Pause
 
 **P** pauses and resumes. The game also pauses when you open Help or switch tabs,
 and stays paused until you press **P** again.
+
+## Preferences
+
+The game remembers in this browser your language, whether you muted sound, and
+that you have read the **How to fly** card (after your first flight it stops
+appearing; Help always lists the controls).

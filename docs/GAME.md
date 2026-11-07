@@ -22,6 +22,11 @@ The engine plume grows with the throttle and lights the ground; attitude
 thrusters puff where they fire; near the surface, the exhaust raises dust. Flicker
 and dust motion stop when the system asks for reduced motion.
 
+Synthesized sound follows the flight: an engine rumble with throttle, thruster
+hiss, a touchdown thud, and short verdict tones. M or the Mute button silences
+it. The browser remembers language, mute, and that the start card was read
+(`?lang=` still wins).
+
 The instruments put altitude and vertical speed first. A heading-up landing
 radar shows where thrust is leaning (dot), horizontal drift (arrow), and the pad
 (diamond, hollow beyond 60 m). To stop drifting, lean against the arrow. Fuel and

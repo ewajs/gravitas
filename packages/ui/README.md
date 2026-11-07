@@ -55,6 +55,13 @@ uses its own scale; directions matter more than lengths. The host supplies the
 vectors in the same heading frame as its camera. The disc has a static
 accessible name, and tilt, horizontal speed, and pad distance are also readouts.
 
+## Sound and the start card
+
+`hud.muted` shows the Mute button as pressed (`aria-pressed`). Clicking it emits
+`CustomEvent<SoundRequest>` named `sound-request` with the requested `muted` value;
+the host applies, persists, and sets `muted`. `hud.showControls` (default true)
+shows the "How to fly" card while ready; hosts can hide it once read.
+
 ## Manual link
 
 Set `hud.manualHref` to the player manual for the current locale; Help then shows

@@ -12,6 +12,11 @@ export interface LocaleRequest {
   readonly locale: Locale;
 }
 
+/** A requested sound setting; the host applies and persists it, then sets `muted`. */
+export interface SoundRequest {
+  readonly muted: boolean;
+}
+
 /** Session phase decided by the host; the HUD only presents it. */
 export type FlightPhase = 'ready' | 'flying' | 'paused' | 'complete';
 
@@ -89,6 +94,10 @@ export class FlightHud extends LitElement {
   @property({ attribute: false }) telemetry?: FlightTelemetry;
   /** Current session phase owned by the application. */
   @property() phase: FlightPhase = 'ready';
+  /** Whether sound is muted; the Mute button shows it as pressed. */
+  @property({ type: Boolean }) muted = false;
+  /** Show the "How to fly" card while ready; hosts hide it once the player has read it. */
+  @property({ type: Boolean }) showControls = true;
   /** Player manual for the current locale; Help links to it when set. */
   @property() manualHref = '';
   /** Result shown while `phase` is `complete`. */
@@ -487,6 +496,10 @@ export class FlightHud extends LitElement {
       .help-list dt {
         color: var(--gravitas-muted);
       }
+      button[aria-pressed='true'] {
+        border-color: var(--gravitas-accent);
+        color: var(--gravitas-accent);
+      }
       .manual a {
         color: var(--gravitas-focus);
       }
@@ -625,6 +638,16 @@ export class FlightHud extends LitElement {
     this.dispatchEvent(
       new CustomEvent<FlightRequest>('flight-request', {
         detail: { action },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private toggleSound() {
+    this.dispatchEvent(
+      new CustomEvent<SoundRequest>('sound-request', {
+        detail: { muted: !this.muted },
         bubbles: true,
         composed: true,
       }),
@@ -927,6 +950,9 @@ export class FlightHud extends LitElement {
             <option value="es-AR">ES</option>
             <option value="en">EN</option>
           </select>
+          <button @click=${this.toggleSound} aria-pressed=${this.muted ? 'true' : 'false'}>
+            ${msg('Silenciar', { id: 'mute' })}
+          </button>
           <button @click=${this.openHelp} aria-haspopup="dialog">
             ${msg('Ayuda', { id: 'help' })}
           </button>
@@ -938,7 +964,7 @@ export class FlightHud extends LitElement {
         this.status === 'ready'
           ? html`<div class="overlay">
                 <p id="phase" role="status">${this.phaseMessage()}</p>
-                ${this.phase === 'ready' ? this.quickCard() : nothing}
+                ${this.phase === 'ready' && this.showControls ? this.quickCard() : nothing}
                 ${this.phase === 'complete' && this.report ? this.reportCard(this.report) : nothing}
               </div>
               <div class="bottom">
@@ -984,6 +1010,7 @@ export class FlightHud extends LitElement {
           ${key(msg('Subir / bajar empuje (mantené)', { id: 'help-throttle' }), 'R / F')}
           ${key(msg('Empuje máximo / cortar', { id: 'help-throttle-set' }), 'Z / X')}
           ${key(msg('Pausa', { id: 'help-pause' }), 'P')}
+          ${key(msg('Silenciar / activar sonido', { id: 'help-mute' }), 'M')}
           ${key(msg('Reiniciar', { id: 'restart' }), 'Enter')}
           <div>
             <dt>${msg('Cámara', { id: 'help-camera' })}</dt>

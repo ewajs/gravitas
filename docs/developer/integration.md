@@ -59,6 +59,17 @@ and browser shortcuts keep working. HUD buttons emit `flight-request`. Both
 paths call the same `flightAction`. Pausing and restarting also release held
 keys, because a keyup may never arrive after focus moves.
 
+## Sound and settings
+
+`settings.ts` loads language, mute, and "start card seen" from `localStorage`,
+validating each field as external data. It never throws, and saves only when a
+setting changes. An explicit `?lang=` still wins over the saved language.
+`FlightAudio` (`audio.ts`) synthesizes engine, thruster, touchdown, and verdict
+sounds with Web Audio. Its context is created on the first key or click,
+because browsers block audio before a gesture. It is suspended unless the
+session is flying or playing out a crash. `audioLevels` is the pure mapping
+from actuation to sound levels.
+
 ## 3. Load the locale, then the renderer
 
 The app chooses `es-AR` by default or `en` from `?lang=en` and awaits `setLocale()`

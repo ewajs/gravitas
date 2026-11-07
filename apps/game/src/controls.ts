@@ -17,9 +17,10 @@ const HELD_KEYS = new Set([...Object.keys(RATE_KEYS), THROTTLE_UP, THROTTLE_DOWN
 const THROTTLE_SET_KEYS: Readonly<Record<string, 0 | 1>> = { KeyZ: 1, KeyX: 0 };
 
 /** Discrete commands handled immediately by the app rather than at a simulation tick. */
-export type KeyCommand = 'toggle-pause' | 'restart';
+export type KeyCommand = 'toggle-pause' | 'restart' | 'toggle-mute';
 const COMMAND_KEYS: Readonly<Record<string, KeyCommand>> = {
   KeyP: 'toggle-pause',
+  KeyM: 'toggle-mute',
   Enter: 'restart',
   NumpadEnter: 'restart',
 };

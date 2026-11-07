@@ -1,29 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { ATTITUDE, LANDER } from './lander';
+import { LANDER } from './lander';
 import { fly, padPilot, verticalPilot, type Pilot } from './pilots';
 import { LANDING_LIMITS, PAD_RADIUS } from './rules';
-import { ENVIRONMENT, PAD_POSITION, START_FUEL, START_STATE } from './scenario';
+import { FIRST_DESCENT, padDistance, START_FUEL } from './scenario';
 import { FlightSession } from './session';
 
 // Whole flights through the real session, judged by the real rules. They pin the
 // opening's difficulty: retuning physics, fuel, or limits must keep these true.
-const session = () =>
-  new FlightSession({
-    start: START_STATE,
-    vehicle: LANDER,
-    attitude: ATTITUDE,
-    environment: ENVIRONMENT,
-    limits: LANDING_LIMITS,
-  });
-const padDistance = (s: FlightSession) =>
-  Math.hypot(s.state.position.x - PAD_POSITION.x, s.state.position.z - PAD_POSITION.z);
+const session = () => new FlightSession(FIRST_DESCENT);
 
 describe('regression flights of the opening', () => {
   it('a pilot flying to the pad lands cleanly on it with fuel to spare', () => {
     const flight = fly(session(), padPilot);
     expect(flight.outcome.status).toBe('landed');
-    expect(padDistance(flight)).toBeLessThan(1);
-    expect(padDistance(flight)).toBeLessThan(PAD_RADIUS);
+    expect(padDistance(flight.state.position)).toBeLessThan(1);
+    expect(padDistance(flight.state.position)).toBeLessThan(PAD_RADIUS);
     // About 24 kg used of 60: the opening leaves a human margin, not unlimited fuel.
     expect(flight.state.fuelMass).toBeGreaterThan(START_FUEL * 0.4);
     expect(flight.state.fuelMass).toBeLessThan(START_FUEL * 0.7);

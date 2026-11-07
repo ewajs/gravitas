@@ -66,6 +66,17 @@ export interface Actuation {
 const IDLE_ACTUATION: Actuation = { throttle: 0, attitude: { x: 0, y: 0, z: 0 } };
 const AIRBORNE: TouchdownOutcome = { status: 'airborne' };
 
+/** A touchdown judgement that ends the flight. */
+export type Verdict = Extract<
+  TouchdownOutcome,
+  { readonly status: 'landed' | 'rough' | 'crashed' }
+>;
+
+/** Whether an outcome is final (`landed`, `rough`, or `crashed`): the flight is over. */
+export function isVerdict(outcome: TouchdownOutcome): outcome is Verdict {
+  return outcome.status === 'landed' || outcome.status === 'rough' || outcome.status === 'crashed';
+}
+
 /**
  * Owns one flight's authoritative state and fixed-step clock. Pure TypeScript:
  * the browser loop passes elapsed wall time and sampled input; nothing here reads
@@ -237,8 +248,7 @@ export class FlightSession {
           limits,
         );
         this.#outcome = classifyTouchdown(this.#record, limits);
-        const status = this.#outcome.status;
-        if (status === 'landed' || status === 'rough' || status === 'crashed') {
+        if (isVerdict(this.#outcome)) {
           this.#phase = 'complete';
           this.#completedAt = this.#ticks;
           this.#verdictState = next;

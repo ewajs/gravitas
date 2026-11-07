@@ -1,5 +1,7 @@
-import type { FlightEnvironment, FlightState } from '@gravitas/engine';
-import { CENTER_OF_MASS_HEIGHT } from './lander';
+import type { FlightEnvironment, FlightState, Vector3 } from '@gravitas/engine';
+import { ATTITUDE, CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
+import { LANDING_LIMITS } from './rules';
+import type { FlightScenario } from './session';
 
 /** Constant lunar surface gravity (rounded) over flat ground at y = 0, pad flush with it. */
 export const ENVIRONMENT: FlightEnvironment = {
@@ -9,6 +11,11 @@ export const ENVIRONMENT: FlightEnvironment = {
 
 /** Centre of the landing pad, on the surface, in world metres. */
 export const PAD_POSITION = { x: 0, y: 0, z: 0 } as const;
+
+/** Horizontal distance from a world position to the pad centre, in metres. */
+export function padDistance(position: Vector3): number {
+  return Math.hypot(position.x - PAD_POSITION.x, position.z - PAD_POSITION.z);
+}
 
 /**
  * Propellant loaded for the first descent, in kg (20% of the 300 kg tank). A
@@ -32,4 +39,13 @@ export const START_STATE: FlightState = {
   velocity: { x: 2, y: -4, z: 0 },
   angularVelocity: { x: 0, y: 0, z: 0 },
   fuelMass: START_FUEL,
+};
+
+/** Everything a flight session needs for the first descent. */
+export const FIRST_DESCENT: FlightScenario = {
+  start: START_STATE,
+  vehicle: LANDER,
+  attitude: ATTITUDE,
+  environment: ENVIRONMENT,
+  limits: LANDING_LIMITS,
 };

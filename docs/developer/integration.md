@@ -23,16 +23,19 @@ and Lit properties are never authoritative simulation state.
 ## 1. Build a session from app data
 
 `FlightSession` (`apps/game/src/session.ts`) is plain TypeScript with no clock or
-DOM. It receives everything it needs:
+DOM. It receives everything it needs as one `FlightScenario`, which
+`scenario.ts` assembles for the first descent:
 
 ```ts
-const session = new FlightSession({
-  start: START_STATE, // scenario.ts: 80 m up, facing the pad, sinking and drifting toward it
+export const FIRST_DESCENT: FlightScenario = {
+  start: START_STATE, // 80 m up, facing the pad, sinking and drifting toward it
   vehicle: LANDER, // lander.ts: masses, thrust, inertia, torque, thrusters, contact points
-  attitude: ATTITUDE, // rate-assist tuning
-  environment: ENVIRONMENT, // scenario.ts: lunar gravity and flat ground at y = 0
+  attitude: ATTITUDE, // lander.ts: rate-assist tuning
+  environment: ENVIRONMENT, // lunar gravity and flat ground at y = 0
   limits: LANDING_LIMITS, // rules.ts: what counts as a landing
-});
+};
+
+const session = new FlightSession(FIRST_DESCENT); // main.ts
 ```
 
 It starts in `ready`. `start`, `pause`, `resume`, and `restart` change the phase.

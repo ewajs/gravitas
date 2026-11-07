@@ -12,11 +12,10 @@ import {
 import { FlightAudio } from './audio';
 import { DiagnosticsOverlay } from './diagnostics';
 import { KeyboardControls, type KeyCommand } from './controls';
-import { ATTITUDE, CENTER_OF_MASS_HEIGHT, FEET, LANDER } from './lander';
+import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import { landingReport } from './report';
-import { LANDING_LIMITS } from './rules';
-import { ENVIRONMENT, START_STATE } from './scenario';
-import { FlightSession } from './session';
+import { ENVIRONMENT, FIRST_DESCENT } from './scenario';
+import { FlightSession, isVerdict } from './session';
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
 import { flightTelemetry } from './telemetry';
 import './style.css';
@@ -28,13 +27,7 @@ registerUi();
 const host = document.querySelector<HTMLDivElement>('#viewport')!;
 const hud = document.querySelector('gravitas-flight-hud')!;
 const parameters = new URLSearchParams(location.search);
-const session = new FlightSession({
-  start: START_STATE,
-  vehicle: LANDER,
-  attitude: ATTITUDE,
-  environment: ENVIRONMENT,
-  limits: LANDING_LIMITS,
-});
+const session = new FlightSession(FIRST_DESCENT);
 const keyboard = new KeyboardControls(window, keyCommand);
 const storage = browserStorage();
 let settings: Settings = loadSettings(storage);
@@ -97,11 +90,7 @@ function soundEvents(): void {
     const touchdown = 'touchdown' in outcome ? outcome.touchdown : null;
     audio.touchdown(touchdown ? touchdown.verticalSpeed : 2);
   }
-  if (outcome.status !== lastOutcome) {
-    if (outcome.status === 'landed' || outcome.status === 'rough' || outcome.status === 'crashed') {
-      audio.cue(outcome.status);
-    }
-  }
+  if (outcome.status !== lastOutcome && isVerdict(outcome)) audio.cue(outcome.status);
   lastOutcome = outcome.status;
 }
 

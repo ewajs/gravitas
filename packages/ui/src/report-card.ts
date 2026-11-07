@@ -30,7 +30,7 @@ const BADGES = {
 
 /**
  * The verdict and why: each judged quantity against its limit, fuel and time,
- * Try again (with the key or button that also retries), and the manual when
+ * Try again (with the key or button that also retries, if any), and the manual when
  * `manualHref` is set.
  */
 export function reportCard(
@@ -135,7 +135,7 @@ export function reportCard(
     </dl>
     <div class="card-actions">
       <button class="primary" @click=${onRetry} aria-keyshortcuts="Enter">
-        ${msg('Reintentar', { id: 'retry' })}<kbd aria-hidden="true">${retryKey}</kbd>
+        ${msg('Reintentar', { id: 'retry' })}${retryKey ? html`<kbd aria-hidden="true">${retryKey}</kbd>` : nothing}
       </button>
       ${
         manualHref

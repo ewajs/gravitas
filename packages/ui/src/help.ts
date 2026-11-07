@@ -1,16 +1,24 @@
-import { html, nothing, type TemplateResult } from 'lit';
+import { html, nothing, type SVGTemplateResult, type TemplateResult } from 'lit';
 import { msg } from '@lit/localize';
 import { icons } from './icons';
-import type { InputDevice } from './types';
+import type { AppearanceRequest, InputDevice, TouchControlsMode } from './types';
 
 /** The right stick's name on a gamepad, as a key label. */
 function rightStick(): string {
   return msg('Stick derecho', { id: 'pad-right-stick' });
 }
 
-/** The key or button that starts, resumes, and retries on each device. */
+/** The key or button that starts and resumes on each device (touch taps the button). */
 export function confirmKey(device: InputDevice): string {
   return device === 'gamepad' ? 'A' : 'P';
+}
+
+// The touch controls' names, as labels: where they are on the screen.
+function touchLabels() {
+  return {
+    lever: msg('Pulgar izq.', { id: 'touch-left-thumb' }),
+    stick: msg('Pulgar der.', { id: 'touch-right-thumb' }),
+  };
 }
 
 /**
@@ -19,26 +27,37 @@ export function confirmKey(device: InputDevice): string {
  * and the goal.
  */
 export function quickCard(heading: string, device: InputDevice): TemplateResult {
-  const row = (keys: readonly string[], action: string) =>
+  const row = (keys: readonly (string | SVGTemplateResult)[], action: string) =>
     html`<dt>${keys.map((key) => html`<kbd>${key}</kbd> `)}</dt>
       <dd>${action}</dd>`;
   const tilt = msg('Inclinar el módulo', { id: 'quick-tilt' });
   const turn = msg('Girar', { id: 'quick-turn' });
   const throttle = msg('Subir / bajar empuje', { id: 'quick-throttle' });
+  const touch = touchLabels();
   const rows =
-    device === 'gamepad'
+    device === 'touch'
       ? [
-          row([rightStick()], tilt),
-          row(['LB', 'RB'], turn),
-          row(['RT', 'LT'], throttle),
-          row(['Start'], msg('Pausa', { id: 'help-pause' })),
+          row(
+            [touch.lever],
+            msg('Palanca de empuje: deslizala; se traba al flotar', { id: 'quick-touch-lever' }),
+          ),
+          row([touch.stick], msg('Inclinar: arrastrá donde toques', { id: 'quick-touch-stick' })),
+          row([icons.yawLeft(14), icons.yawRight(14)], turn),
+          row([icons.pause(14)], msg('Pausa', { id: 'help-pause' })),
         ]
-      : [
-          row(['W', 'A', 'S', 'D'], tilt),
-          row(['Q', 'E'], turn),
-          row(['R', 'F'], throttle),
-          row(['Z', 'X'], msg('Empuje máximo / cortar', { id: 'help-throttle-set' })),
-        ];
+      : device === 'gamepad'
+        ? [
+            row([rightStick()], tilt),
+            row(['LB', 'RB'], turn),
+            row(['RT', 'LT'], throttle),
+            row(['Start'], msg('Pausa', { id: 'help-pause' })),
+          ]
+        : [
+            row(['W', 'A', 'S', 'D'], tilt),
+            row(['Q', 'E'], turn),
+            row(['R', 'F'], throttle),
+            row(['Z', 'X'], msg('Empuje máximo / cortar', { id: 'help-throttle-set' })),
+          ];
   return html`<aside class="card quick" aria-labelledby="quick-title">
     <div class="lockup" aria-hidden="true">
       <slot name="mark-large"></slot>
@@ -58,12 +77,13 @@ export function quickCard(heading: string, device: InputDevice): TemplateResult 
  */
 export function helpDialog(
   manualHref: string,
-  reduceTransparency: boolean,
+  display: { readonly reduceTransparency: boolean; readonly touchControls: TouchControlsMode },
   device: InputDevice,
   onClose: () => void,
-  onReduceTransparency: (reduce: boolean) => void,
+  onDisplay: (request: AppearanceRequest) => void,
 ): TemplateResult {
-  const key = (label: string, keys: string) =>
+  const touch = touchLabels();
+  const key = (label: string, keys: string | TemplateResult) =>
     html`<div>
       <dt>${label}</dt>
       <dd><kbd>${keys}</kbd></dd>
@@ -83,32 +103,63 @@ export function helpDialog(
     </div>
     <dl class="help-list" data-device=${device}>
       ${
-        device === 'gamepad'
+        device === 'touch'
           ? [
-              key(msg('Cabeceo y alabeo', { id: 'help-tilt-pad' }), rightStick()),
-              key(msg('Guiñada: izquierda / derecha', { id: 'help-yaw' }), 'LB / RB'),
               key(
-                msg('Subir / bajar empuje (más presión, más rápido)', { id: 'help-throttle-pad' }),
-                'RT / LT',
+                msg('Empuje: palanca que no vuelve sola; se traba al flotar', {
+                  id: 'help-touch-lever',
+                }),
+                touch.lever,
               ),
-              key(msg('Comenzar, reanudar o reintentar', { id: 'help-confirm-pad' }), 'A'),
-              key(msg('Pausa', { id: 'help-pause' }), 'Start'),
+              key(
+                msg('Cabeceo y alabeo: el control aparece donde tocás', { id: 'help-touch-stick' }),
+                touch.stick,
+              ),
+              key(
+                msg('Guiñada: izquierda / derecha', { id: 'help-yaw' }),
+                html`${icons.yawLeft(14)} / ${icons.yawRight(14)}`,
+              ),
+              key(msg('Pausa', { id: 'help-pause' }), html`${icons.pause(14)}`),
             ]
-          : [
-              key(msg('Cabeceo: adelante / atrás', { id: 'help-pitch' }), 'W / S'),
-              key(msg('Alabeo: izquierda / derecha', { id: 'help-roll' }), 'A / D'),
-              key(msg('Guiñada: izquierda / derecha', { id: 'help-yaw' }), 'Q / E'),
-              key(msg('Subir / bajar empuje (mantené)', { id: 'help-throttle' }), 'R / F'),
-              key(msg('Empuje máximo / cortar', { id: 'help-throttle-set' }), 'Z / X'),
-              key(msg('Pausa', { id: 'help-pause' }), 'P'),
-              key(msg('Silenciar / activar sonido', { id: 'help-mute' }), 'M'),
-              key(msg('Reiniciar', { id: 'restart' }), 'Enter'),
-            ]
+          : device === 'gamepad'
+            ? [
+                key(msg('Cabeceo y alabeo', { id: 'help-tilt-pad' }), rightStick()),
+                key(msg('Guiñada: izquierda / derecha', { id: 'help-yaw' }), 'LB / RB'),
+                key(
+                  msg('Subir / bajar empuje (más presión, más rápido)', {
+                    id: 'help-throttle-pad',
+                  }),
+                  'RT / LT',
+                ),
+                key(msg('Comenzar, reanudar o reintentar', { id: 'help-confirm-pad' }), 'A'),
+                key(msg('Pausa', { id: 'help-pause' }), 'Start'),
+              ]
+            : [
+                key(msg('Cabeceo: adelante / atrás', { id: 'help-pitch' }), 'W / S'),
+                key(msg('Alabeo: izquierda / derecha', { id: 'help-roll' }), 'A / D'),
+                key(msg('Guiñada: izquierda / derecha', { id: 'help-yaw' }), 'Q / E'),
+                key(msg('Subir / bajar empuje (mantené)', { id: 'help-throttle' }), 'R / F'),
+                key(msg('Empuje máximo / cortar', { id: 'help-throttle-set' }), 'Z / X'),
+                key(msg('Pausa', { id: 'help-pause' }), 'P'),
+                key(msg('Silenciar / activar sonido', { id: 'help-mute' }), 'M'),
+                key(msg('Reiniciar', { id: 'restart' }), 'Enter'),
+              ]
       }
       <div>
         <dt>${msg('Cámara', { id: 'help-camera' })}</dt>
         <dd>
-          ${msg('Arrastrá para mirar alrededor (vuelve sola) · rueda para acercar', { id: 'help-camera-keys' })}
+          ${
+            device === 'touch'
+              ? msg(
+                  'Arrastrá fuera de los controles para mirar alrededor · pellizcá para acercar',
+                  {
+                    id: 'help-camera-touch',
+                  },
+                )
+              : msg('Arrastrá para mirar alrededor (vuelve sola) · rueda para acercar', {
+                  id: 'help-camera-keys',
+                })
+          }
         </dd>
       </div>
     </dl>
@@ -138,15 +189,34 @@ export function helpDialog(
       <label class="toggle">
         <input
           type="checkbox"
-          .checked=${reduceTransparency}
+          .checked=${display.reduceTransparency}
           aria-describedby="transparency-note"
           @change=${(event: Event) =>
-            onReduceTransparency((event.currentTarget as HTMLInputElement).checked)}
+            onDisplay({ reduceTransparency: (event.currentTarget as HTMLInputElement).checked })}
         />
         ${msg('Reducir transparencia', { id: 'reduce-transparency' })}
       </label>
       <p id="transparency-note" class="note">
         ${msg('Paneles sólidos, sin desenfoque. Se activa igual si tu sistema pide menos transparencia.', { id: 'reduce-transparency-note' })}
+      </p>
+      <label class="setting">
+        <span>${msg('Controles táctiles', { id: 'touch-controls' })}</span>
+        <select
+          .value=${display.touchControls}
+          aria-describedby="touch-note"
+          @change=${(event: Event) => {
+            const value = (event.currentTarget as HTMLSelectElement).value;
+            if (value === 'auto' || value === 'always' || value === 'never')
+              onDisplay({ touchControls: value });
+          }}
+        >
+          <option value="auto">${msg('Automático', { id: 'touch-auto' })}</option>
+          <option value="always">${msg('Siempre', { id: 'touch-always' })}</option>
+          <option value="never">${msg('Nunca', { id: 'touch-never' })}</option>
+        </select>
+      </label>
+      <p id="touch-note" class="note">
+        ${msg('Automático: aparecen al tocar la pantalla y se ocultan al usar el teclado o un mando.', { id: 'touch-controls-note' })}
       </p>
     </section>
   </dialog>`;

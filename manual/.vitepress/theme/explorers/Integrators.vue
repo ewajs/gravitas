@@ -4,16 +4,13 @@ import { computed, ref } from 'vue';
 import LinePlot from '../LinePlot.vue';
 import { convergence, integrators } from '../../learn/models';
 import { useLocale } from '../locale';
+import { superscript } from '../notation';
 
 const { english, format } = useLocale();
 const step = ref(0.02);
 const run = computed(() => integrators(step.value));
 const slopes = convergence();
 // Scientific notation with a superscript exponent: 1.5 × 10⁻³ (locale decimal mark).
-const superscript = (n: number) =>
-  String(n)
-    .replace('-', '⁻')
-    .replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(d)]!);
 const sci = (v: number) => {
   if (v === 0) return '0';
   const exponent = Math.floor(Math.log10(Math.abs(v)));

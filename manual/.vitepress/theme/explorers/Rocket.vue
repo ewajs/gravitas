@@ -2,6 +2,7 @@
 // The lander's engine: throttle, fuel loaded, and tilt set the forces; the rocket
 // equation and the engine agree on the climb. A small figure splits the thrust.
 import { computed, ref } from 'vue';
+import { toRadians } from '@gravitas/engine';
 import LinePlot from '../LinePlot.vue';
 import { rocket } from '../../learn/models';
 import { useLocale } from '../locale';
@@ -14,7 +15,7 @@ const r = computed(() => rocket(throttle.value, fuel.value, tilt.value));
 const percent = (v: number) => `${format(v * 100, 0)} %`;
 // Thrust-vector figure: arrow along the tilted axis, split into components.
 const figure = computed(() => {
-  const a = (tilt.value * Math.PI) / 180;
+  const a = toRadians(tilt.value);
   const length = 70 * throttle.value;
   return {
     tip: { x: 90 + length * Math.sin(a), y: 100 - length * Math.cos(a) },

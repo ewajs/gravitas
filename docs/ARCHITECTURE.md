@@ -3,8 +3,7 @@
 **Status:** workspace boundaries, viewport, hosted delivery, engine flight
 dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
 bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
-contact and touchdown judging implemented (M2 steps 2.1–2.2); the player manual is
-pending. See [the flight model](FLIGHT.md),
+contact, touchdown judging, and the bilingual player manual implemented (M2). See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -128,8 +127,10 @@ provide language selection and help. No component kit is needed yet.
 TypeDoc generates each library's API/guide and the application integration
 walkthrough from public exports, TSDoc comments, and Markdown. `npm run build`
 combines the game and docs in one Pages artifact, with docs under `/gravitas/docs/`.
-See [the developer guides](developer/README.md). Main deployments publish both. A separate bilingual VitePress player manual and
-its build remain planned for M2.
+See [the developer guides](developer/README.md). The bilingual VitePress player
+manual (`manual/`) builds into `/gravitas/manual/` (Spanish) and
+`/gravitas/manual/en/` in the same artifact; Help links to it in the current
+language. Main deployments publish all three.
 
 ## Current integration: one flight
 

@@ -89,6 +89,8 @@ export class FlightHud extends LitElement {
   @property({ attribute: false }) telemetry?: FlightTelemetry;
   /** Current session phase owned by the application. */
   @property() phase: FlightPhase = 'ready';
+  /** Player manual for the current locale; Help links to it when set. */
+  @property() manualHref = '';
   /** Result shown while `phase` is `complete`. */
   @property({ attribute: false }) report: LandingReport | undefined;
   /** Committed display locale, set after setLocale() resolves. */
@@ -494,6 +496,9 @@ export class FlightHud extends LitElement {
       }
       .help-list dt {
         color: var(--gravitas-muted);
+      }
+      .manual a {
+        color: var(--gravitas-focus);
       }
       .about {
         border-top: 1px solid var(--gravitas-line);
@@ -1022,8 +1027,17 @@ export class FlightHud extends LitElement {
             </dd>
           </div>
         </dl>
+        ${
+          this.manualHref
+            ? html`<p class="manual">
+                <a href=${this.manualHref} target="_blank" rel="noopener">
+                  ${msg('Abrir el manual (pestaña nueva)', { id: 'open-manual' })}
+                </a>
+              </p>`
+            : nothing
+        }
         <p class="about">
-          ${msg('Aterrizaje limpio: tocar a 2 m/s o menos hacia abajo, a 1 m/s o menos de costado y con menos de 10° de inclinación, y quedarse quieto sobre las cuatro patas un segundo. Si la estructura toca el suelo, una pata golpea a más de 5 m/s o el módulo vuelca, es un accidente.', { id: 'rules-help' })}
+          ${msg('Aterrizaje limpio: tocar a 2 m/s o menos hacia abajo, a 1 m/s o menos de costado y con 10° de inclinación o menos, y quedarse quieto sobre las cuatro patas un segundo. Si la estructura toca el suelo, una pata golpea a más de 5 m/s o el módulo vuelca, es un accidente.', { id: 'rules-help' })}
         </p>
         <p class="about">
           ${msg('El radar mira hacia donde apunta el módulo: arriba es adelante (W). El punto muestra hacia dónde se inclina el empuje; la flecha, tu deriva horizontal; el rombo, la plataforma (hueco a más de 60 m). Para frenar la deriva, inclinate en contra de la flecha. La marca en la barra de empuje indica cuánto hace falta para flotar.', { id: 'radar-help' })}

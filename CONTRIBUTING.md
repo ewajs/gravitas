@@ -57,9 +57,10 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run typecheck`                       | Strict TypeScript in each workspace and build/test config   |
 | `npm test` / `npm run test:watch`         | Vitest in Node; tests live beside source as `*.test.ts`     |
 | `npm run format` / `npm run format:check` | Write/check formatting                                      |
-| `npm run build` / `npm run preview`       | Build/serve game and developer docs in `apps/game/dist`     |
+| `npm run build` / `npm run preview`       | Build/serve game, developer docs, and manual in `dist`      |
 | `npm run build:game`                      | Build only the game (also used by local browser suites)     |
 | `npm run docs`                            | Generate library API references and developer guides        |
+| `npm run manual` / `npm run manual:dev`   | Build (with dead-link check) / serve the bilingual manual   |
 
 Vitest covers flight dynamics against independent references, the fixed-step session
 (frame-rate independence, overload, pause, impact and settling), surface contact
@@ -76,7 +77,10 @@ type-only imports, re-exports, and dynamic imports. UI can import engine types
 with `import type`; engine cannot depend on other workspaces or runtime packages.
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
-`npm run manual` remains planned for M2. Browser suites run locally
+The player manual lives in `manual/` (Spanish at the root, English in `en/`, same
+page names). VitePress fails the build on dead links, so CI's build checks them.
+Keep landing limits in the manual, Help text, and `apps/game/src/rules.ts` in step.
+Browser suites run locally
 when UI, rendering, lifecycle, or delivery changes need them; record the results
 and backend/device limits in the PR. Do not run heavy browser suites, simulation
 matrices, or benchmarks in routine CI. For local browser checks:

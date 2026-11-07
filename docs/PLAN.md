@@ -97,8 +97,13 @@ assets only.
       both locales, both backends. Local checks passed on 2026-11-07; see
       [ADR 0012](decisions/0012-landing-outcomes.md) and
       [outcome verification](verification/outcomes.md).
-- [ ] **2.3 Player manual:** bilingual VitePress manual at `/gravitas/manual/`,
-      `npm run manual`, CI build and link checks.
+- [x] **2.3 Player manual:** bilingual VitePress manual (`manual/`) at
+      `/gravitas/manual/` and `/gravitas/manual/en/`: getting started, flying,
+      instruments, landing rules and tips, the lander. `npm run manual` (dead links
+      fail), included in `npm run build` and CI; Help links to it per locale.
+      **Verify:** builds, a dead link fails the build, browser checks of Help links,
+      both locales, and the way back to the game. Local checks passed on 2026-11-07;
+      see [manual verification](verification/manual.md).
 
 **Acceptance:** start, fly, land/crash, understand the result, retry. No orbit,
 construction, staging, or progression required.

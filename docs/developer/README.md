@@ -42,8 +42,10 @@ npm run preview -- --base /gravitas/
 
 Open `/gravitas/docs/` on the preview server for this site and `/gravitas/` for the
 game. The docs command writes only `apps/game/dist/docs`; a full build writes the
-game first and regenerates docs afterward. The separate bilingual player manual
-is planned for M2 and has no build command yet.
+game first, then docs, then the player manual. `npm run manual` builds the
+bilingual VitePress manual into `apps/game/dist/manual`, and `npm run manual:dev`
+serves it with live reload. Player help stays separate from these technical
+guides.
 
 ## Verification and delivery
 

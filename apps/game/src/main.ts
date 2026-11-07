@@ -177,6 +177,8 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     await setLocale(locale);
     if (destroyed) return;
     hud.locale = locale;
+    // The manual is a separate static build under the same base: /manual/ or /manual/en/.
+    hud.manualHref = `${import.meta.env.BASE_URL}manual/${locale === 'en' ? 'en/' : ''}`;
     document.documentElement.lang = locale;
     if (viewport && !stopped) viewport.setLabel(viewportMessages().scene);
     if (updateUrl) {

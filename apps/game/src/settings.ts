@@ -1,4 +1,4 @@
-import type { Locale } from '@gravitas/ui';
+import type { Locale, TouchControlsMode } from '@gravitas/ui';
 
 /** Player preferences kept in the browser between visits. */
 export interface Settings {
@@ -9,6 +9,8 @@ export interface Settings {
   readonly controlsSeen: boolean;
   /** Solid panels without blur, even when the system does not ask for it. */
   readonly reduceTransparency: boolean;
+  /** When the on-screen touch controls show: on touch use (auto), always, or never. */
+  readonly touchControls: TouchControlsMode;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   muted: false,
   controlsSeen: false,
   reduceTransparency: false,
+  touchControls: 'auto',
 };
 
 const KEY = 'gravitas.settings.v1';
@@ -38,6 +41,11 @@ export function loadSettings(storage: Pick<Storage, 'getItem'> | undefined): Set
       controlsSeen: record.controlsSeen === true,
       // Added in 4.2b; settings saved before it lack the field and read as false.
       reduceTransparency: record.reduceTransparency === true,
+      // Added in 4.3c; older settings lack it and read as automatic.
+      touchControls:
+        record.touchControls === 'always' || record.touchControls === 'never'
+          ? record.touchControls
+          : 'auto',
     };
   } catch {
     return DEFAULT_SETTINGS;

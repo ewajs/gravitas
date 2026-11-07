@@ -17,6 +17,7 @@ it('round-trips settings', () => {
     muted: true,
     controlsSeen: true,
     reduceTransparency: true,
+    touchControls: 'never',
   };
   saveSettings(storage, settings);
   expect(loadSettings(storage)).toEqual(settings);
@@ -33,7 +34,27 @@ it('loads settings saved before reduced transparency existed', () => {
     muted: true,
     controlsSeen: true,
     reduceTransparency: false,
+    touchControls: 'auto',
   });
+});
+
+it('loads settings saved before the touch-controls setting existed', () => {
+  const storage = memory();
+  storage.items.set(
+    'gravitas.settings.v1',
+    JSON.stringify({ locale: 'es-AR', muted: false, controlsSeen: true, reduceTransparency: true }),
+  );
+  expect(loadSettings(storage)).toEqual({
+    locale: 'es-AR',
+    muted: false,
+    controlsSeen: true,
+    reduceTransparency: true,
+    touchControls: 'auto',
+  });
+  storage.items.set('gravitas.settings.v1', JSON.stringify({ touchControls: 'sometimes' }));
+  expect(loadSettings(storage).touchControls).toBe('auto');
+  storage.items.set('gravitas.settings.v1', JSON.stringify({ touchControls: 'always' }));
+  expect(loadSettings(storage).touchControls).toBe('always');
 });
 
 it('falls back field by field on corrupt or foreign data', () => {
@@ -52,6 +73,7 @@ it('falls back field by field on corrupt or foreign data', () => {
     muted: false,
     controlsSeen: true,
     reduceTransparency: false,
+    touchControls: 'auto',
   });
 });
 

@@ -96,9 +96,21 @@ describe('gamepad source', () => {
     source.poll();
     expect(source.sample().throttleChange).toBe(1);
     expect(source.active).toBe(true);
-    pads[0] = pad({ axes: { 0: 0.05 } }); // Drift inside the dead zone is not use.
+    source.poll(); // Held steady: still applied, but not fresh use.
+    expect(source.sample().throttleChange).toBe(1);
+    expect(source.active).toBe(false);
+    // A drifting left stick (unused in flight) or a resting button is never use.
+    pads[0] = pad({ axes: { 0: 0.6, 1: -0.4 } });
     source.poll();
     expect(source.active).toBe(false);
+    pads[0] = pad({ buttons: { 3: 1 } });
+    source.poll();
+    expect(source.active).toBe(true); // A fresh press of any button is.
+    source.poll();
+    expect(source.active).toBe(false);
+    pads[0] = pad({ axes: { 3: -0.7 } });
+    source.poll();
+    expect(source.active).toBe(true); // Moving the right stick is.
     source.clear();
     expect(source.sample()).toEqual({ rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 });
   });

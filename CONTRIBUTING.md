@@ -66,7 +66,7 @@ workspaces locally; there is no package publishing or separate library build.
 
 Vitest covers flight dynamics against independent references, two-body orbits and
 rotating frames against Kepler, vis-viva, and inertial-frame flight, frame
-conversions, the fixed-step session
+conversions, orbital elements and Kepler propagation, session time warp, the fixed-step session
 (frame-rate independence, overload, pause, impact and settling), surface contact
 against analytic references, touchdown judging boundaries, scripted whole-flight
 regression pilots, key mapping and input merging, heading and

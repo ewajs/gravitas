@@ -44,6 +44,16 @@ On a final verdict the session enters `complete`: the engine is cut and input is
 ignored while physics continues, so a crash plays out. Each completed tick keeps the previous state for
 interpolation.
 
+`requestWarp(level)` asks for time warp from `WARP_LEVELS` (1, 2, 4, 10, 100, 1000) and returns whether it applies. Up to 4× the same ticks simply run faster.
+Above that, the session coasts on rails along the Kepler orbit, which needs a
+`FlightScenario.orbit` (the body, the frame `start` uses, and a rails floor); its
+`railsBlocker` says why rails are refused (lever open, spinning, too low, and so
+on). Input, the floor, ground contact, pause, and restart return to 1×. `time` is
+simulated seconds since the start, including rails, and is the time the engine's
+frame conversions take ([ADR 0019](../decisions/0019-orbits-and-time-warp.md)).
+The opening has no `orbit`, so it offers physics warp only, and the game shows
+no warp control yet (5.3).
+
 ## 2. Attach input and the HUD
 
 ```ts

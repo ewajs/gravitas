@@ -315,20 +315,36 @@ bit-identical unless a step says otherwise.
       (9,717 hashed ticks). Local checks passed on 2026-11-07; see
       [ADR 0018](decisions/0018-gravity-and-frames.md) and
       [frames verification](verification/frames.md).
-- [ ] **5.2 Orbits and time warp:** orbital elements from state and back (pure
-      engine functions); unpowered coasting propagated analytically (Kepler) or
-      integrated, with switching rules decided here; time-warp levels the session
-      offers, with limits (no warp under thrust, near the surface, or at contact).
-      **Verify:** Kepler against RK4, element round trips including near-circular
-      and near-equatorial cases, warp never skipping contact or a thrust change,
-      wall time versus simulated time under warp.
+- [x] **5.2 Orbits and time warp:** pure engine orbit functions: the six
+      classical elements from state and back (circular and equatorial cases
+      included) with apoapsis, periapsis, period, and the times to each; Kepler
+      propagation in universal variables for every conic; the next descent
+      through an altitude; and `coastOnRails` for whole flight states, with
+      torque-free rotation, in either frame. Session time warp, from owner
+      decisions on 2026-11-07: physics warp at 2× and 4× (the same ticks, faster),
+      rails at 10×, 100×, and 1000× (one exact Kepler jump per frame); rails need
+      the lever closed, rotation under 0.1°/s (a slow spin continues, not
+      frozen), and height above the scenario's rails floor; any input, the floor
+      (solved exactly), ground contact, pause, and restart return to 1×. No
+      player-visible change yet. **Verify:** elements against vis-viva and
+      Kepler's third law and in round trips; Kepler against RK4 on an ellipse, a
+      hyperbola, the escape parabola, and many revolutions; predicted arrival at
+      periapsis, apoapsis, and an altitude; rails against RK4 coasting in both
+      frames; physics warp tick-identical to real time with the same verdict;
+      rails matching physics coasting in the session; the floor stop; the
+      opening's flights bit-identical. Local checks passed on 2026-11-07; see
+      [ADR 0019](decisions/0019-orbits-and-time-warp.md) and
+      [orbits verification](verification/orbits.md).
 - [ ] **5.3 Planetary-scale view and orbital instruments:** a lit Moon sphere,
       camera-relative (floating-origin) rendering so float32 GPUs stay steady at
       planetary distances, an orbit line, an orbit/map camera beside the chase
       camera; HUD apoapsis, periapsis, time to each, orbital speed, and warp
-      controls on keyboard, gamepad, and touch. **Verify:** no jitter at orbital
-      distances on both backends; instrument values against engine elements; phone
-      layout tests still clear the centre.
+      controls on keyboard, gamepad, and touch, explaining why rails are refused.
+      A debug-only orbit sandbox (owner decision on 2026-11-07): the current
+      lander in lunar orbit behind `?debug` or a URL flag, not on the start card,
+      so orbits, warp, and the view can be tried on phones before 5.5.
+      **Verify:** no jitter at orbital distances on both backends; instrument
+      values against engine elements; phone layout tests still clear the centre.
 - [ ] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
       public NASA elevation grid, with everything finer generated from a fixed
       seed, so any spot can be landed on. Owner decision on 2026-11-07: LDEM_4

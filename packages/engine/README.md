@@ -3,7 +3,8 @@
 Pure flight dynamics over plain data, independent of rendering and browser APIs.
 It exports the shared `VehiclePose` contract, `stepFlight` for one rigid vehicle
 with optional surface contact, gravity fields and planetary
-[frames](#gravity-and-frames) with the built-in `MOON`, `contactFacts`,
+[frames](#gravity-and-frames) with the built-in `MOON`, two-body
+[orbits](#orbits) and on-rails coasting, `contactFacts`,
 `rateControlTorque` for body-rate assistance, the orientation helpers
 `bodyToWorld`, `headingAngle`, and `tiltAngle`, and the vector and angle
 [math helpers](#math-helpers) the dynamics use. The host owns state, time,
@@ -97,6 +98,27 @@ and altitude; `surfaceFrameToBodyFixed` and `bodyFixedToSurfaceFrame` move whole
 states. `FlightState.angularVelocity` is always relative to inertial space, so it
 is the same in every frame. Constants, equations, and the precision budget are in
 [ADR 0018](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0018-gravity-and-frames.md).
+
+## Orbits
+
+Hand any flight state to `orbitOf` for its conic, and to `coastOnRails` to coast
+it exactly:
+
+```ts
+import { coastOnRails, orbitOf, timeToAltitude } from '@gravitas/engine';
+
+const orbit = orbitOf(state, MOON, 'body-fixed', time);
+// { periapsis, apoapsis, eccentricity, inclination, period, timeToPeriapsis, ... }
+const untilFloor = timeToAltitude(state, MOON, 'body-fixed', time, 15_000);
+const later = coastOnRails(state, vehicle.inertia, MOON, 'body-fixed', time, 600);
+```
+
+`orbitFromState` and `stateFromOrbit` convert between inertial position and
+velocity and the six classical elements (radii in metres from the centre, angles
+in radians). `propagateKepler` solves Kepler's problem for any conic.
+`coastOnRails` adds torque-free rotation (`coastAttitude`) and the frame
+conversions; it is what the game's rails time warp runs
+([ADR 0019](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0019-orbits-and-time-warp.md)).
 
 ## Surface contact
 

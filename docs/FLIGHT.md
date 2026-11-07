@@ -5,7 +5,8 @@ with keyboard controls, a fixed-step runtime, and instruments. Surface contact
 (step 2.1) lets the lander touch down, bounce, slide, and tip over; landing
 verdicts arrive in 2.2. Central-body gravity and rotating frames arrive in 5.1
 ([ADR 0018](decisions/0018-gravity-and-frames.md)); the game still flies the
-opening under uniform gravity. [ADR 0011](decisions/0011-contact-model.md) covers contact. [ADR 0008](decisions/0008-flight-model.md) covers
+opening under uniform gravity. Orbits and time warp arrive in 5.2
+([ADR 0019](decisions/0019-orbits-and-time-warp.md)). [ADR 0011](decisions/0011-contact-model.md) covers contact. [ADR 0008](decisions/0008-flight-model.md) covers
 the model and integrator; [ADR 0009](decisions/0009-flight-runtime.md) covers the
 runtime, input, and interpolation.
 
@@ -70,6 +71,29 @@ long descent lands, so they are modelled rather than dropped.
 exact burnout instant: powered flight up to that time, then an unpowered coast.
 Afterwards fuel is exactly zero and neither thrust nor torque applies, so
 existing rotation continues and cannot be braked.
+
+## Orbits and time warp
+
+Around a central body, an unpowered vehicle follows a conic: an ellipse while
+bound, a parabola or hyperbola when escaping. `orbitOf` describes a flight state's
+conic by the six classical elements: periapsis radius, eccentricity, inclination
+from the equator, the ascending node's longitude (east from inertial +X), the
+argument of periapsis, and the true anomaly. It adds the semi-major axis, apoapsis,
+period, specific energy, and the times to periapsis and apoapsis. A circular orbit
+has no periapsis, so its anomaly counts from the node; an equatorial one has no
+node, so angles count from +X.
+
+`propagateKepler` moves a coasting position and velocity forward exactly, by
+Kepler's equation in universal variables. `coastOnRails` does the same for a whole
+flight state: the orbit by Kepler, rotation by Euler's torque-free equations, fuel
+unchanged, in the Moon-fixed or inertial frame.
+
+The session offers warp in two kinds. **Physics warp** (2×, 4×) runs the same 60 Hz
+steps faster, so everything works and results equal real time's. **Rails warp**
+(10×, 100×, 1000×) coasts by `coastOnRails`, once per frame. It needs the lever
+closed, rotation under 0.1°/s, and height above the scenario's rails floor. Input
+drops back to 1×, and so does descending through the floor: the session solves
+exactly when that happens and stops there.
 
 ## Surface contact
 
@@ -294,6 +318,17 @@ flown in the Moon-fixed frame and in inertial space agreeing after conversion,
 with the difference shrinking at fourth order. `frames.test.ts` checks the axes,
 surface frames against analytic east, north, and up, and round trips between all
 three frames.
+
+`packages/engine/src/orbits.test.ts` checks the 15 × 100 km orbit's size, period,
+and energy against vis-viva and Kepler's third law; round trips of the elements,
+including polar, retrograde, equatorial, circular, and hyperbolic orbits; Kepler
+propagation against RK4 on an ellipse and a hyperbola, the radial escape parabola,
+and many revolutions; arrival at periapsis, apoapsis, and a chosen altitude when
+predicted; and rails against RK4 coasting with a slow spin in both frames.
+`apps/game/src/warp.test.ts` checks the session: physics warp running the same
+ticks as real time, dropping to 1× at contact with the same verdict, rails
+matching physics coasting, input and the floor ending rails, and the conditions
+that block them.
 
 `packages/engine/src/contact.test.ts` checks contact against analytic references:
 resting compression `mg/4k`, an elastic bounce with equal exit speed lasting

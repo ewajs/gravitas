@@ -16,6 +16,7 @@ import { FlightAudio } from './audio';
 import { DiagnosticsOverlay } from './diagnostics';
 import { KeyboardControls } from './controls';
 import { GamepadControls } from './gamepad';
+import { TouchControlsSource } from './touch';
 import { PilotInputs, type InputCommand } from './input';
 import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import { landingReport } from './report';
@@ -35,6 +36,7 @@ const TELEMETRY_INTERVAL_MS = 100;
 registerUi();
 const host = document.querySelector<HTMLDivElement>('#viewport')!;
 const hud = document.querySelector('gravitas-flight-hud')!;
+const touchControls = document.querySelector('gravitas-touch-controls')!;
 const parameters = new URLSearchParams(location.search);
 const session = new FlightSession(FIRST_DESCENT);
 // Every input source reports commands to one handler; held input merges per frame.
@@ -48,9 +50,13 @@ const inputs = new PilotInputs([
     (command) => hud.helpOpen || inputCommand(command),
     gamepadConnection,
   ),
+  new TouchControlsSource(touchControls),
 ]);
-// The device the player last used; help and hints describe its controls.
-let inputDevice: InputDevice = 'keyboard';
+// A phone or tablet (no hover, coarse pointer) starts with touch; others with keys.
+const touchFirst = matchMedia('(hover: none) and (pointer: coarse)').matches;
+const defaultDevice: InputDevice = touchFirst ? 'touch' : 'keyboard';
+// The device the player last used; help, hints, and touch controls follow it.
+let inputDevice: InputDevice = defaultDevice;
 const storage = browserStorage();
 let settings: Settings = loadSettings(storage);
 // Context state changes asynchronously; mirror it for observability (and tests).
@@ -74,6 +80,7 @@ hud.muted = settings.muted;
 hud.showControls = !settings.controlsSeen;
 hud.reduceTransparency = settings.reduceTransparency;
 hud.inputDevice = inputDevice;
+hud.touchControlsMode = settings.touchControls;
 publish();
 
 // Settings change rarely and are saved only then, never per frame.
@@ -123,12 +130,30 @@ function useDevice(device: InputDevice): void {
   if (device === inputDevice) return;
   inputDevice = device;
   hud.inputDevice = device;
+  syncTouchControls();
 }
 
-// A lost gamepad pauses its flight, like a lost window focus, and help returns to the keys.
+// Touch controls show during a flight when the setting asks for them: always, or
+// (automatic) while touch is the device in use. Paused, they stay but are inert.
+function syncTouchControls(): void {
+  const mode = settings.touchControls;
+  const wanted = mode === 'always' || (mode === 'auto' && inputDevice === 'touch');
+  const underway = session.phase === 'flying' || session.phase === 'paused';
+  touchControls.hidden = !(wanted && underway);
+  touchControls.disabled = session.phase !== 'flying';
+  hud.touchControls = wanted && underway;
+}
+
+// The first touch anywhere shows the touch controls (in automatic mode).
+function pointerDown(event: PointerEvent): void {
+  if (event.pointerType === 'touch') useDevice('touch');
+}
+
+// A lost gamepad pauses its flight, like a lost window focus, and help returns to the
+// device the screen suggests.
 function gamepadConnection(connected: boolean): void {
   if (connected || inputDevice !== 'gamepad') return;
-  useDevice('keyboard');
+  useDevice(defaultDevice);
   if (session.phase === 'flying') flightAction('pause');
 }
 
@@ -139,9 +164,14 @@ function legCompression(): number[] {
 
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
+  const telemetry = flightTelemetry(session.state, session.throttle);
   hud.phase = session.phase;
   hud.report = landingReport(session);
-  hud.telemetry = flightTelemetry(session.state, session.throttle);
+  hud.telemetry = telemetry;
+  // The lever shows the throttle actually applied, whichever device moved it.
+  touchControls.throttle = session.throttle;
+  touchControls.hoverThrottle = telemetry.hoverThrottle;
+  syncTouchControls();
 }
 
 function draw(timestamp: number): void {
@@ -255,10 +285,18 @@ function inputCommand(command: InputCommand): void {
 }
 
 function appearanceRequested(event: Event): void {
-  const reduce = (event as CustomEvent<AppearanceRequest>).detail?.reduceTransparency;
-  if (typeof reduce !== 'boolean') return;
-  hud.reduceTransparency = reduce;
-  updateSettings({ reduceTransparency: reduce });
+  const detail = (event as CustomEvent<AppearanceRequest>).detail;
+  const reduce = detail?.reduceTransparency;
+  if (typeof reduce === 'boolean') {
+    hud.reduceTransparency = reduce;
+    updateSettings({ reduceTransparency: reduce });
+  }
+  const touch = detail?.touchControls;
+  if (touch === 'auto' || touch === 'always' || touch === 'never') {
+    hud.touchControlsMode = touch;
+    updateSettings({ touchControls: touch });
+    syncTouchControls();
+  }
 }
 
 function soundRequested(event: Event): void {
@@ -284,6 +322,7 @@ function stopRendering(): void {
   frame = undefined;
   session.pause();
   inputs.dispose();
+  touchControls.hidden = true; // Nothing left to steer.
   audio.dispose();
   diagnostics?.dispose();
   window.removeEventListener('keydown', unlockAudio, true);
@@ -306,6 +345,7 @@ function destroy(): void {
   hud.removeEventListener('appearance-request', appearanceRequested);
   window.removeEventListener('blur', windowBlurred);
   window.removeEventListener('pagehide', pageHidden);
+  window.removeEventListener('pointerdown', pointerDown, true);
 }
 
 function fail(error: unknown): void {
@@ -338,6 +378,7 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     await setLocale(locale);
     if (destroyed) return;
     hud.locale = locale;
+    touchControls.locale = locale;
     // The manual is a separate static build under the same base: /manual/ or /manual/en/.
     hud.manualHref = `${import.meta.env.BASE_URL}manual/${locale === 'en' ? 'en/' : ''}`;
     document.documentElement.lang = locale;
@@ -371,6 +412,7 @@ window.addEventListener('keydown', unlockAudio, true);
 window.addEventListener('pointerdown', unlockAudio, true);
 window.addEventListener('blur', windowBlurred);
 window.addEventListener('pagehide', pageHidden);
+window.addEventListener('pointerdown', pointerDown, true);
 
 async function start(): Promise<void> {
   // An explicit ?lang= wins; otherwise the last language chosen here; else Spanish.

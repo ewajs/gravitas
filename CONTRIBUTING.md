@@ -64,7 +64,9 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run measure`                         | Fly a workload on both browsers; report fps/work/draw calls |
 | `npm run icons`                           | Render the mark into favicons, app icons, and social image  |
 
-Vitest covers flight dynamics against independent references, the fixed-step session
+Vitest covers flight dynamics against independent references, two-body orbits and
+rotating frames against Kepler, vis-viva, and inertial-frame flight, frame
+conversions, the fixed-step session
 (frame-rate independence, overload, pause, impact and settling), surface contact
 against analytic references, touchdown judging boundaries, scripted whole-flight
 regression pilots, key mapping and input merging, heading and

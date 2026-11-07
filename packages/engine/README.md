@@ -2,7 +2,8 @@
 
 Pure flight dynamics over plain data, independent of rendering and browser APIs.
 It exports the shared `VehiclePose` contract, `stepFlight` for one rigid vehicle,
-and `rateControlTorque` for body-rate assistance. The host owns state, time,
+`rateControlTorque` for body-rate assistance, and the orientation helpers
+`bodyToWorld` and `headingAngle`. The host owns state, time,
 input mapping, and any mission rules.
 
 ```ts
@@ -50,6 +51,11 @@ does not notify Lit, so pass a new snapshot when presentation data changes.
   no thrust or torque.
 - Classic RK4 with a step in (0, `MAX_FLIGHT_STEP`]. Hosts own the fixed-step
   accumulator and may use smaller steps.
+
+`headingAngle(q)` is the yaw left after removing the shortest tilt from upright
+(swing-twist about world Y). Zero faces −Z, positive turns left, and it stays
+continuous at any tilt except exactly inverted, where it returns 0. Viewport's
+chase camera and the game's radar share it, so screen-up and radar-up agree.
 
 `rateControlTorque` turns normalized rate requests in [−1, 1] into limited body
 torque. Zero input brakes rotation; it never auto-levels or cancels velocity.

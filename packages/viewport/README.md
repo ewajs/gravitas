@@ -1,7 +1,7 @@
 # @gravitas/viewport
 
-Three.js presentation library. It owns its canvas, following orbit camera,
-procedural artwork, pose interpolation, resize observer, and GPU resources. The
+Three.js presentation library. It owns its canvas, chase camera, procedural
+artwork and surface detail, pose interpolation, resize observer, and GPU resources. The
 host owns simulation state, vehicle poses, frame scheduling, and localization.
 
 ```ts
@@ -11,7 +11,6 @@ const viewport = new Viewport({
   container,
   label: 'A lunar lander and its landing pad.', // Supplied by host localization.
   centerOfMassHeight: 1.5, // Metres above the artwork's level feet; from the host's vehicle.
-  cameraOffset: { x: -6, y: 12, z: 3 }, // Optional start relative to the centre of mass.
   backend: 'auto', // Or 'webgl2' to explicitly select the fallback backend.
 });
 viewport.setVehiclePose(startPose);
@@ -20,6 +19,10 @@ await viewport.init();
 // Each animation frame, after the host's fixed-step simulation:
 viewport.setVehiclePose(currentTickPose, previousTickPose);
 viewport.render(remainderFraction); // Blend in [0, 1]; the host schedules frames.
+
+// After a discontinuity such as a restart:
+viewport.setVehiclePose(startPose);
+viewport.resetCamera(); // Snap behind the heading instead of easing across the jump.
 
 console.log(viewport.backend); // Actual 'webgpu' or 'webgl2', never an assumption.
 await viewport.dispose();
@@ -43,13 +46,28 @@ drawn less than one tick behind the physics. With a single pose, or `alpha = 1`,
 the current pose is drawn as-is. `alpha` outside [0, 1] throws `RangeError`.
 Import `VehiclePose` directly from `@gravitas/engine`.
 
-## Camera
+## Chase camera and scene
 
-The orbit camera follows the drawn centre of mass: each frame, camera and target
-move together, preserving the player's orbit angle and zoom (4–30 m). Pointer drag
-orbits and the wheel zooms; panning is disabled because following would undo it.
-`cameraOffset` sets the opening view and must lie within the zoom limits. The
-camera stays above the target's horizon. A designed chase camera is planned (1.3).
+The camera stays behind the drawn vehicle's heading and level with the horizon,
+orbiting its centre of mass. Heading is engine's `headingAngle`, so a host using
+the same function (as the game's radar does) keeps its instruments aligned with
+the screen.
+
+- Translation follows exactly. Azimuth and elevation ease (0.6 s / 0.8 s time
+  constants) on a presentation clock viewport reads itself, so yaw turns and
+  altitude changes are smooth at any frame rate.
+- Elevation is steep high up (35° from vertical) and flattens near the ground (66°).
+  A 12% lens shift draws the vehicle above centre, showing more surface ahead.
+- Pointer drag orbits freely; 1.5 s after release the camera eases back. The wheel
+  zooms between 6 and 40 m, and zoom is never reset by the chase.
+- Panning is disabled. At an exact inversion, where heading is undefined, the
+  camera holds its last heading. `resetCamera()` snaps to the default chase
+  position.
+
+The scene is illustrative: a flat surface with a pad at the origin and seeded,
+deterministic rocks and crater decals (instanced). A blue ring and drop line mark
+the ground straight below the vehicle, using the flat y = 0 plane and the
+centre-of-mass height. It is not terrain data or contact geometry.
 
 ## Lifecycle
 

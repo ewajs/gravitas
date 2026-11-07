@@ -1,5 +1,21 @@
 import * as THREE from 'three/webgpu';
 
+/** Off-pad terrain height; the pad's top is y = 0. */
+const SURFACE_Y = -0.17;
+const PAD_RADIUS = 3.8;
+
+// Small deterministic PRNG (mulberry32) for repeatable scenery.
+function seeded(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 /** Builds illustrative metre-scale artwork, not a physical vehicle specification. */
 export function createScene(centerOfMassHeight: number) {
   const scene = new THREE.Scene();
@@ -72,11 +88,15 @@ export function createScene(centerOfMassHeight: number) {
   // Large enough to stay under the vehicle throughout a local descent.
   const ground = mesh(new THREE.CircleGeometry(600, 96), material(0x50555a), scene);
   ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -0.17;
+  ground.position.y = SURFACE_Y;
   ground.castShadow = false;
-  const pad = mesh(new THREE.CylinderGeometry(3.8, 3.9, 0.16, 64), material(0x252d35), scene);
+  const pad = mesh(
+    new THREE.CylinderGeometry(PAD_RADIUS, PAD_RADIUS + 0.1, 0.16, 64),
+    material(0x252d35),
+    scene,
+  );
   pad.position.y = -0.08;
-  const ring = mesh(new THREE.RingGeometry(3.05, 3.11, 64), white, scene);
+  const ring = mesh(new THREE.RingGeometry(2.9, 3.15, 64), white, scene);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.003;
   ring.castShadow = false;
@@ -86,18 +106,86 @@ export function createScene(centerOfMassHeight: number) {
     mark.position.set(Math.sin(angle) * 3.45, 0.004, Math.cos(angle) * 3.45);
     mark.rotation.y = angle;
   }
-  // Fixed rocks give depth cues without a terrain generator or randomness.
-  for (const [x, z, size] of [
-    [-8, 3, 0.7],
-    [6, 7, 0.4],
-    [-12, -9, 1.1],
-    [9, -6, 0.6],
-  ] as const) {
-    const rock = mesh(new THREE.DodecahedronGeometry(size, 0), ground.material, scene);
-    rock.scale.set(1.4, 0.65, 1);
-    rock.position.set(x, size * 0.3 - 0.17, z);
-    rock.rotation.set(0.2, x, 0.1);
+  // Seeded scatter: identical on every run and backend, dense near the pad for motion cues.
+  const random = seeded(0x6a7a1);
+  const placement = new THREE.Object3D();
+  const scatter = (
+    geometry: THREE.BufferGeometry,
+    surface: THREE.Material,
+    count: number,
+    place: (index: number) => void,
+  ) => {
+    geometries.push(geometry);
+    const field = new THREE.InstancedMesh(geometry, surface, count);
+    for (let i = 0; i < count; i++) {
+      place(i);
+      placement.updateMatrix();
+      field.setMatrixAt(i, placement.matrix);
+    }
+    field.receiveShadow = true;
+    scene.add(field);
+    return field;
+  };
+  // Inward-biased radius between `min` and `max` metres, at a random bearing.
+  const around = (min: number, max: number) => {
+    const radius = min + (max - min) * random() ** 2;
+    const angle = random() * Math.PI * 2;
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius] as const;
+  };
+  scatter(new THREE.DodecahedronGeometry(1, 0), material(0x6b7076), 360, () => {
+    const [x, z] = around(8, 260);
+    const size = 0.15 + random() ** 3 * 1.6;
+    placement.position.set(x, SURFACE_Y + size * 0.25, z);
+    placement.rotation.set(random() * 3, random() * 3, random() * 3);
+    placement.scale.set(size * (1 + random() * 0.6), size * 0.6, size);
+  });
+  // Flat, non-overlapping crater decals, kept clear of the pad and its approach.
+  const craters: [number, number, number][] = [];
+  for (let attempt = 0; craters.length < 45 && attempt < 2000; attempt++) {
+    const radius = 2 + random() ** 2 * 8;
+    const distance = 30 + Math.sqrt(random()) * 260;
+    const angle = random() * Math.PI * 2;
+    const x = Math.cos(angle) * distance;
+    const z = Math.sin(angle) * distance;
+    if (craters.every(([cx, cz, cr]) => Math.hypot(cx - x, cz - z) > cr + radius + 4)) {
+      craters.push([x, z, radius]);
+    }
   }
+  const flat = (geometry: THREE.BufferGeometry, color: number, lift: number) =>
+    scatter(geometry, material(color), craters.length, (i) => {
+      const [x, z, radius] = craters[i]!;
+      placement.position.set(x, SURFACE_Y + lift, z);
+      placement.rotation.set(-Math.PI / 2, 0, 0);
+      placement.scale.set(radius, radius, 1);
+    });
+  flat(new THREE.CircleGeometry(1, 40), 0x474b50, 0.02);
+  flat(new THREE.RingGeometry(0.86, 1, 40), 0x6c7177, 0.03);
+
+  // Marker straight below the vehicle: reads height and drift where shadows cannot reach.
+  // Blue, so it never reads as the white pad ring.
+  const markerMaterial = new THREE.MeshBasicNodeMaterial({
+    color: 0x9fd4ff,
+    transparent: true,
+    opacity: 0.6,
+    depthWrite: false,
+  });
+  materials.push(markerMaterial);
+  const marker = mesh(new THREE.RingGeometry(1.55, 1.8, 48), markerMaterial, scene);
+  marker.rotation.x = -Math.PI / 2;
+  marker.castShadow = marker.receiveShadow = false;
+  const dropMaterial = new THREE.LineBasicNodeMaterial({
+    color: 0x9fd4ff,
+    transparent: true,
+    opacity: 0.3,
+  });
+  materials.push(dropMaterial);
+  const dropGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, -1, 0),
+  ]);
+  geometries.push(dropGeometry);
+  const drop = new THREE.Line(dropGeometry, dropMaterial);
+  scene.add(drop);
 
   const sun = new THREE.DirectionalLight(0xfff1d8, 4);
   sun.position.set(-8, 14, -6);
@@ -110,6 +198,15 @@ export function createScene(centerOfMassHeight: number) {
   return {
     scene,
     vehicle,
+    /** Moves the below-vehicle marker; `altitude` is the feet's height above y = 0. */
+    updateMarker(position: THREE.Vector3, altitude: number) {
+      const onPad = Math.hypot(position.x, position.z) < PAD_RADIUS;
+      const surface = onPad ? 0.006 : SURFACE_Y + 0.006;
+      marker.position.set(position.x, surface, position.z);
+      drop.position.copy(position);
+      drop.scale.y = Math.max(0.001, position.y - surface);
+      drop.visible = altitude > 1;
+    },
     dispose() {
       sun.shadow.dispose();
       for (const geometry of geometries) geometry.dispose();

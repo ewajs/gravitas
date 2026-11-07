@@ -8,17 +8,15 @@ export const PAD_POSITION = { x: 0, y: 0, z: 0 } as const;
 export const START_ALTITUDE = 80;
 
 /**
- * Opening of the first descent: upright, 30 m from the pad along -X, sinking at
- * 4 m/s and drifting toward the pad at 2 m/s, with a full tank. Left alone, it
- * reaches the surface in about 7.8 s at about 16.6 m/s.
+ * Opening of the first descent: upright and facing the pad (yawed −90°, so body
+ * forward is world +X), 30 m from it, sinking at 4 m/s and drifting toward it at
+ * 2 m/s, with a full tank. Left alone, it reaches the surface in about 7.8 s at
+ * about 16.6 m/s.
  */
 export const START_STATE: FlightState = {
   position: { x: -30, y: START_ALTITUDE + CENTER_OF_MASS_HEIGHT, z: 0 },
-  orientation: { x: 0, y: 0, z: 0, w: 1 },
+  orientation: { x: 0, y: -Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
   velocity: { x: 2, y: -4, z: 0 },
   angularVelocity: { x: 0, y: 0, z: 0 },
   fuelMass: LANDER.fuelCapacity,
 };
-
-/** Camera start relative to the vehicle: above and behind it, so the pad is ahead and below. */
-export const CAMERA_OFFSET = { x: -6, y: 12, z: 3 } as const;

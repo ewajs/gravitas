@@ -34,7 +34,13 @@ export const templates = {
   'help-throttle-set': 'Full throttle / cut',
   'help-pause': 'Pause',
   'help-camera': 'Camera',
-  'help-camera-keys': 'Drag to orbit · scroll to zoom',
+  'help-camera-keys': 'Drag to look around (it returns) · scroll to zoom',
+  radar: 'Landing radar: lean, drift, and pad',
+  'legend-drift': 'Drift',
+  'legend-pad': 'Pad',
+  'hover-mark': 'Hover throttle',
+  'radar-help':
+    'The radar faces where the lander points: up is forward (W). The dot shows where thrust is leaning; the arrow, your horizontal drift; the diamond, the pad (hollow beyond 60 m). To stop drifting, lean against the arrow. The mark on the throttle bar shows what it takes to hover.',
   'flight-help':
     'Rotation keys request a turn rate. When you release them, attitude control stops the rotation but does not level the lander. Rotating uses fuel from the same tank as the engine. Altitude is measured from the lowest foot.',
 };

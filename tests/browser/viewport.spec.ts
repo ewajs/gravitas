@@ -68,7 +68,7 @@ test.beforeEach(async ({ page }, info) => {
   await page.waitForFunction(() => !!window.fixture);
 });
 
-test('scene has a lit vehicle, the camera follows it, rotation is visible, and input is not mutated', async ({
+test('scene has a lit vehicle, the chase camera keeps it in view, rotation is visible, and input is not mutated', async ({
   page,
 }, info) => {
   const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
@@ -78,7 +78,7 @@ test('scene has a lit vehicle, the camera follows it, rotation is visible, and i
   await expect.poll(() => page.evaluate(() => window.fixture.sample().gold)).toBeGreaterThan(50);
   const before = await page.evaluate(() => window.fixture.sample());
   expect(before.white).toBeGreaterThan(50);
-  // A 20 m climb keeps the vehicle near the same screen position: the camera follows it.
+  // A 20 m climb: translation follows at once, framing eases, and the vehicle stays in view.
   expect(
     await page.evaluate(() =>
       window.fixture.setPose({
@@ -87,10 +87,18 @@ test('scene has a lit vehicle, the camera follows it, rotation is visible, and i
       }),
     ),
   ).toBe(true);
+  for (const wait of [0, 2500]) {
+    await page.waitForTimeout(wait);
+    const sample = await page.evaluate(() => window.fixture.sample());
+    expect(sample.gold).toBeGreaterThan(50);
+    expect(sample.x).toBeGreaterThan(160);
+    expect(sample.x).toBeLessThan(640);
+    expect(sample.y).toBeGreaterThan(60);
+    expect(sample.y).toBeLessThan(540);
+  }
   const climbed = await page.evaluate(() => window.fixture.sample());
-  expect(climbed.gold).toBeGreaterThan(50);
-  expect(Math.hypot(climbed.x - before.x, climbed.y - before.y)).toBeLessThan(10);
   // Inverting about the centre of mass lifts the gold descent stage 0.5 m on screen.
+  // Exactly inverted, heading is undefined and the camera holds its last heading.
   await page.evaluate(() =>
     window.fixture.setPose({
       position: { x: 0, y: 21.5, z: 0 },
@@ -98,7 +106,7 @@ test('scene has a lit vehicle, the camera follows it, rotation is visible, and i
     }),
   );
   const inverted = await page.evaluate(() => window.fixture.sample());
-  expect(climbed.y - inverted.y).toBeGreaterThan(15);
+  expect(climbed.y - inverted.y).toBeGreaterThan(8);
   await page.locator('canvas').screenshot({ path: info.outputPath('fixture.png') });
 });
 

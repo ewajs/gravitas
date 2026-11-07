@@ -22,20 +22,27 @@ test('locale switching preserves the canvas, camera, and readouts while translat
       tilt: Math.PI / 3,
       fuel: 0.54,
       throttle: 1,
+      hoverThrottle: 0.5,
+      lean: { x: 0.25, y: 0 },
+      drift: { x: 0, y: 5 },
+      pad: { x: 0, y: 30 },
     };
   });
   await expect(page.getByTestId('altitude')).toHaveText('1.234,5 m');
   await expect(page.getByTestId('vertical-speed')).toHaveText('-3,3 m/s');
   await expect(page.getByTestId('tilt')).toHaveText('60°');
   await expect(page.getByTestId('fuel')).toHaveText('54%');
-  await page.mouse.move(450, 300);
-  await page.mouse.down();
-  await page.mouse.move(520, 340, { steps: 8 });
-  await page.mouse.up();
   const canvas = await page.locator('canvas').elementHandle();
-  // Sample scene below the centred phase message and above the bottom panels, which
-  // legitimately change language; UI text changes must not reset the camera.
-  const scene = { x: 100, y: 390, width: 800, height: 150 };
+  // Sample scene between the phase message and the bottom panels, which legitimately
+  // change language. Zoom is the player's camera state the chase rig never resets.
+  const scene = { x: 100, y: 200, width: 800, height: 300 };
+  const unzoomed = await page.screenshot({ clip: scene });
+  await page.mouse.move(500, 350);
+  await page.mouse.wheel(0, -600);
+  await expect
+    .poll(async () => (await page.screenshot({ clip: scene })).equals(unzoomed))
+    .toBe(false);
+  await page.waitForTimeout(2500); // Past the chase rig's return delay.
   const before = await page.screenshot({ clip: scene });
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -122,7 +129,16 @@ test('keyboard help traps focus, restores it on Escape, and both locales fit nar
     // Clipped overlays do not affect document scrollWidth; check their actual boxes too.
     // Narrow screens show Help instead of the keyboard hint line.
     await expect(page.locator('#controls')).toBeHidden();
-    for (const selector of ['header', 'nav', '.instruments', '.actions', '#phase']) {
+    for (const selector of [
+      'header',
+      'nav',
+      '.instruments',
+      '.actions',
+      '#phase',
+      '[data-testid="fuel"]',
+      '[data-testid="throttle"]',
+      '[data-testid="vertical-speed"]',
+    ]) {
       const bounds = await page.locator('gravitas-flight-hud').locator(selector).boundingBox();
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(375);

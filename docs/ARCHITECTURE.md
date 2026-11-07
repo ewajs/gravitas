@@ -1,8 +1,9 @@
 # Architecture
 
 **Status:** workspace boundaries, viewport, hosted delivery, engine flight
-dynamics, and a flyable keyboard runtime with a bilingual flight HUD implemented.
-The chase camera and designed instruments (1.3) and ground contact (M2) are pending. See [the flight model](FLIGHT.md),
+dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
+bilingual flight HUD with landing radar implemented (M1). Ground contact and
+landing outcomes (M2) are pending. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -28,8 +29,10 @@ compatibility promises are deferred.
 Each library exports only `src/index.ts`. Engine defines the shared `VehiclePose`
 type (centre of mass in world metres and a body-to-world quaternion), imported
 directly by every consumer. Engine also exports pure `stepFlight` dynamics and
-`rateControlTorque` assistance; `FlightState` extends `VehiclePose`.
-Viewport exposes lifecycle, pose, and interpolated-render operations. UI exposes
+`rateControlTorque` assistance; `FlightState` extends `VehiclePose`. Its
+`headingAngle` and `bodyToWorld` helpers give viewport's camera and the app's radar
+one heading definition. Viewport exposes lifecycle, pose, interpolated-render, and
+camera-reset operations. UI exposes
 `FlightHud`, explicit registration, telemetry/request types, and localized messages.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
@@ -131,16 +134,18 @@ its build remain planned for M2.
    It selects the initial locale.
 2. The HUD displays loading text, then the app dynamically imports viewport so the
    larger 3D download does not block the initial status presentation.
-3. Viewport is constructed with the centre-of-mass height and the scenario's camera
-   offset, receives the opening pose, initializes Three.js, compiles materials,
-   and attaches its own canvas. The session waits in `ready`.
+3. Viewport is constructed with the centre-of-mass height, receives the opening
+   pose, initializes Three.js, places its chase camera behind the heading, compiles
+   materials, and attaches its own canvas. The session waits in `ready`.
 4. Each animation frame, the app passes elapsed time and sampled input to the
    session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
    the current and previous tick poses and the remainder fraction. Viewport blends
-   them, moves the following camera, and draws.
+   them, advances the chase camera on its own presentation clock, and draws.
 5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
-   at once on any phase change. HUD buttons emit `flight-request`; P and Enter
-   reach the app through `KeyboardControls`. Both call the same session operations.
+   at once on any phase change. It includes heading-frame radar vectors (lean,
+   drift, pad). HUD buttons emit `flight-request`; P and Enter reach the app through
+   `KeyboardControls`. Both call the same session operations. Restart also calls
+   `viewport.resetCamera()`, so the camera does not ease across the teleport.
 6. Window blur releases held keys. A hidden document stops frames and pauses the
    flight. Resuming drawing resets the frame timestamp, so hidden time is never
    simulated.
@@ -152,4 +157,5 @@ its build remain planned for M2.
 
 The session owns flight state; viewport and HUD receive copies. See
 [viewport's API](../packages/viewport/README.md), [UI/localization](../packages/ui/README.md),
-[ADR 0009](decisions/0009-flight-runtime.md), and the [flight model](FLIGHT.md).
+[ADR 0009](decisions/0009-flight-runtime.md), [ADR 0010](decisions/0010-chase-camera-and-instruments.md),
+and the [flight model](FLIGHT.md).

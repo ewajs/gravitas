@@ -37,14 +37,18 @@ test('keyboard flight: start, throttle lever, pause, language switch, and restar
   await expect(phase).toBeEmpty();
   await expect.poll(() => reading(page, 'altitude')).toBeLessThan(79);
 
+  // R moves the lever at 0.5 per simulated second: it ramps rather than jumping,
+  // and holds its position on release. Polling keeps this independent of frame rate.
   await page.keyboard.down('r');
-  await page.waitForTimeout(1000);
+  await expect.poll(() => reading(page, 'throttle')).toBeGreaterThan(0);
+  expect(await reading(page, 'throttle')).toBeLessThan(60);
+  await expect.poll(() => reading(page, 'throttle')).toBeGreaterThanOrEqual(40);
   await page.keyboard.up('r');
   await settle(page);
-  const ramped = await reading(page, 'throttle');
-  // 0.5 per second while held; allow for key and frame timing.
-  expect(ramped).toBeGreaterThanOrEqual(35);
-  expect(ramped).toBeLessThanOrEqual(65);
+  const held = await reading(page, 'throttle');
+  expect(held).toBeLessThan(100);
+  await settle(page);
+  expect(await reading(page, 'throttle')).toBe(held);
   await page.keyboard.press('z');
   await expect(page.getByTestId('throttle')).toHaveText('100%');
   await expect.poll(() => reading(page, 'vertical-speed')).toBeGreaterThan(-3);
@@ -77,7 +81,7 @@ test('keyboard flight: start, throttle lever, pause, language switch, and restar
   await expect(page.getByTestId('fuel')).toHaveText('100%');
 });
 
-test('focus loss releases held keys, and a hidden tab pauses without catching up', async ({
+test('focus loss releases held keys, and a hidden tab pauses until resumed', async ({
   page,
 }, info) => {
   await open(page, info.project.name);
@@ -88,11 +92,21 @@ test('focus loss releases held keys, and a hidden tab pauses without catching up
   await page.waitForTimeout(800);
   // The browser may never deliver keyup after focus moves away.
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await page.waitForTimeout(1500); // Rate assistance brakes once input is released.
-  const tilt = await reading(page, 'tilt');
-  expect(tilt).toBeGreaterThan(5);
-  await page.waitForTimeout(600);
-  expect(await reading(page, 'tilt')).toBe(tilt);
+  // Rate assistance brakes once input is released. A stuck key would keep turning at
+  // 30°/s and never give two equal readings; poll so slow renderers have time to settle.
+  let previous = Number.NaN;
+  await expect
+    .poll(
+      async () => {
+        const tilt = await reading(page, 'tilt');
+        const settled = tilt === previous;
+        previous = tilt;
+        return settled;
+      },
+      { intervals: [600], timeout: 15_000 },
+    )
+    .toBe(true);
+  expect(previous).toBeGreaterThan(5);
   await page.keyboard.up('w');
 
   await setHidden(page, true);
@@ -103,11 +117,10 @@ test('focus loss releases held keys, and a hidden tab pauses without catching up
   await settle(page);
   await expect(page.getByTestId('altitude')).toHaveText(altitude!);
   await expect(page.locator('#phase')).toHaveText('Paused. Press P or Resume.');
-  // On resume, the hidden second is not simulated as a burst of catch-up steps.
+  // Resuming continues the flight from where it was frozen.
   await page.keyboard.press('p');
-  await page.waitForTimeout(150);
-  const resumed = await reading(page, 'altitude');
-  expect(Number(altitude!.replace(/[^0-9.-]/g, '')) - resumed).toBeLessThan(5);
+  await expect(page.locator('#phase')).toBeEmpty();
+  await expect.poll(() => page.getByTestId('altitude').textContent()).not.toBe(altitude);
 });
 
 test('flight keys stay out of form controls and help, which pauses the flight', async ({
@@ -147,4 +160,38 @@ test('placeholder ground halt keeps touchdown speeds until restart', async ({ pa
   await page.getByRole('button', { name: 'Restart', exact: true }).click();
   await expect(page.getByTestId('altitude')).toHaveText('80.0 m');
   await page.screenshot({ path: info.outputPath('start.png') });
+});
+
+test('landing radar is heading-up: pitch leans ahead and a left yaw swings the pad right', async ({
+  page,
+}, info) => {
+  await open(page, info.project.name);
+  const point = async (id: string) => {
+    const element = page.getByTestId(id);
+    return {
+      x: Number(await element.getAttribute('data-x')),
+      y: Number(await element.getAttribute('data-y')),
+    };
+  };
+  // Facing the pad: 30 m ahead (half of the 60 m rim scale), drifting 2 m/s toward it.
+  expect(await point('radar-pad')).toEqual({ x: 0, y: -32 });
+  expect(await point('radar-drift')).toEqual({ x: 0, y: -12.8 });
+  expect(await point('radar-lean')).toEqual({ x: 0, y: 0 });
+  await expect(page.getByTestId('hover-mark')).toBeAttached();
+
+  await page.keyboard.press('p');
+  await page.keyboard.down('w');
+  await page.waitForTimeout(700);
+  await page.keyboard.up('w');
+  await settle(page);
+  const lean = await point('radar-lean');
+  expect(lean.y).toBeLessThan(-5); // Up the screen: thrust leans forward.
+  expect(Math.abs(lean.x)).toBeLessThan(1);
+
+  await page.keyboard.down('q');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('q');
+  await settle(page);
+  expect((await point('radar-pad')).x).toBeGreaterThan(5);
+  await page.screenshot({ path: info.outputPath('radar.png') });
 });

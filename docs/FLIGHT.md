@@ -16,6 +16,13 @@ viewport and HUD consume flight state directly. The pose origin is the **centre 
 mass**, not the feet; the viewport offsets its artwork by the app-supplied
 centre-of-mass height (1.5 m for the first lander).
 
+**Heading.** `headingAngle(q)` (engine) is the yaw left after removing the shortest
+tilt of body +Y from upright. Zero faces world −Z, positive turns left, and forward
+is (−sin h, 0, −cos h). It stays continuous at any tilt short of exactly inverted.
+The chase camera sits behind this heading, and the landing radar uses the same
+**heading frame**: x to the vehicle's right, y forward. W leans the thrust axis
+toward +y (radar up), A toward −x (left).
+
 ## Forces and torques
 
 | Effect           | Model                                                                                    |
@@ -82,9 +89,9 @@ paused until the player resumes.
 
 ## Opening scenario
 
-`apps/game/src/scenario.ts`: upright, feet 80 m above the surface, 30 m from the
-pad along −X, sinking at 4 m/s and drifting toward the pad at 2 m/s, full tank,
-throttle 0. Untouched, it reaches the surface after about 7.8 s at about
+`apps/game/src/scenario.ts`: upright and facing the pad (yawed −90°, so forward is
+world +X), feet 80 m above the surface, 30 m from the pad along −X, sinking at
+4 m/s and drifting toward the pad at 2 m/s, full tank, throttle 0. Untouched, it reaches the surface after about 7.8 s at about
 −16.6 m/s. A pilot that only trims the throttle to hold a sink rate of one sixth
 of altitude, using the same held-key ramp, touches down at about −0.8 m/s after
 20 s with 94% fuel left. The opening is generous; M3 playtesting tunes it.

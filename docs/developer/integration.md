@@ -13,7 +13,7 @@ and UI into the first flyable descent. Contact is a placeholder halt until M2.
 | -------- | ----------------------------------------------------------------------------------------------------- |
 | Engine   | `stepFlight` dynamics and `rateControlTorque` assistance over plain `FlightState`                     |
 | App      | Session, fixed-step clock, keyboard, lander/scenario values, telemetry, frame loop, locale, lifecycle |
-| Viewport | Canvas, Three.js scene, pose interpolation, following camera, resize observer, GPU resources          |
+| Viewport | Canvas, Three.js scene, pose interpolation, chase camera, resize observer, GPU resources              |
 | UI       | Presentation snapshots, number formatting, localized text, buttons, and the help dialog               |
 
 The app passes data down to both presentation layers. The HUD sends semantic
@@ -27,7 +27,7 @@ DOM. It receives everything it needs:
 
 ```ts
 const session = new FlightSession({
-  start: START_STATE, // scenario.ts: 80 m up, sinking and drifting toward the pad
+  start: START_STATE, // scenario.ts: 80 m up, facing the pad, sinking and drifting toward it
   vehicle: LANDER, // lander.ts: masses, thrust, inertia, torque, attitude thrusters
   attitude: ATTITUDE, // rate-assist tuning
   environment: ENVIRONMENT, // lunar gravity
@@ -68,7 +68,6 @@ const { Viewport } = await import('@gravitas/viewport');
 const viewport = new Viewport({
   container: host,
   centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
-  cameraOffset: CAMERA_OFFSET, // Above and behind, so the pad is in view.
   label: viewportMessages().scene,
   backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
 });
@@ -76,8 +75,8 @@ viewport.setVehiclePose(session.state);
 await viewport.init();
 ```
 
-`init()` awaits renderer initialization and shader compilation before attaching
-the canvas. The `backend` getter reports the initialized backend. After success,
+`init()` places the chase camera behind the opening heading, then awaits renderer
+initialization and shader compilation before attaching the canvas. The `backend` getter reports the initialized backend. After success,
 the app sets the HUD status to `ready` and starts scheduling frames.
 
 ## 4. One frame
@@ -105,7 +104,14 @@ document also pauses the session; the player resumes with P or Resume.
 
 The HUD receives a `FlightTelemetry` snapshot from `flightTelemetry(state, throttle)`:
 altitude above the lowest foot, signed vertical speed, horizontal speed, pad
-distance, tilt, fuel fraction, and throttle. The snapshot is a new object at 10 Hz;
+distance, tilt, fuel fraction, throttle, and upright hover throttle. It also gets
+three radar vectors in the **heading frame** (x right, y forward): thrust lean,
+drift, and the pad's offset. The app computes them with engine's `headingAngle`,
+the same heading viewport's chase camera follows, so radar-up is screen-up and W
+always leans toward it.
+
+Restart is a teleport. The app sets the opening pose and calls
+`viewport.resetCamera()`, so the camera snaps behind it instead of easing 80 m. The snapshot is a new object at 10 Hz;
 per-tick state never enters Lit.
 
 ## 5. Switch language without touching the flight

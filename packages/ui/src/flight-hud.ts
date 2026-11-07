@@ -1,7 +1,9 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { msg, updateWhenLocaleChanges } from '@lit/localize';
 import { type Locale, viewportMessages } from './localization';
+import { RADAR_RADIUS, RADAR_SCALE, radarPoint } from './radar';
 import { uiTokens } from './tokens';
 
 /** A requested locale; the host loads it and commits the successful selection. */
@@ -17,6 +19,17 @@ export type FlightPhase = 'ready' | 'flying' | 'paused' | 'contact';
 export interface FlightRequest {
   /** Start from ready, pause or resume flight, or restart from the scenario's start. */
   readonly action: 'start' | 'pause' | 'resume' | 'restart';
+}
+
+/**
+ * Horizontal vector in the vehicle's heading frame: x to its right, y forward.
+ * The radar draws +y up, matching a camera that follows the heading.
+ */
+export interface RadarVector {
+  /** Rightward component. */
+  readonly x: number;
+  /** Forward component. */
+  readonly y: number;
 }
 
 /**
@@ -38,6 +51,14 @@ export interface FlightTelemetry {
   readonly fuel: number;
   /** Main-engine throttle lever in [0, 1]. */
   readonly throttle: number;
+  /** Throttle that balances gravity when upright at the current mass (may exceed 1). */
+  readonly hoverThrottle: number;
+  /** Horizontal part of the thrust axis (unit length, so magnitude is sin of tilt). */
+  readonly lean: RadarVector;
+  /** Horizontal velocity in metres per second. */
+  readonly drift: RadarVector;
+  /** Pad reference relative to the vehicle, in metres. */
+  readonly pad: RadarVector;
 }
 
 /** Optional flight HUD. Receives presentation snapshots; owns no renderer or simulation. */
@@ -116,6 +137,10 @@ export class FlightHud extends LitElement {
         gap: 16px;
       }
       .instruments {
+        display: grid;
+        grid-template-columns: auto auto;
+        align-items: center;
+        gap: 20px;
         background: var(--gravitas-panel);
         border: 1px solid var(--gravitas-line);
         border-radius: var(--gravitas-radius);
@@ -123,9 +148,122 @@ export class FlightHud extends LitElement {
       }
       .readouts {
         display: grid;
-        grid-template-columns: repeat(4, auto);
+        grid-template-columns: repeat(3, auto);
         gap: 10px 28px;
         margin: 0;
+      }
+      .primary dd {
+        font-size: 30px;
+      }
+      figure {
+        margin: 0;
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+      }
+      .radar {
+        inline-size: 136px;
+        block-size: 136px;
+        overflow: visible;
+      }
+      .radar .ring {
+        fill: none;
+        stroke: var(--gravitas-line);
+      }
+      .radar .face {
+        fill: #0b1219;
+        stroke: var(--gravitas-muted);
+      }
+      .radar .forward {
+        fill: var(--gravitas-muted);
+      }
+      .radar .lean {
+        fill: var(--gravitas-accent);
+      }
+      .radar .drift {
+        stroke: var(--gravitas-focus);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+      }
+      .radar .arrowhead {
+        fill: var(--gravitas-focus);
+      }
+      .radar .pad {
+        fill: var(--gravitas-text);
+        stroke: var(--gravitas-text);
+        stroke-width: 1.5;
+      }
+      .radar .pad.far {
+        fill: none;
+      }
+      figcaption {
+        display: flex;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--gravitas-muted);
+      }
+      .swatch {
+        display: inline-block;
+        inline-size: 8px;
+        block-size: 8px;
+        margin-inline-end: 4px;
+        vertical-align: 1px;
+      }
+      .swatch.lean {
+        border-radius: 50%;
+        background: var(--gravitas-accent);
+      }
+      .swatch.drift {
+        block-size: 2px;
+        inline-size: 10px;
+        vertical-align: 3px;
+        background: var(--gravitas-focus);
+      }
+      .swatch.pad {
+        transform: rotate(45deg) scale(0.8);
+        background: var(--gravitas-text);
+      }
+      .gauges {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 8px 12px;
+        margin-top: 12px;
+      }
+      .gauge-label {
+        font-size: 12px;
+        color: var(--gravitas-muted);
+      }
+      .bar {
+        position: relative;
+        block-size: 8px;
+        min-inline-size: 120px;
+        border-radius: 4px;
+        background: #0b1219;
+        border: 1px solid var(--gravitas-line);
+      }
+      .fill {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        border-radius: 3px;
+        background: var(--gravitas-accent);
+      }
+      .fill.throttle {
+        background: var(--gravitas-focus);
+      }
+      .hover-mark {
+        position: absolute;
+        inset-block: -4px;
+        inline-size: 2px;
+        margin-inline-start: -1px;
+        background: var(--gravitas-text);
+      }
+      .gauge-value {
+        min-inline-size: 4ch;
+        text-align: end;
+        font-size: 16px;
+        font-variant-numeric: tabular-nums;
       }
       dt {
         font-size: 12px;
@@ -268,14 +406,35 @@ export class FlightHud extends LitElement {
           gap: 8px;
         }
         .instruments {
+          grid-template-columns: auto 1fr;
+          gap: 8px 14px;
           padding: 10px 14px;
         }
         .readouts {
-          grid-template-columns: repeat(3, 1fr);
-          gap: 6px 12px;
+          grid-template-columns: repeat(2, auto);
+          gap: 6px 16px;
         }
-        dd {
+        dd,
+        .primary dd {
           font-size: 18px;
+        }
+        .radar {
+          inline-size: 96px;
+          block-size: 96px;
+        }
+        figcaption {
+          display: none;
+        }
+        /* Readouts sit beside the radar; gauges take the full width below both. */
+        .data {
+          display: contents;
+        }
+        .gauges {
+          grid-column: 1 / -1;
+          margin-top: 0;
+        }
+        .bar {
+          min-inline-size: 0;
         }
         .unit {
           font-size: 12px;
@@ -385,7 +544,7 @@ export class FlightHud extends LitElement {
     }
   }
 
-  private readouts(t: FlightTelemetry) {
+  private instruments(t: FlightTelemetry) {
     const decimal = new Intl.NumberFormat(this.locale, {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1,
@@ -401,37 +560,121 @@ export class FlightHud extends LitElement {
       maximumFractionDigits: 0,
     });
     // Intl supplies each locale's grouping, decimal mark, and percent pattern.
-    const item = (id: string, label: string, value: string, unit?: string) =>
-      html`<div>
+    const item = (id: string, label: string, value: string, unit?: string, primary = false) =>
+      html`<div class=${primary ? 'primary' : ''}>
         <dt>${label}</dt>
         <dd data-testid=${id}>
           ${value}${unit ? html`<span class="unit"> ${unit}</span>` : nothing}
         </dd>
       </div>`;
-    return html`<dl class="readouts">
-      ${item('altitude', msg('Altitud', { id: 'altitude' }), decimal.format(t.altitude), 'm')}
-      ${item(
-        'vertical-speed',
-        msg('Vel. vertical', { id: 'vertical-speed' }),
-        signed.format(t.verticalSpeed),
-        'm/s',
-      )}
-      ${item(
-        'horizontal-speed',
-        msg('Vel. horizontal', { id: 'horizontal-speed' }),
-        decimal.format(t.horizontalSpeed),
-        'm/s',
-      )}
-      ${item(
-        'pad-distance',
-        msg('A la plataforma', { id: 'pad-distance' }),
-        decimal.format(t.padDistance),
-        'm',
-      )}
-      ${item('tilt', msg('Inclinación', { id: 'tilt' }), `${whole.format((t.tilt * 180) / Math.PI)}°`)}
-      ${item('fuel', msg('Combustible', { id: 'fuel' }), percent.format(t.fuel))}
-      ${item('throttle', msg('Empuje', { id: 'throttle' }), percent.format(t.throttle))}
-    </dl>`;
+    const share = (fraction: number) => `${Math.min(1, Math.max(0, fraction)) * 100}%`;
+    return html`${this.radar(t)}
+      <div class="data">
+        <dl class="readouts">
+          ${item('altitude', msg('Altitud', { id: 'altitude' }), decimal.format(t.altitude), 'm', true)}
+          ${item(
+            'vertical-speed',
+            msg('Vel. vertical', { id: 'vertical-speed' }),
+            signed.format(t.verticalSpeed),
+            'm/s',
+            true,
+          )}
+          ${item('tilt', msg('Inclinación', { id: 'tilt' }), `${whole.format((t.tilt * 180) / Math.PI)}°`)}
+          ${item(
+            'horizontal-speed',
+            msg('Vel. horizontal', { id: 'horizontal-speed' }),
+            decimal.format(t.horizontalSpeed),
+            'm/s',
+          )}
+          ${item(
+            'pad-distance',
+            msg('A la plataforma', { id: 'pad-distance' }),
+            decimal.format(t.padDistance),
+            'm',
+          )}
+        </dl>
+        <div class="gauges">
+          <span class="gauge-label">${msg('Combustible', { id: 'fuel' })}</span>
+          <span class="bar" aria-hidden="true">
+            <span class="fill" style=${styleMap({ inlineSize: share(t.fuel) })}></span>
+          </span>
+          <span class="gauge-value" data-testid="fuel">${percent.format(t.fuel)}</span>
+          <span class="gauge-label">${msg('Empuje', { id: 'throttle' })}</span>
+          <span class="bar" aria-hidden="true">
+            <span class="fill throttle" style=${styleMap({ inlineSize: share(t.throttle) })}></span>
+            ${
+              t.hoverThrottle <= 1
+                ? html`<span
+                    class="hover-mark"
+                    data-testid="hover-mark"
+                    title=${msg('Empuje para flotar', { id: 'hover-mark' })}
+                    style=${styleMap({ insetInlineStart: share(t.hoverThrottle) })}
+                  ></span>`
+                : nothing
+            }
+          </span>
+          <span class="gauge-value" data-testid="throttle">${percent.format(t.throttle)}</span>
+        </div>
+      </div>`;
+  }
+
+  // Heading-up radar: lean (sin of tilt), drift arrow, and the pad, each at its own scale.
+  private radar(t: FlightTelemetry) {
+    const lean = radarPoint(t.lean, RADAR_SCALE.lean);
+    const drift = radarPoint(t.drift, RADAR_SCALE.drift);
+    const pad = radarPoint(t.pad, RADAR_SCALE.pad);
+    const driftLength = Math.hypot(drift.x, drift.y);
+    const angle = (Math.atan2(drift.y, drift.x) * 180) / Math.PI;
+    const r = RADAR_RADIUS;
+    return html`<figure>
+      <svg
+        class="radar"
+        viewBox="${-r - 6} ${-r - 6} ${2 * r + 12} ${2 * r + 12}"
+        role="img"
+        aria-label=${msg('Radar de aterrizaje: inclinación, deriva y plataforma', { id: 'radar' })}
+      >
+        <circle class="face" r=${r}></circle>
+        <circle class="ring" r=${r / 2}></circle>
+        <line class="ring" x1=${-r} x2=${r}></line>
+        <line class="ring" y1=${-r} y2=${r}></line>
+        <path class="forward" d="M0 ${-r - 6} L4 ${-r + 1} L-4 ${-r + 1} Z"></path>
+        <path
+          class="pad ${pad.clamped ? 'far' : ''}"
+          data-testid="radar-pad"
+          data-x=${pad.x.toFixed(1)}
+          data-y=${pad.y.toFixed(1)}
+          transform="translate(${pad.x} ${pad.y})"
+          d="M0 -5 L5 0 L0 5 L-5 0 Z"
+        ></path>
+        <g
+          data-testid="radar-drift"
+          data-x=${drift.x.toFixed(1)}
+          data-y=${drift.y.toFixed(1)}
+          visibility=${driftLength < 1 ? 'hidden' : 'visible'}
+        >
+          <line class="drift" x2=${drift.x} y2=${drift.y}></line>
+          <path
+            class="arrowhead"
+            transform="translate(${drift.x} ${drift.y}) rotate(${angle})"
+            d="M2 0 L-6 -4 L-6 4 Z"
+          ></path>
+        </g>
+        <circle
+          class="lean"
+          data-testid="radar-lean"
+          data-x=${lean.x.toFixed(1)}
+          data-y=${lean.y.toFixed(1)}
+          cx=${lean.x}
+          cy=${lean.y}
+          r="5"
+        ></circle>
+      </svg>
+      <figcaption aria-hidden="true">
+        <span><span class="swatch lean"></span>${msg('Inclinación', { id: 'tilt' })}</span>
+        <span><span class="swatch drift"></span>${msg('Deriva', { id: 'legend-drift' })}</span>
+        <span><span class="swatch pad"></span>${msg('Plataforma', { id: 'legend-pad' })}</span>
+      </figcaption>
+    </figure>`;
   }
 
   /** Lit template implementation, separate from the host-facing property/event contract. @internal */
@@ -476,7 +719,7 @@ export class FlightHud extends LitElement {
                         class="instruments"
                         aria-label=${msg('Instrumentos de vuelo', { id: 'instruments' })}
                       >
-                        ${this.readouts(this.telemetry)}
+                        ${this.instruments(this.telemetry)}
                       </section>`
                     : nothing
                 }
@@ -511,9 +754,14 @@ export class FlightHud extends LitElement {
           ${key(msg('Reiniciar', { id: 'restart' }), 'Enter')}
           <div>
             <dt>${msg('Cámara', { id: 'help-camera' })}</dt>
-            <dd>${msg('Arrastrá para girar · rueda para acercar', { id: 'help-camera-keys' })}</dd>
+            <dd>
+              ${msg('Arrastrá para mirar alrededor (vuelve sola) · rueda para acercar', { id: 'help-camera-keys' })}
+            </dd>
           </div>
         </dl>
+        <p class="about">
+          ${msg('El radar mira hacia donde apunta el módulo: arriba es adelante (W). El punto muestra hacia dónde se inclina el empuje; la flecha, tu deriva horizontal; el rombo, la plataforma (hueco a más de 60 m). Para frenar la deriva, inclinate en contra de la flecha. La marca en la barra de empuje indica cuánto hace falta para flotar.', { id: 'radar-help' })}
+        </p>
         <p class="about">
           ${msg('Las teclas de rotación piden una velocidad de giro. Al soltarlas, el control de actitud frena el giro, pero no endereza el módulo. Girar consume combustible del mismo tanque que el motor. La altitud se mide desde la pata más baja.', { id: 'flight-help' })}
         </p>

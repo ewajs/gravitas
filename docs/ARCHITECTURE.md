@@ -15,7 +15,7 @@ implemented (M3). See [the flight model](FLIGHT.md),
 | -------------------- | ------------------------------------------------------------------ | ------------------------------- |
 | `@gravitas/engine`   | Plain simulation state, dynamics, simulation stepping              | None                            |
 | `@gravitas/viewport` | Three.js scene, camera, interpolation, effects, GPU lifecycle      | Engine public API/types         |
-| `@gravitas/ui`       | Optional Lit instruments, menus, settings, localization, tokens    | Engine types; engine math entry |
+| `@gravitas/ui`       | Optional Lit instruments, menus, settings, localization, themes    | Engine types; engine math entry |
 | `apps/game`          | Missions, outcomes, input, browser scheduling, assets, persistence | All libraries                   |
 
 Engine provides generic contact facts; the game turns them into mission outcomes.
@@ -33,7 +33,9 @@ lists; nothing else is importable. Each library has `src/index.ts`, and a furthe
 entry point is added only when a consumer needs a narrower boundary, not for
 convenience. Engine has one: `@gravitas/engine/math`, pure arithmetic that UI may
 call at runtime (UI otherwise imports engine types only, so it displays state and
-never simulates). Engine defines the shared `VehiclePose`
+never simulates). UI has one: `@gravitas/ui/themes`, typed themes as plain data
+with no Lit import, so build tooling and the manual can use the tokens without the
+HUD ([ADR 0014](decisions/0014-theme-system.md)). Engine defines the shared `VehiclePose`
 type (centre of mass in world metres and a body-to-world quaternion), imported
 directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 `rateControlTorque` assistance; `FlightState` extends `VehiclePose`. Its
@@ -47,7 +49,9 @@ entry point. `contactFacts` and the `Surface` seam report surface contact
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,
 camera-reset, leg-compression, and actuator-effect operations. UI exposes
-`FlightHud`, explicit registration, telemetry/request types, and localized messages.
+`FlightHud`, explicit registration, telemetry/request types, and localized messages;
+its themes entry exposes the theme type, the house theme, and CSS generation.
+Viewport's `setAccents` takes a theme's scene accents; the game passes them across.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
 imports use `@gravitas/*`, never relative paths or private subpaths. Engine's
@@ -126,7 +130,9 @@ Three.js `WebGPURenderer`, WebGL 2 fallback, compatible materials, pinned versio
 Keep a force-WebGL development/test path. Test both backends; WebGPU-only features
 require an explicit fallback policy before adoption.
 
-Lit and `@lit/localize`, native platform behavior, shared CSS tokens. es-AR default,
+Lit and `@lit/localize`, native platform behavior, CSS custom properties generated
+from a typed theme (`@gravitas/ui/themes`); the page gets the same properties at
+build time, and the scene's non-physical marks take the theme's accents. es-AR default,
 English complete; locale switches preserve flight state. UI's TypeScript config
 uses legacy decorators (`experimentalDecorators: true`, `useDefineForClassFields:
 false`), matching Lux's familiar Lit convention. App and browser-test TypeScript
@@ -149,11 +155,12 @@ Main deployments publish all three.
 
 1. `apps/game/src/main.ts` registers the HUD, creates a `FlightSession` from the
    lander and opening scenario, and attaches `KeyboardControls` to the window.
-   It selects the initial locale.
+   It selects the initial locale. The page's colours come from the theme, written
+   into `index.html` at build time.
 2. The HUD displays loading text, then the app dynamically imports viewport so the
    larger 3D download does not block the initial status presentation.
-3. Viewport is constructed with the centre-of-mass height, receives the opening
-   pose, initializes Three.js, places its chase camera behind the heading, compiles
+3. Viewport is constructed with the centre-of-mass height, receives the theme's
+   scene accents and the opening pose, initializes Three.js, places its chase camera behind the heading, compiles
    materials, and attaches its own canvas. The session waits in `ready`.
 4. Each animation frame, the app passes elapsed time and sampled input to the
    session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport

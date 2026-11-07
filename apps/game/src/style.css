@@ -1,8 +1,9 @@
 :root {
   color-scheme: dark;
-  color: #edf1f5;
-  background: #10141e;
-  font-family: system-ui, sans-serif;
+  /* Theme custom properties are declared in index.html at build time. */
+  color: var(--gravitas-text);
+  background: var(--gravitas-surface);
+  font-family: var(--gravitas-font-body);
 }
 
 body {
@@ -18,6 +19,6 @@ main {
   height: 100%;
 }
 canvas:focus-visible {
-  outline: 2px solid #bfe5ff;
+  outline: 2px solid var(--gravitas-focus);
   outline-offset: -4px;
 }

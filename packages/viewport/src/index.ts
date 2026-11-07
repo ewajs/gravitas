@@ -6,3 +6,4 @@ export {
   type RenderBackend,
 } from './Viewport';
 export type { Actuators } from './effects';
+export type { SceneAccents } from './scene';

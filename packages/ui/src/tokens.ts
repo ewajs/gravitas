@@ -1,22 +1,18 @@
-import { css } from 'lit';
+import { css, unsafeCSS } from 'lit';
+import { gravitasTheme, themeDeclarations } from './themes';
 
-/** Shared UI tokens. Hosts can override these custom properties on the component. */
+/**
+ * Shared UI tokens: the house theme's custom properties, generated from its typed
+ * values. Hosts can override any of them on the component.
+ */
 export const uiTokens = css`
   :host {
-    --gravitas-panel: #111923f2;
-    --gravitas-text: #edf1f5;
-    --gravitas-muted: #b3bfcb;
-    --gravitas-line: #3c4857;
-    --gravitas-accent: #efd0a1;
-    --gravitas-focus: #bfe5ff;
-    --gravitas-good: #9fe0a8;
-    --gravitas-bad: #ffa08f;
-    --gravitas-radius: 10px;
+    ${unsafeCSS(themeDeclarations(gravitasTheme))}
     color: var(--gravitas-text);
-    font-family: system-ui, sans-serif;
+    font-family: var(--gravitas-font-body);
     font-size: 14px;
     line-height: 1.5;
-    color-scheme: dark;
+    color-scheme: ${unsafeCSS(gravitasTheme.colorScheme)};
   }
   *,
   *::before,

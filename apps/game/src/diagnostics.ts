@@ -74,7 +74,8 @@ export class DiagnosticsOverlay {
       margin: '0',
       padding: '6px 10px',
       font: '11px/1.4 ui-monospace, monospace',
-      color: '#9fe0a8',
+      color: 'var(--gravitas-good)',
+      // A developer tool, not part of the player's look: a fixed, dense scrim.
       background: '#020609cc',
       borderRadius: '6px',
       pointerEvents: 'none',

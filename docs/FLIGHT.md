@@ -102,7 +102,10 @@ The engine receives `FlightCommand { throttle, bodyTorque }` each fixed step.
 Players do not command torque directly. The app turns player inputs into torque
 with `rateControlTorque`:
 
-- **Throttle:** a held lever in [0, 1], not a momentary key.
+- **Throttle:** a held lever in [0, 1], not a momentary key. Each frame the pilot
+  input may move it at a speed in [−1, 1] of `THROTTLE_RATE` (0.5 of full range
+  per second; a held key is ±1) or place it at a one-shot position in [0, 1],
+  applied at the next tick.
 - **Rotation:** three normalized rate requests in [−1, 1] about body X (pitch),
   Y (yaw) and Z (roll). Full input requests `maxRate` (30°/s on each axis for the
   first lander).
@@ -132,7 +135,10 @@ and applied to every 60 Hz tick in that frame:
 | P     | Start, pause, or resume             | Immediate; pausing releases held keys   |
 | Enter | Restart from the opening            | Immediate; returns to the ready phase   |
 
-Opposite keys cancel. Keys from the language selector, the help dialog, or with
+Opposite keys cancel. The keyboard is one input source among those the game
+merges each frame ([ADR 0016](decisions/0016-input-layer.md)): per axis the
+strongest rotation request wins, and the lever follows the source that last began
+moving it. Keys from the language selector, the help dialog, or with
 Ctrl/Meta/Alt are ignored. Window blur, pause, and restart release all held keys.
 Opening help while flying pauses. A hidden tab pauses, and the flight stays
 paused until the player resumes.

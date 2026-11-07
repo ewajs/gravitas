@@ -128,4 +128,4 @@ Engine imports no Three.js, Lit, DOM, browser clock, storage, network, or other
 workspace. Its TypeScript project has no DOM or ambient Node types. There is no
 scheduler or input handling; the fixed-step
 session and input mapping live in the app
-(`apps/game/src/session.ts`, `controls.ts`).
+(`apps/game/src/session.ts`, `input.ts`, `controls.ts`).

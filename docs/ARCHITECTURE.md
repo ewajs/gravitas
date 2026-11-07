@@ -88,7 +88,11 @@ under overload; do not silently fast-forward physics.
 Pause on document hide. Paused or hidden wall time never becomes simulation time;
 the sub-step remainder from before a pause is kept so the picture does not jump.
 Consume discrete actions once; held controls are sampled per frame and applied to
-each tick in it (keyboard events cannot arrive between ticks of one frame). Restart resets input, tick history, and interpolation.
+each tick in it (input events cannot arrive between ticks of one frame). Every
+input device is a source behind one merge rule
+([ADR 0016](decisions/0016-input-layer.md)): the strongest rotation request per
+axis, the throttle to whichever source last began moving it, and commands from any
+source. Restart resets input, tick history, and interpolation.
 HUD quantities update at a deliberate lower rate; outcomes publish promptly.
 Keep full simulation state outside Lit's reactive component state.
 
@@ -160,7 +164,8 @@ Main deployments publish all three.
 ## Current integration: one flight
 
 1. `apps/game/src/main.ts` registers the HUD, creates a `FlightSession` from the
-   lander and opening scenario, and attaches `KeyboardControls` to the window.
+   lander and opening scenario, and attaches its input sources (`KeyboardControls`
+   on the window) through `PilotInputs` (`input.ts`), which merges them.
    It selects the initial locale. The page's colours come from the theme, written
    into `index.html` at build time. `index.html` slots the app's mark into the
    HUD and carries the favicons and link-preview tags; `npm run icons` renders the
@@ -170,7 +175,7 @@ Main deployments publish all three.
 3. Viewport is constructed with the centre-of-mass height, receives the theme's
    scene accents and the opening pose, initializes Three.js, places its chase camera behind the heading, compiles
    materials, and attaches its own canvas. The session waits in `ready`.
-4. Each animation frame, the app passes elapsed time and sampled input to the
+4. Each animation frame, the app passes elapsed time and the merged input to the
    session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
    the current and previous tick poses and the remainder fraction. Viewport blends
    them, draws each leg compressed by its contact penetration (from `contactFacts`),
@@ -179,12 +184,13 @@ Main deployments publish all three.
 5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
    at once on any phase change. It includes heading-frame radar vectors (lean,
    drift, pad). HUD buttons emit `flight-request`; P and Enter reach the app through
-   `KeyboardControls`. Both call the same session operations. Restart also calls
+   `KeyboardControls`, like every input source's commands. All call the same
+   session operations. Restart also calls
    `viewport.resetCamera()`, so the camera does not ease across the teleport.
    After each tick the session updates its touchdown record. On a final verdict it
    enters `complete` (engine cut, input ignored, physics continuing), and the app
    publishes a `LandingReport` built by `report.ts`.
-6. Window blur releases held keys. A hidden document stops frames and pauses the
+6. Window blur releases held input. A hidden document stops frames and pauses the
    flight. Resuming drawing resets the frame timestamp, so hidden time is never
    simulated.
 7. Audio (`audio.ts`) is synthesized with Web Audio, created on the first key or
@@ -197,7 +203,7 @@ Main deployments publish all three.
    interval, main-thread work, dropped time, and viewport's `renderStats` at 4 Hz,
    with no logging and no cost without the switch.
 10. Device loss becomes a render error; the app stops, disposes, pauses the session,
-    releases the keyboard, and presents a localized failure. Language and help
+    releases the input sources, and presents a localized failure. Language and help
     remain usable.
 
 The session owns flight state; viewport and HUD receive copies. See

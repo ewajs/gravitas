@@ -10,6 +10,8 @@ here so working rules have one source of truth.
 - Read [ARCHITECTURE.md](docs/ARCHITECTURE.md) before changing package boundaries,
   state ownership, scheduling, or public APIs.
 - Read [GAME.md](docs/GAME.md) before changing gameplay or player-facing behavior.
+- Read [FLIGHT.md](docs/FLIGHT.md) before changing dynamics, vehicle parameters,
+  controls, or attitude assistance.
   [ADRs](docs/decisions/README.md) explain significant choices.
 
 ## Invariants

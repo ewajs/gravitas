@@ -14,6 +14,8 @@ export interface ViewportOptions {
   readonly container: HTMLElement;
   /** Localized canvas description for assistive technology. */
   readonly label: string;
+  /** Centre of mass above the artwork's level foot-contact plane, in metres. */
+  readonly centerOfMassHeight: number;
   /** Defaults to auto, allowing WebGPU with Three.js's WebGL 2 fallback. */
   readonly backend?: BackendRequest;
 }
@@ -23,7 +25,7 @@ const MAX_PIXEL_RATIO = 2;
 /** Owns rendering resources; the host owns poses and frame scheduling. */
 export class Viewport {
   readonly #options: ViewportOptions;
-  readonly #art = createScene();
+  readonly #art: ReturnType<typeof createScene>;
   readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.1, 160);
   #renderer: THREE.WebGPURenderer | undefined;
   #controls: OrbitControls | undefined;
@@ -44,6 +46,10 @@ export class Viewport {
     if (options.backend && !['auto', 'webgl2'].includes(options.backend)) {
       throw new RangeError('Unknown viewport backend');
     }
+    if (!Number.isFinite(options.centerOfMassHeight) || options.centerOfMassHeight <= 0) {
+      throw new RangeError('centerOfMassHeight must be finite and positive');
+    }
+    this.#art = createScene(options.centerOfMassHeight);
     this.#options = options;
     this.#label = options.label;
     this.#camera.position.set(8, 5, -9);

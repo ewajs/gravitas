@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 
 /** Builds illustrative metre-scale artwork, not a physical vehicle specification. */
-export function createScene() {
+export function createScene(centerOfMassHeight: number) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x080c14);
   const materials: THREE.Material[] = [];
@@ -30,27 +30,32 @@ export function createScene() {
   const glass = material(0x102f42, 0.6, 0.2);
   const vehicle = new THREE.Group();
   scene.add(vehicle);
+  // Pose transforms act at the centre of mass. The artwork remains authored from its feet.
+  const artwork = new THREE.Group();
+  artwork.position.y = -centerOfMassHeight;
+  vehicle.add(artwork);
+  vehicle.position.y = centerOfMassHeight;
 
-  // The model's origin is the centre of its contact plane, with its front at -Z.
-  mesh(new THREE.CylinderGeometry(0.82, 0.92, 0.75, 8), gold, vehicle).position.y = 1.25;
-  mesh(new THREE.CylinderGeometry(0.58, 0.74, 0.85, 8), white, vehicle).position.y = 2.02;
-  mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.09, 8), graphite, vehicle).position.y = 1.65;
-  mesh(new THREE.CylinderGeometry(0.24, 0.4, 0.44, 12, 1, true), graphite, vehicle).position.y =
+  // The artwork's origin is the centre of its contact plane, with its front at -Z.
+  mesh(new THREE.CylinderGeometry(0.82, 0.92, 0.75, 8), gold, artwork).position.y = 1.25;
+  mesh(new THREE.CylinderGeometry(0.58, 0.74, 0.85, 8), white, artwork).position.y = 2.02;
+  mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.09, 8), graphite, artwork).position.y = 1.65;
+  mesh(new THREE.CylinderGeometry(0.24, 0.4, 0.44, 12, 1, true), graphite, artwork).position.y =
     0.64;
-  mesh(new THREE.BoxGeometry(0.62, 0.25, 0.05), glass, vehicle).position.set(0, 2.1, -0.64);
-  mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.55, 6), silver, vehicle).position.set(
+  mesh(new THREE.BoxGeometry(0.62, 0.25, 0.05), glass, artwork).position.set(0, 2.1, -0.64);
+  mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.55, 6), silver, artwork).position.set(
     0.35,
     2.7,
     0,
   );
-  mesh(new THREE.SphereGeometry(0.055, 8, 6), white, vehicle).position.set(0.35, 3, 0);
+  mesh(new THREE.SphereGeometry(0.055, 8, 6), white, artwork).position.set(0.35, 3, 0);
 
   const strut = (start: THREE.Vector3, end: THREE.Vector3, radius: number) => {
     const direction = end.clone().sub(start);
     const leg = mesh(
       new THREE.CylinderGeometry(radius, radius, direction.length(), 8),
       silver,
-      vehicle,
+      artwork,
     );
     leg.position.copy(start).add(end).multiplyScalar(0.5);
     leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
@@ -58,7 +63,7 @@ export function createScene() {
   for (const x of [-1, 1]) {
     for (const z of [-1, 1]) {
       const foot = new THREE.Vector3(x * 1.5, 0.04, z * 1.5);
-      mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.08, 8), graphite, vehicle).position.copy(foot);
+      mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.08, 8), graphite, artwork).position.copy(foot);
       strut(new THREE.Vector3(x * 0.65, 1.4, z * 0.65), foot, 0.045);
       strut(new THREE.Vector3(x * 0.72, 0.94, z * 0.72), foot, 0.025);
     }

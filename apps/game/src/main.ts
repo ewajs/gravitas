@@ -7,6 +7,7 @@ import {
   type LocaleRequest,
 } from '@gravitas/ui';
 import { INITIAL_POSE, PAD_POSITION } from './fixture';
+import { CENTER_OF_MASS_HEIGHT } from './lander';
 import './style.css';
 
 registerUi();
@@ -117,6 +118,7 @@ async function start(): Promise<void> {
   if (destroyed) return;
   viewport = new Viewport({
     container: host,
+    centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
     label: viewportMessages().scene,
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });

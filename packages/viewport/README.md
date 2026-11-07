@@ -10,10 +10,11 @@ import { Viewport } from '@gravitas/viewport';
 const viewport = new Viewport({
   container,
   label: 'A lunar lander on a landing pad.', // Supplied by host localization.
+  centerOfMassHeight: 1.5, // Metres above the artwork's level feet; from the host's vehicle.
   backend: 'auto', // Or 'webgl2' to explicitly select the fallback backend.
 });
 viewport.setVehiclePose({
-  position: { x: 0, y: 0, z: 0 },
+  position: { x: 0, y: 1.5, z: 0 }, // Centre of mass: feet resting on the pad.
   orientation: { x: 0, y: 0, z: 0, w: 1 },
 });
 await viewport.init();
@@ -23,8 +24,11 @@ await viewport.dispose();
 ```
 
 Poses are metres in a right-handed Y-up world, with normalized body-to-world
-quaternions. The illustrative vehicle faces -Z; its origin is the centre of its
-feet's contact plane. The mesh dimensions are artwork, not physical parameters.
+quaternions. A pose locates the vehicle's **centre of mass**, matching engine
+flight state. The illustrative vehicle faces -Z and is authored from the centre of
+its feet's contact plane. Viewport offsets it by the required, positive
+`centerOfMassHeight`, so rotations pivot about the centre of mass. The host owns
+that physical value; the mesh dimensions are artwork, not physical parameters.
 Pose data is validated and copied without mutation.
 Import `VehiclePose` directly from `@gravitas/engine`. The HUD and viewport consume
 that contract; viewport exports only its own rendering API.

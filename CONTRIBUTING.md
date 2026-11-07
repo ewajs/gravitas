@@ -61,7 +61,8 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run build:game`                      | Build only the game (also used by local browser suites)     |
 | `npm run docs`                            | Generate library API references and developer guides        |
 
-Vitest covers pose validation and inspection measurements; empty suites are not allowed.
+Vitest covers flight dynamics against independent references, pose validation, artwork
+placement, and inspection measurements; empty suites are not allowed.
 Engine source has no DOM/ambient Node types; browser workspaces and build tooling
 opt into their own environments.
 

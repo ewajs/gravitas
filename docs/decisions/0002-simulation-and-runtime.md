@@ -1,6 +1,7 @@
 # 0002. Explicit simulation and staged runtime complexity
 
-- Status: Accepted direction; implementation pending.
+- Status: Accepted direction. Flight model and integrator chosen in [ADR 0008](0008-flight-model.md);
+  runtime scheduling pending.
 - Date: 2026-11-05
 
 ## Decision

@@ -35,8 +35,10 @@ The scene is 3D from the beginning.
 - Safe landing/crash outcomes, pause, restart, and a short control explanation.
 - Spanish (Argentina)/English, switchable without resetting flight state.
 
-Landing thresholds, vehicle numbers, control bindings, contact behavior, and start
-conditions remain unselected. Define them with worked examples and acceptance cases
+The first lander's physical numbers, control model, and rate-command assistance are
+defined in [the flight model](FLIGHT.md): one shared propellant tank feeds both
+main engine and attitude thrusters, so rotation costs fuel. Landing thresholds,
+keyboard bindings, contact behavior, and start conditions remain unselected. Define them with worked examples and acceptance cases
 in the relevant step. Altitude/contact refer to actual vehicle contact geometry,
 not just its origin.
 

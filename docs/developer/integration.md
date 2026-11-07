@@ -5,17 +5,18 @@ title: Application integration
 # From a pose to the inspection scene
 
 This walkthrough follows `apps/game/src/main.ts`. It describes the current static
-inspection scene. The fixed-step flight runtime, input sampling, and interpolation
-are planned for M1; they do not run here yet.
+inspection scene. Engine flight dynamics exist (see the engine guide), but the
+fixed-step flight runtime, input sampling, and interpolation are planned for M1
+step 1.2; they do not run here yet.
 
 ## Ownership
 
-| Owner    | Data and work                                                                                        |
-| -------- | ---------------------------------------------------------------------------------------------------- |
-| Engine   | The `VehiclePose` type: world metres and a body-to-world quaternion                                  |
-| App      | Stationary pose, pad reference, branding, locale requests, animation-frame loop, visibility handling |
-| Viewport | Canvas, Three.js scene, inspection camera, controls, resize observer, GPU resources                  |
-| UI       | Presentation snapshots, number formatting, localized text, and the help dialog                       |
+| Owner    | Data and work                                                                                       |
+| -------- | --------------------------------------------------------------------------------------------------- |
+| Engine   | The `VehiclePose` type: centre of mass in world metres and a body-to-world quaternion               |
+| App      | Lander parameters, pose, pad reference, branding, locale, animation-frame loop, visibility handling |
+| Viewport | Canvas, Three.js scene, inspection camera, controls, resize observer, GPU resources                 |
+| UI       | Presentation snapshots, number formatting, localized text, and the help dialog                      |
 
 The app passes data down to both presentation layers. The HUD sends a semantic
 request up to the app when a user chooses a language. It never calls viewport.
@@ -55,13 +56,14 @@ English translations load as a small deferred module; a failed download leaves
 Spanish usable and displays a reload hint.
 
 Viewport is dynamically imported after that initial status can render. The app
-constructs it with the host, localized label, and backend preference, then supplies
-the same pose used by the HUD:
+constructs it with the host, localized label, the lander's centre-of-mass height,
+and backend preference, then supplies the same pose used by the HUD:
 
 ```ts
 const { Viewport } = await import('@gravitas/viewport');
 const viewport = new Viewport({
   container: host,
+  centerOfMassHeight: CENTER_OF_MASS_HEIGHT, // From apps/game/src/lander.ts.
   label: viewportMessages().scene,
   backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
 });
@@ -69,7 +71,10 @@ viewport.setVehiclePose(INITIAL_POSE);
 await viewport.init();
 ```
 
-`setVehiclePose()` validates and copies the pose into the artwork. `init()` awaits
+The fixture's pose places the centre of mass 1.5 m above the pad, so the feet rest
+on it. Viewport offsets its foot-authored artwork by the same height; the physical
+value has one owner in the app. `setVehiclePose()` validates and copies the pose
+into the artwork. `init()` awaits
 renderer initialization and shader compilation before attaching the canvas.
 The `backend` getter reports the initialized backend, not the requested preference.
 After success, the app sets the HUD status to `ready` and starts scheduling frames.
@@ -128,6 +133,7 @@ not reusable. Mount a fresh instance for a new scene.
 
 - [Application lifecycle and locale flow](https://github.com/ewajs/gravitas/blob/main/apps/game/src/main.ts)
 - [Stationary fixture and pad reference](https://github.com/ewajs/gravitas/blob/main/apps/game/src/fixture.ts)
+- [First lander parameters](https://github.com/ewajs/gravitas/blob/main/apps/game/src/lander.ts)
 - [Viewport lifecycle](https://github.com/ewajs/gravitas/blob/main/packages/viewport/src/Viewport.ts)
 - [HUD and semantic event](https://github.com/ewajs/gravitas/blob/main/packages/ui/src/inspection-hud.ts)
 - [Local browser verification](https://github.com/ewajs/gravitas/blob/main/docs/verification/ui.md)

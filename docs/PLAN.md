@@ -40,12 +40,18 @@ to the next step unless the owner authorizes otherwise.
 
 ## M1 — First flight
 
-Split into small PRs when planned:
+The owner approved combining the specification and engine implementation in 1.1.
 
-- [ ] Define vehicle/controls, attitude assistance, physical assumptions, and
-      independent reference cases.
-- [ ] Implement gravity, thrust, fuel/mass, and attitude dynamics in engine.
-- [ ] Wire fixed-step runtime, input, interpolation, pause, restart.
+- [x] **1.1 Flight model and engine:** define vehicle/controls, torque-driven rate
+      assistance, physical assumptions, and independent reference cases; implement
+      gravity, thrust, fuel/mass, and attitude dynamics. Refactor all pose consumers
+      to a centre-of-mass origin in the same PR. **Verify:** independent analytical
+      references, conservation and convergence checks; both browser suites after the
+      viewport origin change. Attitude control draws from the shared tank at the
+      owner's request. Local checks passed on 2026-11-06; see the
+      [flight model](FLIGHT.md) and [verification](verification/flight.md).
+- [ ] **1.2 Flight runtime:** wire fixed-step runtime, input, interpolation, pause,
+      restart.
 
 **Acceptance:** fly one vehicle with readable instruments. Pause/resume and render
 rate changes preserve intended physics. Unit references and browser controls cover

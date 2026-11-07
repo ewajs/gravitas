@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import type { FlightHud } from '@gravitas/ui';
-import { openPhone, PHONES } from './phone';
+import { centre, Fingers, openPhone, PHONES } from './phone';
 import { test, expect } from './test';
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -68,6 +68,12 @@ for (const [name, size] of Object.entries(PHONES)) {
         await start.tap();
         await expect(controls).toBeVisible();
         await expect(hud).toHaveAttribute('touch-controls', '');
+        // Full throttle with the lever, so a slow renderer cannot crash mid-test.
+        const fingers = await Fingers.on(page);
+        const grip = await centre(page, 'touch-lever');
+        await fingers.down(1, grip.x, grip.y);
+        await fingers.move(1, grip.x, grip.y - size.height);
+        await fingers.up(1);
         await page.waitForTimeout(300);
         const lever = await box(controls.getByTestId('touch-lever'));
         const stickZone = await box(controls.getByTestId('touch-stick-zone'));

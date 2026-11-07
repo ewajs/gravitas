@@ -1,19 +1,25 @@
 import {
   clamp,
   classifyTouchdown,
+  coastOnRails,
   contactFacts,
+  magnitude,
   MAX_FLIGHT_STEP,
   NO_TOUCHDOWN,
   rateControlTorque,
   stepFlight,
+  timeToAltitude,
+  toRadians,
   updateTouchdown,
   type ContactFact,
   type TouchdownLimits,
   type TouchdownOutcome,
   type TouchdownRecord,
   type AttitudeSettings,
+  type CelestialBody,
   type FlightEnvironment,
   type FlightState,
+  type OrbitFrame,
   type Vector3,
   type VehicleParameters,
 } from '@gravitas/engine';
@@ -24,6 +30,45 @@ export const FIXED_STEP = MAX_FLIGHT_STEP;
 export const MAX_STEPS_PER_FRAME = 5;
 /** Fastest throttle lever travel per second, as when a throttle key is held (full range in 2 s). */
 export const THROTTLE_RATE = 0.5;
+
+/**
+ * Time-warp factors a session offers. Up to PHYSICS_WARP_LIMIT the physics runs
+ * faster, so thrust and rotation still work; above it the vehicle coasts on
+ * rails along its Kepler orbit (ADR 0019).
+ */
+export const WARP_LEVELS = [1, 2, 4, 10, 100, 1000] as const;
+/** A factor from WARP_LEVELS: simulated seconds per wall-clock second. */
+export type WarpLevel = (typeof WARP_LEVELS)[number];
+/** Highest warp that still steps the physics. */
+export const PHYSICS_WARP_LIMIT = 4;
+/**
+ * Fastest rotation, in radians per second (0.1°/s), at which rails warp may begin.
+ * The spin then continues, torque-free; braking first keeps attitude predictable.
+ */
+export const RAILS_MAX_RATE = toRadians(0.1);
+
+/**
+ * Why rails warp is unavailable: no orbit in this scenario, not flying, the
+ * engine lever is open, the vehicle is turning too fast, or it is at or below
+ * the scenario's rails floor.
+ */
+export type RailsBlocker = 'no-orbit' | 'not-flying' | 'throttle' | 'rotation' | 'altitude';
+
+// Metres above the rails floor that still count as at it; see railsBlocker.
+const FLOOR_MARGIN = 1e-3;
+
+/** What a flight around a body adds to its scenario, for on-rails time warp. */
+export interface OrbitScenario {
+  /** The body flown around; its gravity must match the environment's. */
+  readonly body: CelestialBody;
+  /** Frame of `start` and the environment; the frames coincide at the scenario start. */
+  readonly frame: OrbitFrame;
+  /**
+   * Altitude above the body's reference sphere, in metres, below which rails warp
+   * is unavailable; coasting down through it drops back to 1×.
+   */
+  readonly railsFloor: number;
+}
 
 /**
  * `ready` waits for the first start. `flying` and `complete` advance simulation
@@ -58,6 +103,8 @@ export interface FlightScenario {
   readonly environment: FlightEnvironment;
   /** Thresholds that judge the touchdown. */
   readonly limits: TouchdownLimits;
+  /** Present for flights around a body; enables rails warp. */
+  readonly orbit?: OrbitScenario;
 }
 
 const ZERO = { x: 0, y: 0, z: 0 } as const;
@@ -101,7 +148,11 @@ export class FlightSession {
   #discarded = 0;
   #record: TouchdownRecord = NO_TOUCHDOWN;
   #outcome: TouchdownOutcome = AIRBORNE;
+  // Simulated seconds at the verdict.
   #completedAt: number | undefined;
+  #warp: WarpLevel = 1;
+  // Simulated seconds spent on rails; physics time is ticks × FIXED_STEP.
+  #railsTime = 0;
   #verdictState: FlightState | undefined;
   // Actuators applied during the latest tick, for presentation.
   #applied: Actuation = IDLE_ACTUATION;
@@ -151,7 +202,29 @@ export class FlightSession {
   }
   /** Simulated seconds from start to the final verdict (or to now, while flying). */
   get flightTime(): number {
-    return (this.#completedAt ?? this.#ticks) * FIXED_STEP;
+    return this.#completedAt ?? this.time;
+  }
+  /** Simulated seconds since the start, physics ticks and rails together; frames coincide at 0. */
+  get time(): number {
+    return this.#ticks * FIXED_STEP + this.#railsTime;
+  }
+  /** Current time-warp factor; 1 is real time. */
+  get warp(): WarpLevel {
+    return this.#warp;
+  }
+  /** Why rails warp cannot start now, or undefined if it can. */
+  get railsBlocker(): RailsBlocker | undefined {
+    const orbit = this.#scenario.orbit;
+    if (!orbit) return 'no-orbit';
+    if (this.#phase !== 'flying') return 'not-flying';
+    if (this.#throttle > 0 || (this.#pendingThrottle ?? 0) > 0) return 'throttle';
+    if (magnitude(this.#state.angularVelocity) > RAILS_MAX_RATE) return 'rotation';
+    // Both orbit frames are centred on the body.
+    const altitude = magnitude(this.#state.position) - orbit.body.radius;
+    // A rails stop lands on the floor give or take rounding (nanometres); within a
+    // millimetre counts as on it, so rails cannot restart for a zero-length coast.
+    if (altitude <= orbit.railsFloor + FLOOR_MARGIN) return 'altitude';
+    return undefined;
   }
   /** Fraction of a step accumulated but not yet simulated, in [0, 1): the render blend. */
   get alpha(): number {
@@ -162,9 +235,28 @@ export class FlightSession {
   start(): void {
     if (this.#phase === 'ready') this.#phase = 'flying';
   }
-  /** Freezes simulation time; the sub-step remainder is kept so the picture does not jump. */
+  /** Freezes simulation time and returns to 1×; the sub-step remainder is kept so the picture does not jump. */
   pause(): void {
-    if (this.#phase === 'flying') this.#phase = 'paused';
+    if (this.#phase === 'flying') {
+      this.#phase = 'paused';
+      this.#warp = 1;
+    }
+  }
+
+  /**
+   * Asks for a warp factor while flying. Physics warp is always allowed; rails
+   * warp only when `railsBlocker` is undefined. Returns whether the factor applies.
+   */
+  requestWarp(level: WarpLevel): boolean {
+    if (!WARP_LEVELS.includes(level)) throw new RangeError(`warp ${level} is not a warp level`);
+    if (level === 1) {
+      this.#warp = 1;
+      return true;
+    }
+    if (this.#phase !== 'flying') return false;
+    if (level > PHYSICS_WARP_LIMIT && this.railsBlocker !== undefined) return false;
+    this.#warp = level;
+    return true;
   }
   /** Continues after a pause. The host must not pass paused wall time to advance(). */
   resume(): void {
@@ -185,13 +277,17 @@ export class FlightSession {
     this.#verdictState = undefined;
     this.#facts = undefined;
     this.#applied = IDLE_ACTUATION;
+    this.#warp = 1;
+    this.#railsTime = 0;
   }
 
   /**
-   * Adds elapsed wall time and runs every whole fixed step it covers, up to
-   * MAX_STEPS_PER_FRAME. Returns the number of steps run. Input outside `flying`
-   * is ignored, including one-shot actions; after a verdict the vehicle coasts
-   * with the engine and attitude thrusters off until restart.
+   * Adds elapsed wall time, scaled by the warp factor, and runs every whole fixed
+   * step it covers, up to MAX_STEPS_PER_FRAME per unit of warp. Returns the number
+   * of steps run. On rails it instead coasts the whole span analytically and runs
+   * no steps; any pilot input first drops to 1× and is flown normally. Input
+   * outside `flying` is ignored, including one-shot actions; after a verdict the
+   * vehicle coasts with the engine and attitude thrusters off until restart.
    */
   advance(elapsedSeconds: number, pilot: PilotInput): number {
     if (this.#phase !== 'flying' && this.#phase !== 'complete') return 0;
@@ -206,10 +302,18 @@ export class FlightSession {
     const leverSpeed = Number.isFinite(pilot.throttleChange)
       ? clamp(pilot.throttleChange, -1, 1)
       : 0;
-    this.#accumulator += elapsedSeconds;
+    if (this.#warp > PHYSICS_WARP_LIMIT) {
+      if (this.#phase !== 'flying' || hasInput(pilot) || this.railsBlocker !== undefined) {
+        this.#warp = 1;
+      } else {
+        this.#coast(elapsedSeconds * this.#warp);
+        return 0;
+      }
+    }
+    this.#accumulator += elapsedSeconds * this.#warp;
     const { vehicle, attitude, environment, limits } = this.#scenario;
     let steps = 0;
-    while (this.#accumulator >= FIXED_STEP && steps < MAX_STEPS_PER_FRAME) {
+    while (this.#accumulator >= FIXED_STEP && steps < MAX_STEPS_PER_FRAME * this.#warp) {
       // Decided per tick: a verdict can land mid-frame, and from then on the engine
       // and attitude thrusters are off (no lever ramp, no rate-hold torque).
       let bodyTorque: Vector3 = ZERO;
@@ -258,9 +362,11 @@ export class FlightSession {
           limits,
         );
         this.#outcome = classifyTouchdown(this.#record, limits);
+        // Touching the ground ends physics warp, so the landing plays in real time.
+        if (this.#outcome.status !== 'airborne') this.#warp = 1;
         if (isVerdict(this.#outcome)) {
           this.#phase = 'complete';
-          this.#completedAt = this.#ticks;
+          this.#completedAt = this.time;
           this.#verdictState = next;
           this.#throttle = 0;
           this.#pendingThrottle = undefined;
@@ -270,9 +376,40 @@ export class FlightSession {
     if (this.#accumulator >= FIXED_STEP) {
       // Overload (slow device, debugger, long task): drop whole steps, keep the remainder.
       const dropped = this.#accumulator - (this.#accumulator % FIXED_STEP);
-      this.#discarded += dropped;
+      // Count wall-clock seconds, as the debug overlay reports them.
+      this.#discarded += dropped / this.#warp;
       this.#accumulator -= dropped;
     }
     return steps;
   }
+
+  // Coasts `span` simulated seconds on rails, stopping exactly at the rails floor on
+  // the way down. The picture shows the result directly: there is nothing to blend.
+  #coast(span: number): void {
+    const { body, frame, railsFloor } = this.#scenario.orbit!;
+    const time = this.time;
+    const untilFloor = timeToAltitude(this.#state, body, frame, time, railsFloor);
+    let dt = span;
+    if (untilFloor !== undefined && untilFloor <= span) {
+      dt = untilFloor;
+      this.#warp = 1;
+    }
+    const next = coastOnRails(this.#state, this.#scenario.vehicle.inertia, body, frame, time, dt);
+    this.#state = this.#previous = next;
+    this.#railsTime += dt;
+    this.#accumulator = 0;
+    this.#applied = IDLE_ACTUATION;
+    this.#facts = undefined;
+  }
+}
+
+/** Whether a frame's input asks for anything: rotation, lever movement, or a lever setting. */
+function hasInput(pilot: PilotInput): boolean {
+  return (
+    pilot.rates.x !== 0 ||
+    pilot.rates.y !== 0 ||
+    pilot.rates.z !== 0 ||
+    (Number.isFinite(pilot.throttleChange) && pilot.throttleChange !== 0) ||
+    (pilot.throttleSet !== undefined && Number.isFinite(pilot.throttleSet))
+  );
 }

@@ -16,20 +16,24 @@ fuel from the same tank as the engine.
 The chase camera stays behind the lander's heading and level with the horizon,
 so W always tilts toward the top of the screen and A toward the left. It looks
 steeply down at altitude, keeping the pad ahead in view, and flattens near the
-ground. Drag to look around (it eases back) and scroll to zoom. A blue ring and
-line mark the ground straight below; rocks and craters show height and motion.
+ground. Drag to look around (it eases back) and scroll to zoom. A light ring and
+line mark the ground straight below, and the pad's ring is the accent cyan; rocks and craters show height and motion.
 The engine plume grows with the throttle and lights the ground; attitude
 thrusters puff where they fire; near the surface, the exhaust raises dust. Flicker
 and dust motion stop when the system asks for reduced motion.
 
 Synthesized sound follows the flight: an engine rumble with throttle, thruster
-hiss, a touchdown thud, and short verdict tones. M or the Mute button silences
-it. The browser remembers language, mute, and that the start card was read
-(`?lang=` still wins).
+hiss, a touchdown thud, and short verdict tones. M or the speaker button silences
+it. The browser remembers language, mute, the "Reduce transparency" display
+setting, and that the start card was read (`?lang=` still wins).
 
-The instruments put altitude and vertical speed first. A heading-up landing
-radar shows where thrust is leaning (dot), horizontal drift (arrow), and the pad
-(diamond, hollow beyond 60 m). To stop drifting, lean against the arrow. Fuel and
+The instruments sit on frosted glass panels and put altitude and vertical speed
+first. Under vertical speed, a safe-sink scale shades how fast it is wise to sink at
+this altitude: at most an eighth of the altitude per second, and no more than 2 m/s
+in the last 16 m. It is a hint; the landing limits do not change. Sinking faster
+turns it amber with a caution icon. A heading-up landing radar shows where thrust
+is leaning (dot), horizontal drift (arrow), and the pad (cyan diamond, hollow
+beyond 60 m). To stop drifting, lean against the arrow. Fuel and
 throttle are bars with percentages, and a mark on the throttle bar shows the
 hover setting. Tilt, horizontal speed, and distance to the pad are also shown as
 numbers. Help/Ayuda lists the controls, explains the radar, and pauses the flight. Leaving the tab pauses too. The ES/EN selector switches language

@@ -46,7 +46,7 @@ cuando estás alto, para que veas la plataforma, y se aplana cerca del suelo.
 
 El motor ruge según el empuje, los propulsores de actitud sisean al girar, las
 patas golpean al tocar y un tono breve anuncia el resultado. Todo el sonido se
-sintetiza en el navegador. **M** o el botón **Silenciar** lo apagan, y el juego
+sintetiza en el navegador. **M** o el botón del altavoz (**Silenciar**) lo apagan, y el juego
 recuerda esa elección.
 
 ## Pausa
@@ -56,6 +56,12 @@ pestaña, y queda en pausa hasta que vuelvas a pulsar **P**.
 
 ## Preferencias
 
-El juego recuerda en este navegador tu idioma, si silenciaste el sonido y que ya
-leíste la tarjeta **Cómo volar** (después de tu primer vuelo deja de aparecer; la
-Ayuda siempre tiene los controles).
+El juego recuerda en este navegador tu idioma, si silenciaste el sonido, si
+pediste **Reducir transparencia** y que ya leíste la tarjeta **Cómo volar**
+(después de tu primer vuelo deja de aparecer; la Ayuda siempre tiene los
+controles).
+
+**Reducir transparencia**, en la sección **Pantalla** de la Ayuda, cambia los
+paneles translúcidos y desenfocados por paneles sólidos: más fáciles de leer y más
+livianos para equipos lentos. Se aplica sola si tu sistema pide menos
+transparencia.

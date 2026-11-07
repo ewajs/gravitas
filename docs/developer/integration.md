@@ -64,7 +64,8 @@ keys, because a keyup may never arrive after focus moves.
 
 ## Sound and settings
 
-`settings.ts` loads language, mute, and "start card seen" from `localStorage`,
+`settings.ts` loads language, mute, "start card seen", and "reduce transparency"
+from `localStorage`,
 validating each field as external data. It never throws, and saves only when a
 setting changes. An explicit `?lang=` still wins over the saved language.
 `FlightAudio` (`audio.ts`) synthesizes engine, thruster, touchdown, and verdict
@@ -128,7 +129,9 @@ document also pauses the session; the player resumes with P or Resume.
 
 The HUD receives a `FlightTelemetry` snapshot from `flightTelemetry(state, throttle)`:
 altitude above the lowest foot, signed vertical speed, horizontal speed, pad
-distance, tilt, fuel fraction, throttle, and upright hover throttle. It also gets
+distance, tilt, fuel fraction, throttle, upright hover throttle, and the safe-sink
+hint (`safeSinkRate` in `rules.ts`: the larger of 2 m/s and an eighth of the
+altitude per second). It also gets
 three radar vectors in the **heading frame** (x right, y forward): thrust lean,
 drift, and the pad's offset. The app computes them with engine's `headingAngle`,
 the same heading viewport's chase camera follows, so radar-up is screen-up and W

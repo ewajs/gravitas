@@ -45,7 +45,7 @@ when you are high, keeping the pad in view, and flattens near the ground.
 
 The engine rumbles with throttle, attitude thrusters hiss as you turn, the legs
 thud on touchdown, and a short tone announces the result. All sound is synthesized
-in the browser. **M** or the **Mute** button silences it, and the game remembers
+in the browser. **M** or the speaker button (**Mute**) silences it, and the game remembers
 that choice.
 
 ## Pause
@@ -55,6 +55,11 @@ and stays paused until you press **P** again.
 
 ## Preferences
 
-The game remembers in this browser your language, whether you muted sound, and
-that you have read the **How to fly** card (after your first flight it stops
-appearing; Help always lists the controls).
+The game remembers in this browser your language, whether you muted sound,
+whether you asked to **Reduce transparency**, and that you have read the **How to
+fly** card (after your first flight it stops appearing; Help always lists the
+controls).
+
+**Reduce transparency**, in Help's **Display** section, swaps the translucent,
+blurred panels for solid ones: easier to read and lighter for slow devices. It is
+on anyway when your system asks for less transparency.

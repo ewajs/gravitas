@@ -132,7 +132,11 @@ require an explicit fallback policy before adoption.
 
 Lit and `@lit/localize`, native platform behavior, CSS custom properties generated
 from a typed theme (`@gravitas/ui/themes`); the page gets the same properties at
-build time, and the scene's non-physical marks take the theme's accents. es-AR default,
+build time, and the scene's non-physical marks take the theme's accents. The game
+self-hosts the theme's typefaces (Space Grotesk and Inter, `@fontsource-variable`)
+on the page, where shadow-root text can use them
+([ADR 0015](decisions/0015-glass-look-and-typefaces.md)). The safe-sink hint is a
+game rule passed in telemetry; the HUD only draws it. es-AR default,
 English complete; locale switches preserve flight state. UI's TypeScript config
 uses legacy decorators (`experimentalDecorators: true`, `useDefineForClassFields:
 false`), matching Lux's familiar Lit convention. App and browser-test TypeScript
@@ -181,7 +185,7 @@ Main deployments publish all three.
    simulated.
 7. Audio (`audio.ts`) is synthesized with Web Audio, created on the first key or
    click as autoplay rules require, suspended unless flying or playing out a crash,
-   and muted on request. Settings (`settings.ts`: language, mute, start card seen)
+   and muted on request. Settings (`settings.ts`: language, mute, start card seen, reduce transparency)
    load once, validated as external data, and are saved only when they change.
 8. A HUD `locale-request` loads translations and updates the HUD locale, document
    language, canvas label, and URL. The renderer, camera, and session remain intact.

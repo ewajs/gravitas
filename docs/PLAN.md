@@ -127,8 +127,13 @@ playtest come first:
       mapping and settings validation unit tests; browser persistence across visits,
       `?lang=` precedence, gesture unlock, pause/mute states, both backends. Local
       checks passed on 2026-11-07; see [audio verification](verification/audio.md).
-- [ ] **3.3 Diagnostics (stretch):** an explicit `?debug` overlay (frame time,
-      discarded time, ticks) and a repeatable frame-rate measurement.
+- [x] **3.3 Diagnostics:** an explicit `?debug` overlay (frame rate, main-thread
+      work p50/p95, dropped time, draw calls, triangles, ticks) at 4 Hz without
+      logging; `viewport.renderStats`; `npm run measure` flying a workload on both
+      browsers; start/resume begin timing at the next frame. **Verify:** stats unit
+      tests, overlay only behind `?debug`, measured results and proposed budgets.
+      Local checks passed on 2026-11-07; see
+      [performance measurements](verification/performance.md).
 - [ ] **3.4 Learn (stretch):** a Learn section in the manual explaining how
       Gravitas works and its math, with rendered equations, plots, and interactive
       explorers, built to grow into spaceflight and orbital mechanics.

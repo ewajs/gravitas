@@ -165,9 +165,12 @@ language. Main deployments publish all three.
    load once, validated as external data, and are saved only when they change.
 8. A HUD `locale-request` loads translations and updates the HUD locale, document
    language, canvas label, and URL. The renderer, camera, and session remain intact.
-9. Device loss becomes a render error; the app stops, disposes, pauses the session,
-   releases the keyboard, and presents a localized failure. Language and help
-   remain usable.
+9. `?debug` adds a developer overlay (`diagnostics.ts`). It summarizes frame
+   interval, main-thread work, dropped time, and viewport's `renderStats` at 4 Hz,
+   with no logging and no cost without the switch.
+10. Device loss becomes a render error; the app stops, disposes, pauses the session,
+    releases the keyboard, and presents a localized failure. Language and help
+    remain usable.
 
 The session owns flight state; viewport and HUD receive copies. See
 [viewport's API](../packages/viewport/README.md), [UI/localization](../packages/ui/README.md),

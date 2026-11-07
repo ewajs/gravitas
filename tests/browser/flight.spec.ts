@@ -219,3 +219,15 @@ test('landing radar is heading-up: pitch leans ahead and a left yaw swings the p
   expect((await point('radar-pad')).x).toBeGreaterThan(5);
   await page.screenshot({ path: info.outputPath('radar.png') });
 });
+
+test('the developer overlay appears only behind ?debug', async ({ page }, info) => {
+  await open(page, info.project.name);
+  await expect(page.locator('#diagnostics')).toHaveCount(0);
+  const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
+  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en&debug`);
+  await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
+  const overlay = page.locator('#diagnostics');
+  await expect(overlay).toContainText('fps');
+  await expect.poll(async () => Number(await overlay.getAttribute('data-fps'))).toBeGreaterThan(5);
+  expect(Number(await overlay.getAttribute('data-draw-calls'))).toBeGreaterThan(0);
+});

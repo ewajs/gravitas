@@ -98,6 +98,11 @@ deterministic rocks and crater decals (instanced). A blue ring and drop line mar
 the ground straight below the vehicle, using the flat y = 0 plane and the
 centre-of-mass height. It is not terrain data or contact geometry.
 
+## Diagnostics
+
+`renderStats` returns `{ drawCalls, triangles }` for the last rendered frame, or
+`null` before initialization. The game's `?debug` overlay shows it.
+
 ## Lifecycle
 
 `setLabel(text)` changes the canvas accessibility description before or after

@@ -4,6 +4,10 @@ import type { Quaternion, Vector3 } from './pose';
 // these in every integration stage, so unlike the simulation functions they do not
 // validate (NaN in gives NaN out). Hosts use the same helpers instead of their own
 // copies. Reordering an operation here changes simulation results in the last bit.
+//
+// This file is also the `@gravitas/engine/math` entry point, the one engine module UI
+// may call at runtime. Keep it pure arithmetic: anything that simulates, judges, or
+// holds state belongs elsewhere, or UI could quietly become a second simulation.
 
 /**
  * Limits `value` to [`min`, `max`]; `min` must not exceed `max`.

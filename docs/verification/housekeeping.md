@@ -84,3 +84,16 @@ help open over three of them.
 - The harness and capture scripts were throwaway tools and are not in the
   repository; this record and the PR describe what they checked.
 - No playtest: nothing a player sees or does is meant to change.
+
+## Engine math entry point
+
+- `@gravitas/engine/math` (package `exports`) serves `src/math.ts`; a lint policy
+  lets UI import from it at runtime and still allows only types from the main
+  entry. UI's own `toDegrees` was the same expression (× 180 ÷ π) as the engine's,
+  and its gauge clamp agrees with `clamp(x, 0, 1)` on every input, so the HUD
+  output is unchanged.
+- ESLint now resolves imports with `eslint-import-resolver-typescript` (dev only,
+  ISC), because the Node resolver ignores `exports` and treated the subpath as an
+  unknown external package. Checked by adding imports temporarily: UI's runtime
+  import from `@gravitas/engine` and its import of the private
+  `@gravitas/engine/src/contact` are both rejected; `@gravitas/engine/math` passes.

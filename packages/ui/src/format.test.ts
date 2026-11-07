@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { numberFormats, toDegrees } from './format';
+import { numberFormats } from './format';
 
 it("writes each locale's notation and reuses one set of formats per locale", () => {
   const es = numberFormats('es-AR');
@@ -15,5 +15,4 @@ it("writes each locale's notation and reuses one set of formats per locale", () 
   expect(en.fixed(2).format(2.04)).toBe('2.04');
   expect(numberFormats('es-AR')).toBe(es);
   expect(en.fixed(2)).toBe(en.fixed(2));
-  expect(toDegrees(Math.PI / 3)).toBeCloseTo(60, 12);
 });

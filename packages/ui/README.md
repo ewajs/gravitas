@@ -2,7 +2,7 @@
 
 Optional Lit flight HUD: a heading-up landing radar, localized readouts, fuel and
 throttle gauges, phase messages, start/pause/restart buttons, language selection,
-loading/failure messages, and a native-dialog control reference. It imports engine types only and has no dependency on viewport or the app.
+loading/failure messages, and a native-dialog control reference. It imports engine types plus the pure helpers in `@gravitas/engine/math`, and has no dependency on viewport or the app.
 
 ```ts
 import { registerUi, setLocale } from '@gravitas/ui';

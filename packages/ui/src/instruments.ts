@@ -1,7 +1,8 @@
 import { html, nothing, type TemplateResult } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { msg } from '@lit/localize';
-import { numberFormats, toDegrees } from './format';
+import { clamp, toDegrees } from '@gravitas/engine/math';
+import { numberFormats } from './format';
 import type { Locale } from './localization';
 import { RADAR_RADIUS, RADAR_SCALE, radarPoint } from './radar';
 import type { FlightTelemetry } from './types';
@@ -16,7 +17,7 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
         ${value}${unit ? html`<span class="unit"> ${unit}</span>` : nothing}
       </dd>
     </div>`;
-  const share = (fraction: number) => `${Math.min(1, Math.max(0, fraction)) * 100}%`;
+  const share = (fraction: number) => `${clamp(fraction, 0, 1) * 100}%`;
   return html`${landingRadar(t)}
     <div class="data">
       <dl class="readouts">

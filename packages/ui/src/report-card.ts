@@ -1,6 +1,7 @@
 import { html, type TemplateResult } from 'lit';
 import { msg } from '@lit/localize';
-import { numberFormats, toDegrees } from './format';
+import { toDegrees } from '@gravitas/engine/math';
+import { numberFormats } from './format';
 import type { Locale } from './localization';
 import type { LandingCheck, LandingReport } from './types';
 

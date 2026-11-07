@@ -75,7 +75,7 @@ opt into their own environments.
 
 Boundary rules check public entry points and dependency direction, including
 type-only imports, re-exports, and dynamic imports. UI can import engine types
-with `import type`; engine cannot depend on other workspaces or runtime packages.
+with `import type` and call the pure helpers in `@gravitas/engine/math`; engine cannot depend on other workspaces or runtime packages.
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
 The player manual lives in `manual/` (Spanish at the root, English in `en/`, same

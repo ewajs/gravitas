@@ -111,7 +111,9 @@ and hosts use the same ones instead of their own copies: `add`, `addScaled`,
 and `rotationAbout` for rotations; and `clamp`, `toRadians`, and `toDegrees` for
 numbers. They return new objects but, unlike the simulation functions, do not
 validate (NaN in gives NaN out), because they run in every integration stage.
-Engine angles are radians; convert degrees only at the edges.
+Engine angles are radians; convert degrees only at the edges. The main entry
+re-exports them, and `@gravitas/engine/math` exposes them alone for hosts that
+should reach arithmetic but no simulation (the UI package uses it).
 
 ```ts
 import { clamp, rotationAbout, toRadians } from '@gravitas/engine';

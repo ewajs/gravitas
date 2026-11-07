@@ -47,11 +47,3 @@ export function numberFormats(locale: Locale): NumberFormats {
   cache.set(locale, formats);
   return formats;
 }
-
-/**
- * Radians to degrees for display. Telemetry stays in SI units; UI may import only
- * engine types, so it keeps this one conversion of its own.
- */
-export function toDegrees(radians: number): number {
-  return (radians * 180) / Math.PI;
-}

@@ -9,7 +9,7 @@ import {
 } from '@gravitas/ui';
 import { KeyboardControls, type KeyCommand } from './controls';
 import { ATTITUDE, CENTER_OF_MASS_HEIGHT, ENVIRONMENT, LANDER } from './lander';
-import { CAMERA_OFFSET, START_STATE } from './scenario';
+import { START_STATE } from './scenario';
 import { FlightSession } from './session';
 import { flightTelemetry, footClearance } from './telemetry';
 import './style.css';
@@ -91,6 +91,9 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   } else if (action === 'restart') {
     session.restart();
     keyboard.clear();
+    // The vehicle teleports back to the opening; do not ease the camera across it.
+    viewport?.setVehiclePose(session.state);
+    viewport?.resetCamera();
   }
   publish();
 }
@@ -195,7 +198,6 @@ async function start(): Promise<void> {
   viewport = new Viewport({
     container: host,
     centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
-    cameraOffset: CAMERA_OFFSET,
     label: viewportMessages().scene,
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });

@@ -58,8 +58,13 @@ The owner approved combining the specification and engine implementation in 1.1.
       scoping, both locales mid-flight, both backends. Owner approved splitting the
       former 1.2 into 1.2 and 1.3. Local checks passed on 2026-11-06; see
       [runtime verification](verification/runtime.md).
-- [ ] **1.3 Chase camera and instruments:** chase camera, attitude indicator,
-      designed instrument layout; owner visual review closes M1.
+- [x] **1.3 Chase camera and instruments:** heading-following chase camera with
+      shared engine heading, landing radar (lean/drift/pad), designed instrument
+      cluster with fuel/throttle gauges and hover mark, deterministic surface depth
+      cues, opening facing the pad. **Verify:** chase rig and radar geometry unit
+      tests; browser radar/heading, narrow layouts in both locales, both backends;
+      software-renderer frame rate recorded. Local checks passed on 2026-11-06; owner
+      visual review closes M1. See [instrument verification](verification/instruments.md).
 
 **Acceptance:** fly one vehicle with readable instruments. Pause/resume and render
 rate changes preserve intended physics. Unit references and browser controls cover

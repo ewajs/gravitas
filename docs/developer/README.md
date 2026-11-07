@@ -9,11 +9,11 @@ flight HUD. These guides cover the code that exists today.
    connects those layers, owns scheduling, and handles locale changes and failure.
 3. Use the generated API pages for exact types, methods, and source locations.
 
-| Library guide                                 | Current responsibility                                  |
-| --------------------------------------------- | ------------------------------------------------------- |
-| [Engine](../../packages/engine/README.md)     | Shared pose, pure flight dynamics, and rate assistance  |
-| [Viewport](../../packages/viewport/README.md) | Three.js scene, interpolation, follow camera, lifecycle |
-| [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, help dialog, and localization  |
+| Library guide                                 | Current responsibility                                 |
+| --------------------------------------------- | ------------------------------------------------------ |
+| [Engine](../../packages/engine/README.md)     | Shared pose, pure flight dynamics, and rate assistance |
+| [Viewport](../../packages/viewport/README.md) | Three.js scene, interpolation, chase camera, lifecycle |
+| [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, help dialog, and localization |
 
 The application in `apps/game` owns branding, the lander and scenario, the flight
 session and keyboard, locale loading, and browser scheduling. Libraries never import app code; viewport and UI are

@@ -4,8 +4,8 @@ A spaceflight game for the web, built alongside reusable simulation, Three.js
 viewport, and Lit UI libraries. Ambitious in direction; small, reviewable steps
 in delivery.
 
-**Status:** a flyable first descent: keyboard flight with a bilingual HUD,
-fixed-step physics, pause and restart. Touchdown stops the flight without a landing
+**Status:** a flyable first descent: keyboard flight with a heading-following chase
+camera, a bilingual HUD with landing radar, fixed-step physics, pause and restart. Touchdown stops the flight without a landing
 verdict until M2. The first playable target is a short lunar landing challenge; orbital flight and
 construction are later possibilities.
 
@@ -39,8 +39,9 @@ npm run dev
 
 Open the URL Vite prints and press P to start the descent. W/S/A/D/Q/E rotate,
 R/F move the throttle lever, Z/X set full or cut, P pauses, and Enter restarts.
-Drag to orbit and scroll to zoom. Use the ES/EN selector to change language
-mid-flight, and open Help/Ayuda for all controls. Add
+Drag to look around and scroll to zoom. The radar shows lean (dot), drift
+(arrow), and the pad (diamond); lean against the arrow to stop drifting. Use the
+ES/EN selector to change language mid-flight, and open Help/Ayuda for all controls. Add
 `?lang=en` for English or `?backend=webgl2` to explicitly
 request WebGL 2. With no backend override, Three.js selects the available backend.
 `npm run check` runs format/lint/type checks and the test runner; `npm run build`

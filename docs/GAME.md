@@ -1,21 +1,30 @@
 # Game direction
 
-**Status:** first flight playable (M1 step 1.2); no landing outcome yet. This
+**Status:** first flight playable with chase camera and landing instruments (M1);
+no landing outcome yet. This
 document distinguishes shipped behavior from future direction.
 
 ## Current build: first descent
 
-The lander starts 80 m up, 30 m from the pad, sinking and drifting toward it. It
-waits until the player presses P or Start. Then the player flies with the
+The lander starts 80 m up, facing the pad 30 m ahead, sinking and drifting toward
+it. It waits until the player presses P or Start. Then the player flies with the
 keyboard: W/S pitch, A/D roll, Q/E yaw, R/F raise or lower the throttle lever,
 Z/X set full or cut, P pauses, Enter restarts. Rotation keys request a turn rate;
 releasing them stops rotation but does not level the lander. Rotation burns
 fuel from the same tank as the engine.
 
-Readouts show altitude above the lowest foot, vertical and horizontal speed,
-distance to the pad, tilt, fuel, and throttle. The camera follows the lander;
-drag to orbit and scroll to zoom. Help/Ayuda lists the controls and pauses the
-flight. Leaving the tab pauses too. The ES/EN selector switches language
+The chase camera stays behind the lander's heading and level with the horizon,
+so W always tilts toward the top of the screen and A toward the left. It looks
+steeply down at altitude, keeping the pad ahead in view, and flattens near the
+ground. Drag to look around (it eases back) and scroll to zoom. A blue ring and
+line mark the ground straight below; rocks and craters show height and motion.
+
+The instruments put altitude and vertical speed first. A heading-up landing
+radar shows where thrust is leaning (dot), horizontal drift (arrow), and the pad
+(diamond, hollow beyond 60 m). To stop drifting, lean against the arrow. Fuel and
+throttle are bars with percentages, and a mark on the throttle bar shows the
+hover setting. Tilt, horizontal speed, and distance to the pad are also shown as
+numbers. Help/Ayuda lists the controls, explains the radar, and pauses the flight. Leaving the tab pauses too. The ES/EN selector switches language
 mid-flight without changing the flight (`?lang=en` selects English on load).
 
 When a foot reaches the surface, the flight stops and shows the touchdown

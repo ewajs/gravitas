@@ -62,8 +62,10 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run docs`                            | Generate library API references and developer guides        |
 
 Vitest covers flight dynamics against independent references, the fixed-step session
-(frame-rate independence, overload, pause, ground halt), key mapping, telemetry
-geometry, pose validation/blending, and artwork placement; empty suites are not allowed.
+(frame-rate independence, overload, pause, ground halt), key mapping, heading and
+telemetry/radar geometry, the chase rig, pose validation/blending, and artwork
+placement; empty suites are not allowed. Browser flight tests poll for outcomes
+rather than assuming real time, because software renderers run below 60 fps.
 Engine source has no DOM/ambient Node types; browser workspaces and build tooling
 opt into their own environments.
 

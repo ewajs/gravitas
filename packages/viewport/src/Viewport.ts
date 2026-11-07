@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Vector3, VehiclePose } from '@gravitas/engine';
+import type { VehiclePose } from '@gravitas/engine';
+import { CHASE, ChaseRig } from './chase';
 import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
 import { createScene } from './scene';
 
@@ -18,23 +19,22 @@ export interface ViewportOptions {
   readonly centerOfMassHeight: number;
   /** Defaults to auto, allowing WebGPU with Three.js's WebGL 2 fallback. */
   readonly backend?: BackendRequest;
-  /** Initial camera position relative to the vehicle's centre of mass, in metres. */
-  readonly cameraOffset?: Vector3;
 }
 
 const MAX_PIXEL_RATIO = 2;
-const DEFAULT_CAMERA_OFFSET: Vector3 = { x: 8, y: 4, z: -9 };
-const MIN_CAMERA_DISTANCE = 4;
-const MAX_CAMERA_DISTANCE = 30;
+// Lens shift: draw the vehicle above centre so more of the surface ahead is visible.
+const VIEW_SHIFT = 0.12;
 
 /** Owns rendering resources; the host owns poses and frame scheduling. */
 export class Viewport {
   readonly #options: ViewportOptions;
   readonly #art: ReturnType<typeof createScene>;
-  readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1500);
+  // Near plane well inside the 6 m minimum zoom; it sets depth precision for surface decals.
+  readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.5, 1500);
   readonly #previous = poseBuffer();
   readonly #current = poseBuffer();
-  readonly #followShift = new THREE.Vector3();
+  #rig: ChaseRig | undefined;
+  #lastRender: number | undefined;
   #renderer: THREE.WebGPURenderer | undefined;
   #controls: OrbitControls | undefined;
   #observer: ResizeObserver | undefined;
@@ -56,11 +56,6 @@ export class Viewport {
     }
     if (!Number.isFinite(options.centerOfMassHeight) || options.centerOfMassHeight <= 0) {
       throw new RangeError('centerOfMassHeight must be finite and positive');
-    }
-    const offset = options.cameraOffset ?? DEFAULT_CAMERA_OFFSET;
-    const distance = Math.hypot(offset.x, offset.y, offset.z);
-    if (!(distance >= MIN_CAMERA_DISTANCE && distance <= MAX_CAMERA_DISTANCE)) {
-      throw new RangeError('cameraOffset length must be within the orbit distance limits');
     }
     this.#art = createScene(options.centerOfMassHeight);
     this.#current.position.copy(this.#art.vehicle.position);
@@ -95,6 +90,17 @@ export class Viewport {
     copyPose(previous, this.#previous);
   }
 
+  /**
+   * Places the chase camera directly behind the current pose at the default
+   * distance, without easing. Call after a discontinuity such as a restart.
+   */
+  resetCamera(): void {
+    if (this.#disposed) throw new Error('Viewport has been disposed');
+    if (!this.#rig) return;
+    blendPose(this.#current, this.#current, 1, this.#art.vehicle);
+    this.#rig.snap(this.#art.vehicle, this.#altitude());
+  }
+
   /** Updates the accessible canvas description without resetting camera or GPU resources. */
   setLabel(label: string): void {
     if (this.#disposed) throw new Error('Viewport has been disposed');
@@ -104,7 +110,7 @@ export class Viewport {
 
   /**
    * Draws one frame at `alpha` in [0, 1] between the previous and current poses
-   * (the host's fixed-step remainder). The camera follows the drawn centre of mass.
+   * (the host's fixed-step remainder). The chase camera follows the drawn vehicle.
    * Returns false before init, after disposal, or for a zero-size host.
    */
   render(alpha = 1): boolean {
@@ -114,7 +120,13 @@ export class Viewport {
     if (this.#pixelRatio !== this.#devicePixelRatio()) this.#resize();
     if (!this.#width || !this.#height) return false;
     blendPose(this.#previous, this.#current, alpha, this.#art.vehicle);
-    this.#follow(this.#art.vehicle.position);
+    // Presentation-only clock for camera easing; physics time belongs to the host.
+    const now = performance.now();
+    const dt = this.#lastRender === undefined ? 0 : (now - this.#lastRender) / 1000;
+    this.#lastRender = now;
+    const altitude = this.#altitude();
+    this.#rig?.update(this.#art.vehicle, altitude, dt);
+    this.#art.updateMarker(this.#art.vehicle.position, altitude);
     this.#controls?.update();
     this.#renderer.render(this.#art.scene, this.#camera);
     return true;
@@ -151,15 +163,17 @@ export class Viewport {
       canvas.tabIndex = 0;
       canvas.setAttribute('role', 'img');
       canvas.setAttribute('aria-label', this.#label);
+      blendPose(this.#current, this.#current, 1, this.#art.vehicle);
       this.#controls = new OrbitControls(this.#camera, canvas);
-      this.#controls.target.copy(this.#current.position);
-      const offset = this.#options.cameraOffset ?? DEFAULT_CAMERA_OFFSET;
-      this.#camera.position.set(offset.x, offset.y, offset.z).add(this.#current.position);
-      this.#controls.minDistance = MIN_CAMERA_DISTANCE;
-      this.#controls.maxDistance = MAX_CAMERA_DISTANCE;
+      this.#rig = new ChaseRig(this.#camera, this.#controls.target);
+      this.#rig.snap(this.#art.vehicle, this.#altitude());
+      this.#controls.minDistance = CHASE.minDistance;
+      this.#controls.maxDistance = CHASE.maxDistance;
       this.#controls.maxPolarAngle = Math.PI * 0.48;
-      // The target follows the vehicle each frame, so panning away would be undone.
+      // The rig moves the target every frame, so panning away would be undone.
       this.#controls.enablePan = false;
+      this.#controls.addEventListener('start', this.#orbitStarted);
+      this.#controls.addEventListener('end', this.#orbitEnded);
       this.#controls.update();
       this.#resize();
       await renderer.compileAsync(this.#art.scene, this.#camera);
@@ -179,12 +193,12 @@ export class Viewport {
     }
   }
 
-  // Translate camera and target together, preserving the player's orbit and zoom.
-  #follow(target: THREE.Vector3): void {
-    if (!this.#controls) return;
-    this.#followShift.subVectors(target, this.#controls.target);
-    this.#camera.position.add(this.#followShift);
-    this.#controls.target.copy(target);
+  readonly #orbitStarted = () => this.#rig?.setUserActive(true);
+  readonly #orbitEnded = () => this.#rig?.setUserActive(false);
+
+  // Upright foot clearance over the flat y = 0 surface; framing only, not contact.
+  #altitude(): number {
+    return this.#art.vehicle.position.y - this.#options.centerOfMassHeight;
   }
 
   #devicePixelRatio(): number {
@@ -201,6 +215,7 @@ export class Viewport {
     this.#pixelRatio = ratio;
     if (!width || !height) return;
     this.#camera.aspect = width / height;
+    this.#camera.setViewOffset(width, height, 0, height * VIEW_SHIFT, width, height);
     this.#camera.updateProjectionMatrix();
     this.#renderer.setPixelRatio(ratio);
     this.#renderer.setSize(width, height, false);
@@ -209,6 +224,8 @@ export class Viewport {
   #detach(): void {
     this.#ready = false;
     this.#observer?.disconnect();
+    this.#controls?.removeEventListener('start', this.#orbitStarted);
+    this.#controls?.removeEventListener('end', this.#orbitEnded);
     this.#controls?.dispose();
     this.#renderer?.domElement.remove();
   }

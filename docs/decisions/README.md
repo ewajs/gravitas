@@ -4,14 +4,15 @@ Record consequential choices, reasons, and revisit conditions. Amend/supersede
 records when decisions change; preserve earlier reasoning. Accepted direction
 does not imply implemented code.
 
-| ADR                                    | Decision                                                       | Status                              |
-| -------------------------------------- | -------------------------------------------------------------- | ----------------------------------- |
-| [0001](0001-stack-and-packages.md)     | Stack, reusable packages, renderer                             | Accepted direction                  |
-| [0002](0002-simulation-and-runtime.md) | Simulation boundaries and runtime complexity                   | Accepted direction                  |
-| [0003](0003-delivery-and-ownership.md) | Delivery, dependencies, cognitive ownership                    | Accepted direction                  |
-| [0004](0004-workspace-tooling.md)      | Workspace tooling and MIT licensing                            | Implemented                         |
-| [0005](0005-viewport-lifecycle.md)     | Viewport lifecycle, first scene, and localization prerequisite | Implemented                         |
-| [0006](0006-browser-ci-and-pages.md)   | Local browser verification and artifact-based Pages delivery   | Amended; browser suites run locally |
-| [0007](0007-inspection-ui.md)          | Inspection HUD, shared pose, and live language switching       | Superseded in part by 0009 (HUD)    |
-| [0008](0008-flight-model.md)           | Rigid-body flight model, RK4, and rate-command assistance      | Implemented                         |
-| [0009](0009-flight-runtime.md)         | Fixed-step flight runtime, input, and interpolation ownership  | Implemented                         |
+| ADR                                          | Decision                                                       | Status                              |
+| -------------------------------------------- | -------------------------------------------------------------- | ----------------------------------- |
+| [0001](0001-stack-and-packages.md)           | Stack, reusable packages, renderer                             | Accepted direction                  |
+| [0002](0002-simulation-and-runtime.md)       | Simulation boundaries and runtime complexity                   | Accepted direction                  |
+| [0003](0003-delivery-and-ownership.md)       | Delivery, dependencies, cognitive ownership                    | Accepted direction                  |
+| [0004](0004-workspace-tooling.md)            | Workspace tooling and MIT licensing                            | Implemented                         |
+| [0005](0005-viewport-lifecycle.md)           | Viewport lifecycle, first scene, and localization prerequisite | Implemented                         |
+| [0006](0006-browser-ci-and-pages.md)         | Local browser verification and artifact-based Pages delivery   | Amended; browser suites run locally |
+| [0007](0007-inspection-ui.md)                | Inspection HUD, shared pose, and live language switching       | Superseded in part by 0009 (HUD)    |
+| [0008](0008-flight-model.md)                 | Rigid-body flight model, RK4, and rate-command assistance      | Implemented                         |
+| [0009](0009-flight-runtime.md)               | Fixed-step flight runtime, input, and interpolation ownership  | Implemented; camera amended by 0010 |
+| [0010](0010-chase-camera-and-instruments.md) | Heading-following chase camera and landing radar               | Implemented; visuals await review   |

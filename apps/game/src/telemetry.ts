@@ -1,20 +1,14 @@
-import type { FlightState, Quaternion, Vector3, VehiclePose } from '@gravitas/engine';
-import type { FlightTelemetry } from '@gravitas/ui';
-import { FOOT_CONTACTS, LANDER } from './lander';
+import {
+  bodyToWorld,
+  headingAngle,
+  type FlightState,
+  type Quaternion,
+  type Vector3,
+  type VehiclePose,
+} from '@gravitas/engine';
+import type { FlightTelemetry, RadarVector } from '@gravitas/ui';
+import { ENVIRONMENT, FOOT_CONTACTS, LANDER } from './lander';
 import { PAD_POSITION } from './scenario';
-
-/** Rotates a body-frame vector into the world by a unit body-to-world quaternion. */
-export function bodyToWorld(q: Quaternion, v: Vector3): Vector3 {
-  // v' = v + 2w(u × v) + 2u × (u × v), with u the quaternion's vector part.
-  const tx = 2 * (q.y * v.z - q.z * v.y);
-  const ty = 2 * (q.z * v.x - q.x * v.z);
-  const tz = 2 * (q.x * v.y - q.y * v.x);
-  return {
-    x: v.x + q.w * tx + (q.y * tz - q.z * ty),
-    y: v.y + q.w * ty + (q.z * tx - q.x * tz),
-    z: v.z + q.w * tz + (q.x * ty - q.y * tx),
-  };
-}
 
 /** Height of the lowest foot above the flat surface plane (y = 0), in metres. */
 export function footClearance(pose: VehiclePose): number {
@@ -31,15 +25,37 @@ export function tiltRadians(q: Quaternion): number {
   return Math.acos(Math.max(-1, Math.min(1, 1 - 2 * (q.x * q.x + q.z * q.z))));
 }
 
+/**
+ * Horizontal part of a world vector in the heading frame: x to the vehicle's
+ * right, y forward. The chase camera uses the same heading, so +y is screen-up
+ * and W (pitch forward) leans toward +y.
+ */
+export function headingFrame(q: Quaternion, v: Vector3): RadarVector {
+  const h = headingAngle(q);
+  const cos = Math.cos(h);
+  const sin = Math.sin(h);
+  return { x: v.x * cos - v.z * sin, y: -v.x * sin - v.z * cos };
+}
+
 /** Presentation snapshot for the HUD; never fed back into the simulation. */
 export function flightTelemetry(state: FlightState, throttle: number): FlightTelemetry {
+  const q = state.orientation;
+  const mass = LANDER.dryMass + state.fuelMass;
   return {
     altitude: footClearance(state),
     verticalSpeed: state.velocity.y,
     horizontalSpeed: Math.hypot(state.velocity.x, state.velocity.z),
     padDistance: Math.hypot(state.position.x - PAD_POSITION.x, state.position.z - PAD_POSITION.z),
-    tilt: tiltRadians(state.orientation),
+    tilt: tiltRadians(q),
     fuel: state.fuelMass / LANDER.fuelCapacity,
     throttle,
+    hoverThrottle: (mass * -ENVIRONMENT.gravity.y) / LANDER.maxThrust,
+    lean: headingFrame(q, bodyToWorld(q, { x: 0, y: 1, z: 0 })),
+    drift: headingFrame(q, state.velocity),
+    pad: headingFrame(q, {
+      x: PAD_POSITION.x - state.position.x,
+      y: 0,
+      z: PAD_POSITION.z - state.position.z,
+    }),
   };
 }

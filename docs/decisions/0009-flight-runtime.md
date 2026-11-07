@@ -1,6 +1,7 @@
 # 0009. Fixed-step flight runtime, input, and interpolation ownership
 
-- Status: Implemented in 1.2.
+- Status: Implemented in 1.2. The follow camera and `cameraOffset` are replaced by
+  the chase camera in [ADR 0010](0010-chase-camera-and-instruments.md).
 - Date: 2026-11-06
 
 ## Decision

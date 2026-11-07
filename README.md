@@ -58,6 +58,8 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 
 ## Read next
 
+- [Player manual](manual/index.md) ([English](manual/en/index.md)): how to fly, read
+  the instruments, and land.
 - [Game direction](docs/GAME.md): intended experience and first playable scope.
 - [Architecture](docs/ARCHITECTURE.md): boundaries, ownership, time, and units.
 - [Flight model](docs/FLIGHT.md): dynamics, controls, first lander, and worked examples.
@@ -71,8 +73,8 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 - [UI/localization](packages/ui/README.md): flight HUD, help, and live language switching.
 
 The generated package references deploy alongside the game at `/gravitas/docs/`
-from the same main artifact. The separate bilingual player
-manual is planned for M2. Names under `@gravitas/*` are internal workspace
+from the same main artifact, beside the bilingual player manual at
+`/gravitas/manual/` (Spanish) and `/gravitas/manual/en/`. Names under `@gravitas/*` are internal workspace
 identifiers; npm publication is deferred.
 
 ## License

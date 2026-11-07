@@ -1,7 +1,7 @@
 # Game direction
 
 **Status:** M1 released (v0.1.0). M2 in progress: physical touchdown (2.1) and
-landing verdicts with explanations (2.2); the player manual (2.3) is next. This
+landing verdicts with explanations (2.2), and the bilingual player manual (2.3). This
 document distinguishes shipped behavior from future direction.
 
 ## Current build: first descent
@@ -31,7 +31,8 @@ The ground is physical. Legs compress like shock absorbers, so a gentle
 touchdown settles onto four feet; a hard one bottoms the legs out or strikes the
 structure; a sideways or tilted one can slide or tip. A "How to fly" card shows
 the essential keys and the goal before the start. Every flight ends with a
-verdict and a results card explaining it (see Landing rules). Try again (or
+verdict and a results card explaining it (see Landing rules). Help links to the
+player manual in the current language. Try again (or
 Enter) restarts. Desktop keyboard only; narrow layouts stay readable but have no
 touch controls.
 

@@ -70,4 +70,5 @@ export const templates = {
   'flight-time': 'Flight time',
   'rules-help':
     'A clean landing touches down at 2 m/s or less downward, 1 m/s or less sideways, and under 10° of tilt, then stays still on all four legs for a second. If the structure touches the ground, a leg hits faster than 5 m/s, or the lander tips over, it is a crash.',
+  'open-manual': 'Open the manual (new tab)',
 };

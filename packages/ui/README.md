@@ -55,6 +55,12 @@ uses its own scale; directions matter more than lengths. The host supplies the
 vectors in the same heading frame as its camera. The disc has a static
 accessible name, and tilt, horizontal speed, and pad distance are also readouts.
 
+## Manual link
+
+Set `hud.manualHref` to the player manual for the current locale; Help then shows
+an "Open the manual" link in a new tab so the flight is not lost. Leave it empty
+to hide the link.
+
 ## Start card and results
 
 In `ready`, a "How to fly" card lists the essential keys and the goal. Set

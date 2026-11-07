@@ -1,0 +1,26 @@
+# Welcome to Gravitas
+
+Gravitas is a game about understanding and controlling motion in space. Your first
+mission: set a lunar lander down on a pad, gently and upright.
+
+## In one minute
+
+1. Open the game and read the **How to fly** card.
+2. Press **P** (or **Start**). The lander begins 80 m up, falling and drifting
+   toward the pad, which is ahead and below.
+3. Hold **R** to raise the throttle and slow the fall; **F** lowers it.
+4. Lean with **W/A/S/D** to correct drift: on the radar, lean **against the arrow**.
+5. Touch down slowly, nearly upright, and stay still for a second.
+
+At the end you get a result that explains what happened: speeds at touchdown,
+tilt, distance from the pad, and fuel left. **Enter** or **Try again** starts over.
+
+## In this manual
+
+- [Flying](./flying): every control and how the lander responds.
+- [Instruments](./instruments): what each readout and the radar show.
+- [Landing](./landing): the rules, the results, and tips.
+- [The lander](./lander): the vehicle's numbers, for the curious.
+
+The game runs in English and Spanish (Argentina); you can switch language
+mid-flight without losing anything.

@@ -2,6 +2,39 @@ import { defineConfig } from 'vitepress';
 
 // Player manual, separate from the developer docs. Served under the game at
 // /gravitas/manual/ (Spanish) and /gravitas/manual/en/ (English) from one build.
+const learn = (locale: 'es' | 'en') => {
+  const prefix = locale === 'en' ? '/en' : '';
+  const text =
+    locale === 'en'
+      ? {
+          overview: 'How Gravitas works',
+          motion: 'Motion and gravity',
+          rockets: 'Rockets and leaning',
+          rotation: 'Rotation and the assist',
+          integration: 'Stepping time',
+          contact: 'Legs and the ground',
+          orbits: 'Next: orbits',
+        }
+      : {
+          overview: 'Cómo funciona Gravitas',
+          motion: 'Movimiento y gravedad',
+          rockets: 'Cohetes e inclinación',
+          rotation: 'Rotación y asistencia',
+          integration: 'Avanzar en el tiempo',
+          contact: 'Patas y suelo',
+          orbits: 'Lo que viene: órbitas',
+        };
+  return [
+    { text: text.overview, link: `${prefix}/learn/` },
+    { text: text.motion, link: `${prefix}/learn/motion` },
+    { text: text.rockets, link: `${prefix}/learn/rockets` },
+    { text: text.rotation, link: `${prefix}/learn/rotation` },
+    { text: text.integration, link: `${prefix}/learn/integration` },
+    { text: text.contact, link: `${prefix}/learn/contact` },
+    { text: text.orbits, link: `${prefix}/learn/orbits` },
+  ];
+};
+
 const pages = (locale: 'es' | 'en') => {
   const prefix = locale === 'en' ? '/en' : '';
   const text =
@@ -34,6 +67,8 @@ export default defineConfig({
   outDir: '../apps/game/dist/manual',
   cleanUrls: false,
   appearance: 'dark',
+  // Equations render to SVG at build time (MathJax); no runtime math JavaScript.
+  markdown: { math: true },
   lastUpdated: false,
   head: [['link', { rel: 'icon', href: 'data:,' }]],
   locales: {
@@ -44,7 +79,10 @@ export default defineConfig({
       description: 'Cómo volar y aterrizar en Gravitas.',
       themeConfig: {
         nav: [{ text: 'Jugar', link: '/../', target: '_self' }],
-        sidebar: [{ text: 'Manual', items: pages('es') }],
+        sidebar: [
+          { text: 'Manual', items: pages('es') },
+          { text: 'Aprender', items: learn('es') },
+        ],
         outline: { label: 'En esta página' },
         docFooter: { prev: 'Anterior', next: 'Siguiente' },
         darkModeSwitchLabel: 'Apariencia',
@@ -62,7 +100,10 @@ export default defineConfig({
       description: 'How to fly and land in Gravitas.',
       themeConfig: {
         nav: [{ text: 'Play', link: '/../?lang=en', target: '_self' }],
-        sidebar: [{ text: 'Manual', items: pages('en') }],
+        sidebar: [
+          { text: 'Manual', items: pages('en') },
+          { text: 'Learn', items: learn('en') },
+        ],
         outline: { label: 'On this page' },
       },
     },

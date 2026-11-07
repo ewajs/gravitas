@@ -134,9 +134,16 @@ playtest come first:
       tests, overlay only behind `?debug`, measured results and proposed budgets.
       Local checks passed on 2026-11-07; see
       [performance measurements](verification/performance.md).
-- [ ] **3.4 Learn (stretch):** a Learn section in the manual explaining how
-      Gravitas works and its math, with rendered equations, plots, and interactive
-      explorers, built to grow into spaceflight and orbital mechanics.
+- [x] **3.4 Learn:** a bilingual Learn section in the manual: how a simulation step
+      works, motion and gravity, rockets and leaning, rotation and the assist,
+      numerical integration, landing legs, and an orbits preview (Newton's cannon on
+      the Moon). Build-time MathJax equations; six explorers running the real engine
+      beside closed-form formulas; an accessible plot component. **Verify:**
+      model unit tests against independent references, browser checks of
+      equations, explorers, tooltip, and table in both languages, hydration
+      without warnings. Local checks passed on 2026-11-07; see
+      [ADR 0013](decisions/0013-learn-section.md) and
+      [Learn verification](verification/learn.md).
 
 ## Later decisions
 

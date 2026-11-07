@@ -22,5 +22,9 @@ tilt, distance from the pad, and fuel left. **Enter** or **Try again** starts ov
 - [Landing](./landing): the rules, the results, and tips.
 - [The lander](./lander): the vehicle's numbers, for the curious.
 
+Curious how it works inside? The [Learn](./learn/) section explains the physics and
+math of the simulation, with equations and interactive explorers that run the same
+engine as the game.
+
 The game runs in English and Spanish (Argentina); you can switch language
 mid-flight without losing anything.

@@ -8,6 +8,9 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "manual/.vitepress/config.ts",
-    "playwright.measure.config.ts"
+    "playwright.measure.config.ts",
+    "manual/.vitepress/learn/**/*.ts",
+    "manual/.vitepress/theme/**/*.ts",
+    "manual/.vitepress/shims.d.ts"
   ]
 }

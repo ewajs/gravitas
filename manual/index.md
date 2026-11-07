@@ -24,5 +24,9 @@ inclinación, distancia a la plataforma y combustible restante. **Enter** o
 - [Aterrizar](./landing): las reglas, los resultados y consejos.
 - [El módulo](./lander): los números del vehículo, para quien quiera más.
 
+¿Querés entender cómo funciona por dentro? La sección [Aprender](./learn/) explica
+la física y la matemática de la simulación, con ecuaciones y exploradores
+interactivos que usan el mismo motor que el juego.
+
 El juego funciona en español (Argentina) e inglés; podés cambiar el idioma en
 pleno vuelo sin perder nada.

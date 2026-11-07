@@ -59,7 +59,8 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 ## Read next
 
 - [Player manual](manual/index.md) ([English](manual/en/index.md)): how to fly, read
-  the instruments, and land.
+  the instruments, and land, plus a [Learn](manual/learn/index.md) section on the
+  physics and math, with interactive explorers.
 - [Game direction](docs/GAME.md): intended experience and first playable scope.
 - [Architecture](docs/ARCHITECTURE.md): boundaries, ownership, time, and units.
 - [Flight model](docs/FLIGHT.md): dynamics, controls, first lander, and worked examples.

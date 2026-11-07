@@ -18,3 +18,4 @@ does not imply implemented code.
 | [0010](0010-chase-camera-and-instruments.md) | Heading-following chase camera and landing radar               | Implemented; accepted with M1       |
 | [0011](0011-contact-model.md)                | Own penalty contact behind a surface seam; no Rapier yet       | Implemented                         |
 | [0012](0012-landing-outcomes.md)             | Touchdown judging as a pure reducer with game-owned limits     | Implemented                         |
+| [0013](0013-learn-section.md)                | A Learn section that runs the real engine                      | Implemented; content awaits review  |

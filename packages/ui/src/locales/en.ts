@@ -108,6 +108,11 @@ export const templates = {
   'touch-stick': 'Tilt stick: drag with your thumb',
   'rotate-title': 'Turn your phone sideways',
   'rotate-body': 'Gravitas flies in landscape. The flight stays paused until you resume it.',
+  menu: 'Menu',
+  'turn-hint': 'Turn your phone sideways to fly: landscape fits both thumbs.',
+  'horizontal-speed-short': 'H',
+  'tilt-short': 'Tilt',
+  'fuel-short': 'Fuel',
   'reduce-transparency-note':
     'Solid panels without blur. It is on anyway when your system asks for less transparency.',
 };

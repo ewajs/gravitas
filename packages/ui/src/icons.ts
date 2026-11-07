@@ -40,6 +40,11 @@ export const icons = {
       size,
     ),
   close: () => icon(svg`<path d="M6 6l12 12M18 6L6 18"></path>`),
+  /** Three dots (⋯), for the phone menu. */
+  more: () =>
+    icon(
+      svg`<circle cx="5" cy="12" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="19" cy="12" r="1.2"></circle>`,
+    ),
   check: (size = 18) => icon(svg`<path d="M5 12.5l4.5 4.5L19 7.5"></path>`, size),
   cross: (size = 16) => icon(svg`<path d="M6 6l12 12M18 6L6 18"></path>`, size),
   caution: (size = 18) =>

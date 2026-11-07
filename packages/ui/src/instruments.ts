@@ -18,9 +18,11 @@ const SINK_SCALE = 10;
  */
 export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult {
   const { decimal, signed, whole, percent } = numberFormats(locale);
-  const item = (id: string, label: string, value: string, unit?: string) =>
+  // A short label, when given, replaces the full one on a phone's one-line readouts;
+  // the full label stays for assistive technology.
+  const item = (id: string, label: string, value: string, unit?: string, short?: string) =>
     html`<div>
-      <dt>${label}</dt>
+      <dt>${short ? labelPair(label, short) : label}</dt>
       <dd data-testid=${id}>
         ${value}${unit ? html`<span class="unit"> ${unit}</span>` : nothing}
       </dd>
@@ -57,9 +59,22 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
           msg('Vel. horizontal', { id: 'horizontal-speed' }),
           decimal.format(t.horizontalSpeed),
           'm/s',
+          msg('H', { id: 'horizontal-speed-short' }),
         )}
-        ${item('tilt', msg('Inclinación', { id: 'tilt' }), `${whole.format(toDegrees(t.tilt))}°`)}
-        ${item('fuel', msg('Combustible', { id: 'fuel' }), percent.format(t.fuel))}
+        ${item(
+          'tilt',
+          msg('Inclinación', { id: 'tilt' }),
+          `${whole.format(toDegrees(t.tilt))}°`,
+          undefined,
+          msg('Incl', { id: 'tilt-short' }),
+        )}
+        ${item(
+          'fuel',
+          msg('Combustible', { id: 'fuel' }),
+          percent.format(t.fuel),
+          undefined,
+          msg('Comb', { id: 'fuel-short' }),
+        )}
       </dl>
       <span class="bar fuel" aria-hidden="true" style=${styleMap({ '--level': level(t.fuel) })}>
         <span class="fill"></span>
@@ -98,6 +113,12 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
         <span class="gauge-value" data-testid="throttle">${percent.format(t.throttle)}</span>
       </div>
     </div>`;
+}
+
+// Full and short label: styles show one (the full one stays for assistive technology).
+function labelPair(label: string, short: string) {
+  return html`<span class="long">${label}</span
+    ><span class="short" aria-hidden="true">${short}</span>`;
 }
 
 // The sign in its own span (same text), so it can be set without tabular spacing.

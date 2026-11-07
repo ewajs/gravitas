@@ -304,6 +304,73 @@ export class TouchControls extends LitElement {
         block-size: 22px;
       }
 
+      /* Phones on their side ("corner chips", with the HUD's touch layout): the
+         yaw buttons stand in a column left of the HUD's radar card, under its
+         top-right buttons; the zones start below the HUD's corner cards; a slim
+         lever on the left edge. The HUD places those cards 10 px from the edges:
+         readouts top left (about 90 px tall), two 40 px buttons top right, and an
+         86 px radar card 48 px below them (about 100 px tall). */
+      @media (max-height: 500px) and (orientation: landscape) {
+        .zone.left {
+          top: calc(env(safe-area-inset-top) + 104px);
+        }
+        .zone.right {
+          top: calc(env(safe-area-inset-top) + 172px);
+        }
+        .lever {
+          top: 0;
+          left: calc(env(safe-area-inset-left) + 10px);
+          bottom: max(10px, env(safe-area-inset-bottom));
+          width: 44px;
+        }
+        .lever-value {
+          min-inline-size: 0;
+          padding: 1px 7px;
+          font-size: 12px;
+        }
+        .track {
+          inline-size: 10px;
+          border-radius: 5px;
+        }
+        .fill {
+          inset: auto 2px 2px;
+          block-size: calc(var(--level) * (100% - 4px));
+          border-radius: 3px;
+        }
+        .detent {
+          left: -11px;
+          right: -11px;
+          bottom: calc(2px + var(--hover) * (100% - 4px));
+        }
+        .grip {
+          bottom: calc(2px + var(--level) * (100% - 4px));
+          inline-size: 40px;
+          margin-left: -20px;
+        }
+        .yaw {
+          top: calc(env(safe-area-inset-top) + 58px);
+          right: calc(env(safe-area-inset-right) + 104px);
+          flex-direction: column;
+          gap: 8px;
+        }
+        .yaw button {
+          inline-size: 40px;
+          min-block-size: 40px;
+          block-size: 40px;
+        }
+        .yaw svg {
+          inline-size: 18px;
+          block-size: 18px;
+        }
+        .stick-hint {
+          left: auto;
+          top: auto;
+          right: max(36px, calc(env(safe-area-inset-right) + 16px));
+          bottom: max(14px, calc(env(safe-area-inset-bottom) + 4px));
+          margin: 0;
+        }
+      }
+
       @keyframes tick-a {
         50% {
           transform: scaleY(3);

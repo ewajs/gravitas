@@ -181,9 +181,18 @@ pinch zoom and double-tap zoom are blocked.
         identical to the previous build in 144 states, plus the 3D scene, page
         styles, debug overlay, and all 24 manual pages; both browser suites.
         See [theme verification](verification/themes.md).
-  - [ ] **4.2b Glass restyle:** the chosen look: glass panels, icon buttons, the
-        results card, motion rules, fonts, the safe-sink scale, and a "Reduce
-        transparency" setting.
+  - [x] **4.2b Glass restyle:** the chosen look. Frosted glass panels in two
+        instrument groups; inline-SVG icon buttons for pause, restart, sound, and
+        help; the results card centred over a dimmed scene, with verdict badges and
+        fuel and time tiles; motion rules (130 ms controls, 200 ms gauge easing, a
+        280 ms card entrance with staggered rows, one breathing phase dot, all off
+        for reduced motion); self-hosted Space Grotesk and Inter; the game's
+        safe-sink hint under vertical speed; a persisted "Reduce transparency"
+        setting that, like the system preference, gives solid panels; the pad ring
+        in the accent. **Verify:** contrast over the page and over sunlit regolith;
+        settings saved before 4.2b still load; browser tests for the setting, the
+        system preference, the safe-sink scale, and motion; both browser suites;
+        screenshots of every state in both languages at four sizes.
   - [ ] **4.2c Identity:** the mark and wordmark, favicons, app and social images,
         and the manual branded from the theme.
 - [ ] **4.3 Input layer, touch, and gamepad:** one input abstraction. On touch, a

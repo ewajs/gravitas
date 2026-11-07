@@ -7,12 +7,15 @@ export interface Settings {
   readonly muted: boolean;
   /** The "How to fly" card has been read: hide it on later visits. */
   readonly controlsSeen: boolean;
+  /** Solid panels without blur, even when the system does not ask for it. */
+  readonly reduceTransparency: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   locale: undefined,
   muted: false,
   controlsSeen: false,
+  reduceTransparency: false,
 };
 
 const KEY = 'gravitas.settings.v1';
@@ -33,6 +36,8 @@ export function loadSettings(storage: Pick<Storage, 'getItem'> | undefined): Set
       locale: record.locale === 'es-AR' || record.locale === 'en' ? record.locale : undefined,
       muted: record.muted === true,
       controlsSeen: record.controlsSeen === true,
+      // Added in 4.2b; settings saved before it lack the field and read as false.
+      reduceTransparency: record.reduceTransparency === true,
     };
   } catch {
     return DEFAULT_SETTINGS;

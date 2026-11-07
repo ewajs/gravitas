@@ -1,6 +1,7 @@
 # 0014. Typed themes that generate CSS variables and scene accents
 
-- Status: Implemented in 4.2a (current colours, no visible change); restyled in 4.2b.
+- Status: Implemented in 4.2a (current colours, no visible change); the Glass values,
+  added roles, and fonts arrived in 4.2b ([ADR 0015](0015-glass-look-and-typefaces.md)).
 - Date: 2026-11-07
 
 ## Decision

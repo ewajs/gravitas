@@ -55,3 +55,61 @@ served side by side and captured by a throwaway Playwright script (not committed
   checked.
 - WebGPU scene pixels were compared only through the browser suites' assertions;
   the pixel comparison used forced WebGL 2.
+
+## 4.2b Glass restyle
+
+Verified locally on 2026-11-07 on the same machine, Node, and Playwright. This step
+changes the look on purpose, so verification checks behaviour, accessibility, and
+contrast, and the screenshots were reviewed by eye.
+
+### Results
+
+- `npm run check`: 132 unit tests in 23 files passed (128 before: a contrast case
+  for focus rings over the scene, settings saved before 4.2b, and two safe-sink
+  rule tests; the contrast cases now also composite panels over sunlit regolith).
+- `npm run build`: game, TypeDoc, and manual built.
+- `npm run test:e2e`: 32 passed on forced WebGL 2 (30 before, plus two new tests).
+  `npm run test:e2e:webgpu`: 27 passed on hardware WebGPU; the 5 static manual and
+  Learn tests run only on WebGL 2.
+- Browser test changes, each because the design changed:
+  - The crash report reads fuel left from its labelled tile (`fuel-left`), since
+    fuel and flight time are now tiles rather than one sentence.
+  - New: Reduce transparency gives solid panels, persists across visits, and the
+    system's `prefers-reduced-transparency` gives them too.
+  - New: the safe-sink scale is absent without a hint, and present with an
+    accessible name, plus the caution icon, when the host passes one.
+  - New: the phase dot breathes only while flying; gauges ease in 0.2 s; the
+    results card and scrim animate; reduced motion stops all of it.
+  - All other specs pass unchanged, including the accessible names of the icon
+    buttons (Mute, Help, Close), focus order, narrow-screen bounds in both
+    languages, and the unchanged-scene screenshot during a language switch.
+- Simulation: no engine, session, scenario, or lander file changed. `rules.ts`
+  only adds `safeSinkRate`, and telemetry only adds `safeSink`; neither feeds back
+  into the simulation.
+
+### Contrast
+
+Measured (WCAG 2) with the panel composited over sunlit regolith, the median of
+the rendered ground (`#666661`), which is the brightest wide area behind the panels:
+text 10.3:1, muted 5.3:1, accent 5.7:1, good 7.2:1, warn 7.6:1, bad 4.6:1. Over
+the page surface every ratio is higher. The plain accent is only 2.8:1 against bare
+ground, so focus rings use a lighter cyan, `#82D5E9` (3.5:1). Accent ink on the
+accent is 9.2:1, and 11.4:1 on its hover step. The owner's panel alpha of 0.55
+passes, so it is unchanged.
+
+### Screenshots reviewed
+
+The HUD over the live WebGL 2 scene in 13 states (ready with the start card,
+flying within and beyond the safe sink, paused, each of the four verdicts, Help,
+Reduce transparency while flying and in Help, the system preference, loading) ×
+Spanish and English × 1280 × 720, 1000 × 750, 375 × 667, and 800 × 420; plus a
+real flight (ready, flying with the plume, paused, crash report) on WebGL 2 and on
+WebGPU. Checked for collisions, overflow, clipping, and legibility. The landscape
+phone size (800 × 420) still overlaps the start card and the instruments, as it
+did before; 4.4 owns that layout. The results card scrolls inside itself there.
+
+### Not covered
+
+- No playtest on the target phones; backdrop blur's frame cost on them is 4.4's
+  measurement.
+- Font rendering was checked in Chromium on macOS only.

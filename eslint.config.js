@@ -102,6 +102,13 @@ export default [
               allow: { to: { module: { origin: 'external', source: 'three' } } },
             },
             {
+              // Self-hosted typefaces (stylesheets and font files only).
+              from: { element: { type: 'game' } },
+              allow: {
+                to: { module: { origin: 'external', source: '@fontsource-variable/*' } },
+              },
+            },
+            {
               from: { element: { type: 'ui' } },
               allow: { to: { module: { origin: 'external', source: ['lit', '@lit/localize'] } } },
             },

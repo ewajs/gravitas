@@ -1,10 +1,11 @@
 import { html, nothing, type TemplateResult } from 'lit';
 import { msg } from '@lit/localize';
+import { icons } from './icons';
 
 /** "How to fly", shown before the first start: the essential keys and the goal. */
 export function quickCard(): TemplateResult {
   const row = (keys: string, action: string) =>
-    html`<dt><kbd>${keys}</kbd></dt>
+    html`<dt>${keys.split(' ').map((key) => html`<kbd>${key}</kbd> `)}</dt>
       <dd>${action}</dd>`;
   return html`<aside class="card quick" aria-labelledby="quick-title">
     <h2 id="quick-title">${msg('Cómo volar', { id: 'quick-title' })}</h2>
@@ -20,8 +21,16 @@ export function quickCard(): TemplateResult {
   </aside>`;
 }
 
-/** The control reference in a native modal dialog, with the landing rules and flight notes. */
-export function helpDialog(manualHref: string, onClose: () => void): TemplateResult {
+/**
+ * The control reference in a native modal dialog, with the landing rules, flight
+ * notes, and the display setting.
+ */
+export function helpDialog(
+  manualHref: string,
+  reduceTransparency: boolean,
+  onClose: () => void,
+  onReduceTransparency: (reduce: boolean) => void,
+): TemplateResult {
   const key = (label: string, keys: string) =>
     html`<div>
       <dt>${label}</dt>
@@ -30,7 +39,15 @@ export function helpDialog(manualHref: string, onClose: () => void): TemplateRes
   return html`<dialog aria-labelledby="help-title">
     <div class="dialog-heading">
       <h2 id="help-title">${msg('Controles de vuelo', { id: 'help-title' })}</h2>
-      <button @click=${onClose} autofocus>${msg('Cerrar', { id: 'close' })}</button>
+      <button
+        class="icon"
+        @click=${onClose}
+        autofocus
+        aria-label=${msg('Cerrar', { id: 'close' })}
+        title=${msg('Cerrar', { id: 'close' })}
+      >
+        ${icons.close()}
+      </button>
     </div>
     <dl class="help-list">
       ${key(msg('Cabeceo: adelante / atrás', { id: 'help-pitch' }), 'W / S')}
@@ -64,7 +81,26 @@ export function helpDialog(manualHref: string, onClose: () => void): TemplateRes
       ${msg('El radar mira hacia donde apunta el módulo: arriba es adelante (W). El punto muestra hacia dónde se inclina el empuje; la flecha, tu deriva horizontal; el rombo, la plataforma (hueco a más de 60 m). Para frenar la deriva, inclinate en contra de la flecha. La marca en la barra de empuje indica cuánto hace falta para flotar.', { id: 'radar-help' })}
     </p>
     <p class="about">
+      ${msg('La escala bajo la velocidad vertical sombrea cuán rápido conviene bajar a tu altitud. Es una guía: los límites de aterrizaje no cambian.', { id: 'sink-help' })}
+    </p>
+    <p class="about">
       ${msg('Las teclas de rotación piden una velocidad de giro. Al soltarlas, el control de actitud frena el giro, pero no endereza el módulo. Girar consume combustible del mismo tanque que el motor. La altitud se mide desde la pata más baja.', { id: 'flight-help' })}
     </p>
+    <section class="display" aria-labelledby="display-title">
+      <h3 id="display-title">${msg('Pantalla', { id: 'display-title' })}</h3>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          .checked=${reduceTransparency}
+          aria-describedby="transparency-note"
+          @change=${(event: Event) =>
+            onReduceTransparency((event.currentTarget as HTMLInputElement).checked)}
+        />
+        ${msg('Reducir transparencia', { id: 'reduce-transparency' })}
+      </label>
+      <p id="transparency-note" class="note">
+        ${msg('Paneles sólidos, sin desenfoque. Se activa igual si tu sistema pide menos transparencia.', { id: 'reduce-transparency-note' })}
+      </p>
+    </section>
   </dialog>`;
 }

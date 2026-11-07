@@ -18,5 +18,16 @@ export const LANDING_LIMITS: TouchdownLimits = {
   airborneReset: 1,
 };
 
+/**
+ * The HUD's "safe sink" hint, in m/s: sink no faster than an eighth of the
+ * altitude per second, and never faster than the touchdown limit near the ground.
+ * At full thrust the lander stops from this speed within about a third of the
+ * remaining height (from 80 m: 10 m/s, stopped in about 26 m), leaving room to
+ * react and to spare fuel. A hint only: landing limits are unchanged.
+ */
+export function safeSinkRate(altitude: number): number {
+  return Math.max(LANDING_LIMITS.maxVerticalSpeed, altitude / 8);
+}
+
 /** A landing counts as on the pad when the centre of mass is over the pad's surface. */
 export const PAD_RADIUS = 3.8;

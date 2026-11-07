@@ -11,7 +11,9 @@ export interface ThemeColors {
   readonly surface: string;
   /** Panel fill; may be translucent over the scene. */
   readonly panel: string;
-  /** Opaque panel fill for surfaces that cover the scene, such as dialogs. */
+  /** Denser panel fill for cards and dialogs that hold reading, such as results. */
+  readonly panelStrong: string;
+  /** Opaque panel fill: the fallback when transparency is reduced. */
   readonly panelSolid: string;
   /** Panel borders and hairlines. */
   readonly line: string;
@@ -23,6 +25,8 @@ export interface ThemeColors {
   readonly accent: string;
   /** Text and icons drawn on an `accent` fill. */
   readonly accentInk: string;
+  /** Accent fill under the pointer: a lighter step of `accent`. */
+  readonly accentHover: string;
   /** Keyboard focus rings and secondary marks. */
   readonly focus: string;
   /** Success: passed checks, a clean landing. */
@@ -31,8 +35,10 @@ export interface ThemeColors {
   readonly warn: string;
   /** Failure: missed checks, a crash. */
   readonly bad: string;
-  /** Recessed instrument backgrounds, such as the radar face and gauge tracks. */
+  /** Recessed instrument backgrounds, such as the radar face. */
   readonly well: string;
+  /** Unfilled part of gauges and scales. */
+  readonly track: string;
   /** Dims the page behind a modal dialog. */
   readonly backdrop: string;
 }
@@ -57,39 +63,62 @@ export interface Theme {
   /** Whether the theme is drawn light-on-dark or dark-on-light. */
   readonly colorScheme: 'dark' | 'light';
   readonly colors: ThemeColors;
-  /** CSS `font-family` lists. */
+  /**
+   * CSS `font-family` lists. The host loads any web fonts named here (the HUD lives
+   * in a shadow root, where `@font-face` rules do not apply).
+   */
   readonly fonts: {
-    /** Body text and numbers. */
+    /** Body text and numbers; should have tabular numerals. */
     readonly body: string;
+    /** Labels, headings, and the wordmark. */
+    readonly display: string;
   };
-  /** Panel corner radius, in CSS pixels. */
+  /** Panel corner radius, in CSS pixels; controls and cards derive theirs from it. */
   readonly radius: number;
+  /**
+   * CSS `backdrop-filter` behind translucent panels, or `none`. Dropped, with
+   * `panelSolid` fills, when transparency is reduced.
+   */
+  readonly panelFilter: string;
   readonly scene: SceneAccents;
 }
 
-/** The Gravitas house theme. */
+/**
+ * The Gravitas house theme, "Glass": frosted translucent panels, a deep cyan
+ * accent, Space Grotesk labels, and Inter numbers.
+ */
 export const gravitasTheme: Theme = {
   id: 'gravitas',
   colorScheme: 'dark',
   colors: {
-    surface: '#10141e',
-    panel: '#111923f2',
-    panelSolid: '#111923',
-    line: '#3c4857',
-    text: '#edf1f5',
-    muted: '#b3bfcb',
-    accent: '#efd0a1',
-    accentInk: '#10141e',
-    focus: '#bfe5ff',
-    good: '#9fe0a8',
-    warn: '#ffd27a',
-    bad: '#ffa08f',
-    well: '#0b1219',
-    backdrop: '#020609b3',
+    surface: '#04060b',
+    panel: '#0c14208c', // rgba(12, 20, 32, 0.55)
+    // Cards over a scrim: results, help, and the start card.
+    panelStrong: '#0c1420bd',
+    panelSolid: '#0c1420',
+    line: '#96d7ff24',
+    text: '#eaf2fa',
+    muted: '#9fb1c4',
+    accent: '#4cc3e0',
+    accentInk: '#04121a',
+    accentHover: '#7dd5ea',
+    // Lighter than the accent: rings float over the scene, and the accent reaches
+    // only 2.8:1 against sunlit ground.
+    focus: '#82d5e9',
+    good: '#5ee3a1',
+    warn: '#ffc857',
+    bad: '#ff7a6b',
+    well: '#040a1273',
+    track: '#96d7ff1a',
+    backdrop: '#02050980',
   },
-  fonts: { body: 'system-ui, sans-serif' },
-  radius: 10,
-  scene: { sky: '#080c14', pad: '#e5e7e5', marker: '#9fd4ff' },
+  fonts: {
+    body: "'Inter Variable', Inter, system-ui, sans-serif",
+    display: "'Space Grotesk Variable', 'Space Grotesk', system-ui, sans-serif",
+  },
+  radius: 18,
+  panelFilter: 'blur(16px) saturate(140%)',
+  scene: { sky: '#04060b', pad: '#4cc3e0', marker: '#eaf2fa' },
 };
 
 /** Every available theme, by id. One for now; more join this list. */
@@ -107,12 +136,17 @@ const PROPERTIES: readonly (readonly [string, (theme: Theme) => string])[] = [
   ['--gravitas-bad', (t) => t.colors.bad],
   ['--gravitas-radius', (t) => `${t.radius}px`],
   ['--gravitas-surface', (t) => t.colors.surface],
+  ['--gravitas-panel-strong', (t) => t.colors.panelStrong],
   ['--gravitas-panel-solid', (t) => t.colors.panelSolid],
   ['--gravitas-accent-ink', (t) => t.colors.accentInk],
+  ['--gravitas-accent-hover', (t) => t.colors.accentHover],
   ['--gravitas-warn', (t) => t.colors.warn],
   ['--gravitas-well', (t) => t.colors.well],
+  ['--gravitas-track', (t) => t.colors.track],
   ['--gravitas-backdrop', (t) => t.colors.backdrop],
   ['--gravitas-font-body', (t) => t.fonts.body],
+  ['--gravitas-font-display', (t) => t.fonts.display],
+  ['--gravitas-panel-filter', (t) => t.panelFilter],
 ];
 
 /** The theme as CSS custom properties (`--gravitas-text` and so on), in a stable order. */

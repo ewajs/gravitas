@@ -4,6 +4,7 @@ import {
   registerUi,
   setLocale,
   viewportMessages,
+  type AppearanceRequest,
   type FlightRequest,
   type Locale,
   type LocaleRequest,
@@ -19,6 +20,10 @@ import { ENVIRONMENT, FIRST_DESCENT } from './scenario';
 import { FlightSession, isVerdict, type SessionPhase } from './session';
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
 import { flightTelemetry } from './telemetry';
+// The theme's typefaces, self-hosted (OFL). Declared on the page: @font-face rules
+// do not apply inside the HUD's shadow root, but the faces they define do.
+import '@fontsource-variable/inter/wght.css';
+import '@fontsource-variable/space-grotesk/wght.css';
 import './style.css';
 
 /** Instruments refresh at 10 Hz; phase changes publish immediately. */
@@ -51,6 +56,7 @@ const diagnostics = parameters.has('debug')
 hud.heading = 'Gravitas';
 hud.muted = settings.muted;
 hud.showControls = !settings.controlsSeen;
+hud.reduceTransparency = settings.reduceTransparency;
 publish();
 
 // Settings change rarely and are saved only then, never per frame.
@@ -200,6 +206,13 @@ function keyCommand(command: KeyCommand): void {
   else flightAction(command === 'toggle-pause' ? 'toggle' : 'restart');
 }
 
+function appearanceRequested(event: Event): void {
+  const reduce = (event as CustomEvent<AppearanceRequest>).detail?.reduceTransparency;
+  if (typeof reduce !== 'boolean') return;
+  hud.reduceTransparency = reduce;
+  updateSettings({ reduceTransparency: reduce });
+}
+
 function soundRequested(event: Event): void {
   const muted = (event as CustomEvent<SoundRequest>).detail?.muted;
   if (typeof muted === 'boolean') setMuted(muted);
@@ -242,6 +255,7 @@ function destroy(): void {
   hud.removeEventListener('locale-request', localeRequested);
   hud.removeEventListener('flight-request', flightRequested);
   hud.removeEventListener('sound-request', soundRequested);
+  hud.removeEventListener('appearance-request', appearanceRequested);
   window.removeEventListener('blur', windowBlurred);
   window.removeEventListener('pagehide', pageHidden);
 }
@@ -303,6 +317,7 @@ function localeRequested(event: Event): void {
 hud.addEventListener('locale-request', localeRequested);
 hud.addEventListener('flight-request', flightRequested);
 hud.addEventListener('sound-request', soundRequested);
+hud.addEventListener('appearance-request', appearanceRequested);
 // Capture phase: unlock before any handler, including the first flight key.
 window.addEventListener('keydown', unlockAudio, true);
 window.addEventListener('pointerdown', unlockAudio, true);

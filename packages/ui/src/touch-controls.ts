@@ -158,9 +158,11 @@ export class TouchControls extends LitElement {
         left: -14px;
         right: -14px;
         bottom: calc(3px + var(--hover) * (100% - 6px));
-        block-size: 2px;
-        margin-bottom: -1px;
-        border-radius: 1px;
+        block-size: 3px;
+        margin-bottom: -1.5px;
+        border-radius: 1.5px;
+        /* A dark rim keeps the notch readable over bright ground and the fill. */
+        box-shadow: 0 0 0 1px var(--gravitas-panel-solid);
         background: var(--gravitas-text);
         transition:
           bottom 200ms var(--ease),

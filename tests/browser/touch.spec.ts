@@ -27,13 +27,13 @@ for (const [name, size] of Object.entries(PHONES)) {
       await fingers.down(1, lever.x, lever.y);
       await page.waitForTimeout(200);
       expect(await reading(page, 'throttle')).toBe(0);
-      // Slide up 60% of the track: relative to where it was grabbed, above hover.
+      // Slide up 85% of the track, relative to the grab: enough to climb while leaning.
       const track = (await page
         .locator('gravitas-touch-controls')
         .locator('.track')
         .boundingBox())!;
-      await fingers.move(1, lever.x, lever.y - track.height * 0.6);
-      await expect.poll(() => reading(page, 'throttle')).toBeGreaterThanOrEqual(55);
+      await fingers.move(1, lever.x, lever.y - track.height * 0.85);
+      await expect.poll(() => reading(page, 'throttle')).toBeGreaterThanOrEqual(80);
 
       // Second finger, upright: a left yaw swings the heading-up radar's pad right.
       const yaw = await centre(page, 'touch-yaw-left');
@@ -65,7 +65,7 @@ for (const [name, size] of Object.entries(PHONES)) {
       await page.waitForTimeout(300);
       await expect(page.locator('#phase')).toBeEmpty(); // Still flying.
       expect(await reading(page, 'throttle')).toBe(held);
-      expect(held).toBeGreaterThanOrEqual(55);
+      expect(held).toBeGreaterThanOrEqual(80);
     });
 
     test('the lever snaps to the hover detent', async ({ page }, info) => {

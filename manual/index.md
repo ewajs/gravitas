@@ -17,6 +17,17 @@ Al final vas a ver un resultado que explica qué pasó: velocidades al tocar,
 inclinación, distancia a la plataforma y combustible restante. **Enter** o
 **Reintentar** empieza de nuevo.
 
+## En el teléfono
+
+Gravitas se vuela con el teléfono **en horizontal**. Los menús, la Ayuda y los
+resultados funcionan en cualquier posición, pero si empezás a volar con el
+teléfono vertical, el juego te pide que lo gires y deja el vuelo en pausa hasta
+que toques **Reanudar**. En horizontal, el pulgar izquierdo maneja el empuje y el
+derecho la inclinación (ver [Volar](./flying#en-una-pantalla-tactil)). Los
+instrumentos se ordenan arriba y el radar entre los pulgares, para que nada
+quede bajo tus dedos. El juego no hace zoom al pellizcar ni al tocar dos veces:
+pellizcar acerca la cámara.
+
 ## Qué vas a encontrar acá
 
 - [Volar](./flying): todos los controles y cómo responde el módulo.

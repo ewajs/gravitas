@@ -56,8 +56,18 @@ structure; a sideways or tilted one can slide or tip. A "How to fly" card shows
 the essential keys and the goal before the start. Every flight ends with a
 verdict and a results card explaining it (see Landing rules). Help links to the
 player manual in the current language. Try again (or
-Enter) restarts. The phone layout (thumb zones kept clear, landscape only) is
-step 4.4.
+Enter) restarts.
+
+On phones, flight is landscape-only. Turning the phone upright during a flight
+shows a "Turn your phone sideways" prompt and pauses; turning back leaves it
+paused until the player resumes. Menus, Help, the start card, and the results
+card work in both orientations. With the touch controls showing, the readouts
+become one strip along the top, the radar sits between the thumbs, the HUD's
+throttle gauge gives way to the lever, and nothing sits in the lower part of
+either side. The page never zooms (pinch or double tap); a pinch on the scene
+zooms the camera. The layout respects the notch and the home indicator. On short
+landscape screens the start card shows without the instruments behind it, and
+the results card has two columns.
 
 ## Landing rules
 
@@ -109,9 +119,10 @@ feedback teach momentum/thrust/descent without exposing developer diagnostics.
 Polish supports legibility: stable camera, restrained motion, clear units,
 responsive controls.
 
-Desktop keyboard-first, with responsive UI. Touch flight controls and a mobile
-performance envelope need later design/device checks; layout alone does not make
-a phone playable. Menus retain ordinary keyboard and pointer interaction.
+Keyboard, gamepad, and touch, with a landscape phone layout (M4). The test phones
+are an iPhone 15 Pro and a Samsung Galaxy A70; their performance envelope is
+measured on device after deployment. Menus retain ordinary keyboard and pointer
+interaction.
 
 ## Later possibilities
 

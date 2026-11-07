@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import type { FlightHud } from '@gravitas/ui';
 import { test, expect } from './test';
 
 async function open(page: Page, project: string, lang = 'en') {
@@ -155,6 +156,8 @@ test('an unpowered descent crashes, the report explains why, and Try again resta
   const report = page.locator('#report');
   await expect(report).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('report-title')).toHaveText('Crash');
+  // The persistent live region announces the verdict (visually hidden: the card shows it).
+  await expect(page.locator('#phase')).toHaveText('Crash');
   await expect(report).toContainText('A leg hit the ground too hard to survive.');
   await expect(page.getByTestId('check-vertical-speed')).toHaveClass(/fail/);
   await expect(page.getByTestId('check-vertical-speed')).toContainText(/16\.\d m\/s/);
@@ -218,4 +221,25 @@ test('landing radar is heading-up: pitch leans ahead and a left yaw swings the p
   await settle(page);
   expect((await point('radar-pad')).x).toBeGreaterThan(5);
   await page.screenshot({ path: info.outputPath('radar.png') });
+});
+
+test('a failing value never displays as if it met its limit', async ({ page }, info) => {
+  await open(page, info.project.name);
+  await page.locator('gravitas-flight-hud').evaluate((element: FlightHud) => {
+    element.report = {
+      verdict: 'rough',
+      checks: [
+        { id: 'vertical-speed', value: 2.04, limit: 2, pass: false },
+        { id: 'horizontal-speed', value: 0.96, limit: 1, pass: true },
+        { id: 'tilt', value: (10.4 * Math.PI) / 180, limit: (10 * Math.PI) / 180, pass: false },
+      ],
+      fuel: 0.1,
+      flightTime: 30,
+    };
+    element.phase = 'complete';
+  });
+  await expect(page.getByTestId('check-vertical-speed')).toContainText('2.04 m/s');
+  await expect(page.getByTestId('check-horizontal-speed')).toContainText('1.0 m/s');
+  await expect(page.getByTestId('check-tilt')).toContainText('10.4°');
+  await expect(page.getByTestId('check-tilt')).toContainText('Limit: 10°');
 });

@@ -213,7 +213,7 @@ Main deployments publish all three.
    plus the screen size and pixel ratio, orientation, input device, touch
    controls, and whether panels are glass or solid, with no logging and no cost
    without the switch.
-10. On a phone or tablet (`hover: none`, `pointer: coarse`), a flight in portrait
+10. On a phone or tablet (a coarse primary pointer), a flight in portrait
     sets the HUD's `rotatePrompt` and pauses; the HUD only draws the prompt. The
     page blocks its own zoom (viewport meta, `touch-action`, and `zoom.ts` for iOS
     Safari's gesture events and double tap) and draws under the notch

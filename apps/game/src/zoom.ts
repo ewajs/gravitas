@@ -1,8 +1,9 @@
 /** Two taps closer than this (ms) are a double tap, which mobile browsers treat as zoom. */
 const DOUBLE_TAP_MS = 300;
 
-// Where a tap must keep its default: controls that act on tap, and Help's text.
-const INTERACTIVE = 'a, button, input, select, textarea, label, dialog, [role="slider"]';
+// Where a tap must keep its default: controls that act on tap. Help's text is not
+// exempt, so a double tap on it cannot zoom the page either.
+const INTERACTIVE = 'a, button, input, select, textarea, label, [role="slider"]';
 
 /**
  * Keeps phone browsers from zooming the game page. The viewport meta tag

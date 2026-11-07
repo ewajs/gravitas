@@ -124,7 +124,18 @@ for (const [name, size] of Object.entries(PHONES)) {
         const dialog = page.getByRole('dialog');
         inside(await box(dialog), size.width, size.height, 'Help');
         await shot(page, info.outputPath(`help-${lang}.png`));
-        // Help scrolls inside itself to its last setting.
+        // A finger scrolls Help inside itself (the page itself never pans).
+        const help = await box(dialog);
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send('Input.synthesizeScrollGesture', {
+          x: help.x + help.width / 2,
+          y: help.y + help.height * 0.7,
+          yDistance: -250,
+          gestureSourceType: 'touch',
+        });
+        await expect.poll(() => dialog.evaluate((e) => e.scrollTop)).toBeGreaterThan(50);
+        expect(await page.evaluate(() => [scrollX, scrollY])).toEqual([0, 0]);
+        // Down to its last setting.
         const last = dialog.getByRole('combobox', {
           name: t(lang, 'Controles táctiles', 'Touch controls'),
         });
@@ -219,7 +230,7 @@ for (const [name, size] of Object.entries(PHONES)) {
       expect(viewport).toContain('user-scalable=no');
       expect(viewport).toContain('maximum-scale=1');
       expect(viewport).toContain('viewport-fit=cover');
-      expect(await page.locator('main').evaluate((e) => getComputedStyle(e).touchAction)).toBe(
+      expect(await page.locator('#viewport').evaluate((e) => getComputedStyle(e).touchAction)).toBe(
         'none',
       );
       expect(

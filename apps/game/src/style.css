@@ -18,22 +18,23 @@ body {
 body {
   overscroll-behavior: none;
 }
-/* The game surface takes every gesture itself: no page pan or pinch zoom, no
-   text selection or iOS callout on a long press. Help and the results card
-   scroll inside themselves. */
+/* No text selection or iOS callout on a long press anywhere in the game. */
 main {
   position: relative;
   height: 100svh;
   overflow: hidden;
-  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
+/* The scene takes every gesture itself (camera drag and pinch): no page pan or
+   zoom. Only the scene and the touch controls opt out of touch, so Help and the
+   results card keep native scrolling in every browser. */
 #viewport {
   width: 100%;
   height: 100%;
+  touch-action: none;
 }
 canvas:focus-visible {
   outline: 2px solid var(--gravitas-focus);

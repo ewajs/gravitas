@@ -1,7 +1,7 @@
 # Game direction
 
-**Status:** M1 released (v0.1.0). Physical touchdown (M2 step 2.1); landing
-verdicts are next. This
+**Status:** M1 released (v0.1.0). M2 in progress: physical touchdown (2.1) and
+landing verdicts with explanations (2.2); the player manual (2.3) is next. This
 document distinguishes shipped behavior from future direction.
 
 ## Current build: first descent
@@ -28,10 +28,28 @@ numbers. Help/Ayuda lists the controls, explains the radar, and pauses the fligh
 mid-flight without changing the flight (`?lang=en` selects English on load).
 
 The ground is physical. Legs compress like shock absorbers, so a gentle
-touchdown settles onto four feet. A hard one bottoms the legs out and strikes the
-engine bell; a sideways or tilted one can slide or tip the lander over. The legs
-are drawn compressing. There is no landing verdict yet (step 2.2). Desktop
-keyboard only; narrow layouts stay readable but have no touch controls.
+touchdown settles onto four feet; a hard one bottoms the legs out or strikes the
+structure; a sideways or tilted one can slide or tip. A "How to fly" card shows
+the essential keys and the goal before the start. Every flight ends with a
+verdict and a results card explaining it (see Landing rules). Try again (or
+Enter) restarts. Desktop keyboard only; narrow layouts stay readable but have no
+touch controls.
+
+## Landing rules
+
+Defined in `apps/game/src/rules.ts` and judged by engine's touchdown reducer:
+
+| Verdict            | When                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Landed on the pad  | First leg contact at ≤ 2 m/s down, ≤ 1 m/s sideways, ≤ 10° tilt; then still on all legs for 1 s; centre over the pad (≤ 3.8 m) |
+| Landed off the pad | The same, but the centre of mass ends more than 3.8 m from the pad centre: safe, but off target                                |
+| Too rough          | Settled and intact, but the first contact broke a speed or tilt limit                                                          |
+| Crash              | Any hull point touches, a leg strikes faster than 5 m/s, or the lander tilts past 60° on the ground                            |
+
+Speeds and tilt are read just before the first leg touches. Values exactly at a
+limit pass. A touch-and-go that stays clear of the ground for a second starts
+over. The opening carries 60 kg of fuel: a direct approach uses about 24 kg, so
+hovering indefinitely ends in a crash.
 
 ## Purpose
 

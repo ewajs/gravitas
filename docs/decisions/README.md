@@ -17,3 +17,4 @@ does not imply implemented code.
 | [0009](0009-flight-runtime.md)               | Fixed-step flight runtime, input, and interpolation ownership  | Implemented; camera amended by 0010 |
 | [0010](0010-chase-camera-and-instruments.md) | Heading-following chase camera and landing radar               | Implemented; accepted with M1       |
 | [0011](0011-contact-model.md)                | Own penalty contact behind a surface seam; no Rapier yet       | Implemented                         |
+| [0012](0012-landing-outcomes.md)             | Touchdown judging as a pure reducer with game-owned limits     | Implemented                         |

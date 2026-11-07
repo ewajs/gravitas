@@ -23,3 +23,9 @@ export function bodyToWorld(q: Quaternion, v: Vector3): Vector3 {
 export function headingAngle(q: Quaternion): number {
   return 2 * Math.atan2(q.y, q.w);
 }
+
+/** Angle between body +Y and world +Y in radians, independent of heading. */
+export function tiltAngle(q: Quaternion): number {
+  // The world Y component of body +Y is 1 − 2(x² + z²).
+  return Math.acos(Math.max(-1, Math.min(1, 1 - 2 * (q.x * q.x + q.z * q.z))));
+}

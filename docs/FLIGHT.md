@@ -141,14 +141,22 @@ paused until the player resumes.
 
 `apps/game/src/scenario.ts`: upright and facing the pad (yawed −90°, so forward is
 world +X), feet 80 m above the surface, 30 m from the pad along −X, sinking at
-4 m/s and drifting toward the pad at 2 m/s, full tank, throttle 0. Untouched, it reaches the surface after about 7.8 s at about
-−16.6 m/s. A pilot that only trims the throttle to hold a sink rate of one sixth
-of altitude, using the same held-key ramp, touches down at about −0.8 m/s after
-20 s with 94% fuel left. The opening is generous; M3 playtesting tunes it.
+4 m/s and drifting toward the pad at 2 m/s, throttle 0, with **60 kg** of the
+300 kg tank loaded (wet mass 1,260 kg, hover throttle 0.45).
 
-The flight continues through touchdown: the lander settles on its legs, bounces,
-slides, or tips according to the contact model. The game gives no landing verdict
-until step 2.2.
+Scripted pilots (`apps/game/src/pilots.ts`) use only the player's inputs, held
+rate keys and the throttle lever ramp, and fly the opening in regression tests:
+
+| Pilot                                  | Result                    | Fuel used | Time  |
+| -------------------------------------- | ------------------------- | --------- | ----- |
+| None                                   | Crash: legs hit ~16.6 m/s | 0 kg      | 7.8 s |
+| Throttle only, sink at altitude/6      | Rough: 2.0 m/s sideways   | ~17.5 kg  | ~26 s |
+| Steers to the pad, sinks at altitude/8 | Landed at pad centre      | ~23.5 kg  | ~31 s |
+| Hovers without descending              | Runs dry, then crashes    | 60 kg     | ~97 s |
+
+The flight continues through touchdown, and `apps/game/src/rules.ts` judges it.
+See [GAME.md](GAME.md#landing-rules) and
+[ADR 0012](decisions/0012-landing-outcomes.md).
 
 ## First lander
 

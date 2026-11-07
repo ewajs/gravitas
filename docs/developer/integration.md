@@ -5,7 +5,7 @@ title: Application integration
 # From a keypress to a drawn frame
 
 This walkthrough follows `apps/game/src/main.ts`, which connects engine, viewport,
-and UI into a flyable descent with physical touchdown. Landing verdicts arrive in step 2.2.
+and UI into a landing challenge: fly, touch down physically, and get an explained verdict.
 
 ## Ownership
 
@@ -31,11 +31,14 @@ const session = new FlightSession({
   vehicle: LANDER, // lander.ts: masses, thrust, inertia, torque, thrusters, contact points
   attitude: ATTITUDE, // rate-assist tuning
   environment: ENVIRONMENT, // scenario.ts: lunar gravity and flat ground at y = 0
+  limits: LANDING_LIMITS, // rules.ts: what counts as a landing
 });
 ```
 
 It starts in `ready`. `start`, `pause`, `resume`, and `restart` change the phase.
-Only `flying` advances time. Each completed tick keeps the previous state for
+`flying` advances time and judges each tick with engine's touchdown reducer.
+On a final verdict the session enters `complete`: the engine is cut and input is
+ignored while physics continues, so a crash plays out. Each completed tick keeps the previous state for
 interpolation.
 
 ## 2. Attach input and the HUD
@@ -110,6 +113,11 @@ drift, and the pad's offset. The app computes them with engine's `headingAngle`,
 the same heading viewport's chase camera follows, so radar-up is screen-up and W
 always leans toward it.
 
+On a verdict, `landingReport(session)` (`report.ts`) turns the outcome into a
+`LandingReport` for the HUD: verdict, crash cause, each limit with its value, pad
+distance, fuel, and flight time. P does nothing after a verdict; Enter or Try
+again restarts.
+
 Restart is a teleport. The app sets the opening pose and calls
 `viewport.resetCamera()`, so the camera snaps behind it instead of easing 80 m. The snapshot is a new object at 10 Hz;
 per-tick state never enters Lit.
@@ -144,6 +152,7 @@ canvas: viewport rejects initialization with `AbortError` and completes cleanup.
 - [Flight session and fixed-step clock](https://github.com/ewajs/gravitas/blob/main/apps/game/src/session.ts)
 - [Keyboard controls](https://github.com/ewajs/gravitas/blob/main/apps/game/src/controls.ts)
 - [Telemetry and foot clearance](https://github.com/ewajs/gravitas/blob/main/apps/game/src/telemetry.ts)
+- [Landing rules](https://github.com/ewajs/gravitas/blob/main/apps/game/src/rules.ts) and [report](https://github.com/ewajs/gravitas/blob/main/apps/game/src/report.ts)
 - [Lander parameters](https://github.com/ewajs/gravitas/blob/main/apps/game/src/lander.ts) and [opening scenario](https://github.com/ewajs/gravitas/blob/main/apps/game/src/scenario.ts)
 - [Viewport lifecycle and interpolation](https://github.com/ewajs/gravitas/blob/main/packages/viewport/src/Viewport.ts)
 - [Flight HUD](https://github.com/ewajs/gravitas/blob/main/packages/ui/src/flight-hud.ts)

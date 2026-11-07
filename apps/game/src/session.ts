@@ -1,7 +1,15 @@
 import {
+  classifyTouchdown,
+  contactFacts,
   MAX_FLIGHT_STEP,
+  NO_TOUCHDOWN,
   rateControlTorque,
   stepFlight,
+  updateTouchdown,
+  type ContactFact,
+  type TouchdownLimits,
+  type TouchdownOutcome,
+  type TouchdownRecord,
   type AttitudeSettings,
   type FlightEnvironment,
   type FlightState,
@@ -16,8 +24,12 @@ export const MAX_STEPS_PER_FRAME = 5;
 /** Throttle lever travel per second while a throttle key is held (full range in 2 s). */
 export const THROTTLE_RATE = 0.5;
 
-/** `ready` waits for the first start; only `flying` advances simulation time. */
-export type SessionPhase = 'ready' | 'flying' | 'paused';
+/**
+ * `ready` waits for the first start. `flying` and `complete` advance simulation
+ * time; `complete` follows a final touchdown verdict, with the engine cut and
+ * input ignored while the vehicle comes to rest.
+ */
+export type SessionPhase = 'ready' | 'flying' | 'paused' | 'complete';
 
 /** Pilot input for one animation frame. Held values apply to every tick in that frame. */
 export interface PilotInput {
@@ -36,7 +48,12 @@ export interface FlightScenario {
   readonly attitude: AttitudeSettings;
   /** Gravity and the surface the vehicle's contact points can touch. */
   readonly environment: FlightEnvironment;
+  /** Thresholds that judge the touchdown. */
+  readonly limits: TouchdownLimits;
 }
+
+const IDLE: PilotInput = { rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 };
+const AIRBORNE: TouchdownOutcome = { status: 'airborne' };
 
 /**
  * Owns one flight's authoritative state and fixed-step clock. Pure TypeScript:
@@ -53,6 +70,11 @@ export class FlightSession {
   #accumulator = 0;
   #ticks = 0;
   #discarded = 0;
+  #record: TouchdownRecord = NO_TOUCHDOWN;
+  #outcome: TouchdownOutcome = AIRBORNE;
+  #completedAt: number | undefined;
+  // Contact facts of the latest tick, reused as the next tick's starting facts.
+  #facts: readonly ContactFact[] | undefined;
 
   constructor(scenario: FlightScenario) {
     this.#scenario = scenario;
@@ -83,6 +105,14 @@ export class FlightSession {
   get discardedSeconds(): number {
     return this.#discarded;
   }
+  /** Latest touchdown judgement; final once the phase is `complete`. */
+  get outcome(): TouchdownOutcome {
+    return this.#outcome;
+  }
+  /** Simulated seconds from start to the final verdict (or to now, while flying). */
+  get flightTime(): number {
+    return (this.#completedAt ?? this.#ticks) * FIXED_STEP;
+  }
   /** Fraction of a step accumulated but not yet simulated, in [0, 1): the render blend. */
   get alpha(): number {
     return Math.min(1, this.#accumulator / FIXED_STEP);
@@ -109,19 +139,25 @@ export class FlightSession {
     this.#accumulator = 0;
     this.#ticks = 0;
     this.#discarded = 0;
+    this.#record = NO_TOUCHDOWN;
+    this.#outcome = AIRBORNE;
+    this.#completedAt = undefined;
+    this.#facts = undefined;
   }
 
   /**
    * Adds elapsed wall time and runs every whole fixed step it covers, up to
    * MAX_STEPS_PER_FRAME. Returns the number of steps run. Input outside `flying`
-   * is ignored, including one-shot actions.
+   * is ignored, including one-shot actions; after a verdict the vehicle coasts
+   * with the engine cut until restart.
    */
-  advance(elapsedSeconds: number, input: PilotInput): number {
-    if (this.#phase !== 'flying') return 0;
+  advance(elapsedSeconds: number, pilot: PilotInput): number {
+    if (this.#phase !== 'flying' && this.#phase !== 'complete') return 0;
+    const input = this.#phase === 'complete' ? IDLE : pilot;
     if (input.throttleSet !== undefined) this.#pendingThrottle = input.throttleSet;
     if (!(elapsedSeconds > 0)) return 0;
     this.#accumulator += elapsedSeconds;
-    const { vehicle, attitude, environment } = this.#scenario;
+    const { vehicle, attitude, environment, limits } = this.#scenario;
     let steps = 0;
     while (this.#accumulator >= FIXED_STEP && steps < MAX_STEPS_PER_FRAME) {
       if (this.#pendingThrottle !== undefined) {
@@ -148,8 +184,29 @@ export class FlightSession {
       this.#accumulator -= FIXED_STEP;
       this.#ticks++;
       steps++;
+      const before = this.#state;
       this.#previous = this.#state;
       this.#state = next;
+      if (this.#phase === 'flying' && environment.surface && vehicle.contacts) {
+        const beforeFacts =
+          this.#facts ?? contactFacts(before, vehicle.contacts, environment.surface);
+        const facts = contactFacts(next, vehicle.contacts, environment.surface);
+        this.#facts = facts;
+        this.#record = updateTouchdown(
+          this.#record,
+          { before, beforeFacts, after: next, afterFacts: facts },
+          FIXED_STEP,
+          limits,
+        );
+        this.#outcome = classifyTouchdown(this.#record, limits);
+        const status = this.#outcome.status;
+        if (status === 'landed' || status === 'rough' || status === 'crashed') {
+          this.#phase = 'complete';
+          this.#completedAt = this.#ticks;
+          this.#throttle = 0;
+          this.#pendingThrottle = undefined;
+        }
+      }
     }
     if (this.#accumulator >= FIXED_STEP) {
       // Overload (slow device, debugger, long task): drop whole steps, keep the remainder.

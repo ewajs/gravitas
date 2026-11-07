@@ -78,7 +78,7 @@ test('keyboard flight: start, throttle lever, pause, language switch, and restar
   await expect(phase).toHaveText('Ready to descend. Press P or Start.');
   await expect(page.getByTestId('altitude')).toHaveText('80.0 m');
   await expect(page.getByTestId('throttle')).toHaveText('0%');
-  await expect(page.getByTestId('fuel')).toHaveText('100%');
+  await expect(page.getByTestId('fuel')).toHaveText('20%');
 });
 
 test('focus loss releases held keys, and a hidden tab pauses until resumed', async ({
@@ -144,30 +144,46 @@ test('flight keys stay out of form controls and help, which pauses the flight', 
   expect(await reading(page, 'altitude')).toBeLessThan(80);
 });
 
-test('the surface stops the lander: an unpowered impact ends at rest, then restart', async ({
+test('an unpowered descent crashes, the report explains why, and Try again restarts', async ({
   page,
 }, info) => {
   await open(page, info.project.name);
+  await expect(page.getByRole('complementary', { name: 'How to fly' })).toBeVisible();
   await page.keyboard.press('p');
-  // Unpowered from 80 m at -4 m/s: first contact after about 7.8 s at about -16.6 m/s.
-  // Polls allow for software renderers running slower than real time.
-  await expect(page.getByTestId('altitude')).toHaveText('0.0 m', { timeout: 30_000 });
-  // At rest means still at rest 1.5 s later, not a zero-crossing of a bounce.
-  await expect
-    .poll(
-      async () => {
-        const before = [await reading(page, 'altitude'), await reading(page, 'vertical-speed')];
-        await page.waitForTimeout(1500);
-        return [...before, await reading(page, 'altitude'), await reading(page, 'vertical-speed')];
-      },
-      { timeout: 30_000 },
-    )
-    .toEqual([0, 0, 0, 0]);
-  await expect(page.locator('#phase')).toBeEmpty(); // Still flying: no verdict until 2.2.
-  await page.screenshot({ path: info.outputPath('impact.png') });
-  await page.getByRole('button', { name: 'Restart', exact: true }).click();
+  await expect(page.getByRole('complementary', { name: 'How to fly' })).toHaveCount(0);
+  // Unpowered from 80 m at -4 m/s: legs strike at about 16.6 m/s after about 7.8 s.
+  const report = page.locator('#report');
+  await expect(report).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('report-title')).toHaveText('Crash');
+  await expect(report).toContainText('A leg hit the ground too hard to survive.');
+  await expect(page.getByTestId('check-vertical-speed')).toHaveClass(/fail/);
+  await expect(page.getByTestId('check-vertical-speed')).toContainText(/16\.\d m\/s/);
+  await expect(page.getByTestId('check-horizontal-speed')).toHaveClass(/fail/);
+  await expect(page.getByTestId('check-tilt')).toHaveClass(/pass/);
+  await expect(report).toContainText('Fuel left: 20%');
+  // The crash still plays out, then rests on the surface.
+  await expect(page.getByTestId('altitude')).toHaveText('0.0 m', { timeout: 15_000 });
+  await page.screenshot({ path: info.outputPath('crash.png') });
+  await page.keyboard.press('p'); // No effect after a verdict.
+  await expect(report).toBeVisible();
+  await report.getByRole('button', { name: 'Try again' }).click();
+  await expect(report).toHaveCount(0);
   await expect(page.getByTestId('altitude')).toHaveText('80.0 m');
+  await expect(page.locator('#phase')).toHaveText('Ready to descend. Press P or Start.');
   await page.screenshot({ path: info.outputPath('start.png') });
+});
+
+test('the report reads in both languages and Enter retries', async ({ page }, info) => {
+  await open(page, info.project.name, 'es-AR');
+  await page.keyboard.press('p');
+  await expect(page.locator('#report')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('report-title')).toHaveText('Accidente');
+  await expect(page.getByTestId('check-vertical-speed')).toContainText(/16,\d m\/s/);
+  await page.getByRole('combobox', { name: 'Idioma' }).selectOption('en');
+  await expect(page.getByTestId('report-title')).toHaveText('Crash');
+  await page.locator('canvas').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('altitude')).toHaveText('80.0 m');
 });
 
 test('landing radar is heading-up: pitch leans ahead and a left yaw swings the pad right', async ({

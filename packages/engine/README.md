@@ -78,6 +78,24 @@ outcomes. All ground knowledge goes through one internal seam, so terrain or a
 collision library can supply height and normal later
 ([ADR 0011](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0011-contact-model.md)).
 
+## Judging a touchdown
+
+```ts
+let record = NO_TOUCHDOWN;
+// After each tick, with the states and facts at its start and end:
+record = updateTouchdown(record, { before, beforeFacts, after, afterFacts }, dt, limits);
+const outcome = classifyTouchdown(record, limits);
+// { status: 'landed' | 'rough' | 'crashed' | 'touching' | 'airborne', ... }
+```
+
+`TouchdownLimits` holds the host's thresholds. Touchdown speed and tilt are read
+just before the first leg loads, because contact braking within one tick would
+understate an impact. Leg impact uses the larger of each leg's approach speed
+before and after the tick. Crashes are immediate (hull contact, then leg impact,
+then tipping); `landed` and `rough` wait until the vehicle has been still on all
+legs for `settleTime`. Values exactly at a limit pass. The record is plain data,
+so it serializes and tests with synthetic facts.
+
 `rateControlTorque` turns normalized rate requests in [−1, 1] into limited body
 torque. Zero input brakes rotation; it never auto-levels or cancels velocity.
 Equations, parameters, worked examples, and simplifications are in the
@@ -88,6 +106,6 @@ Equations, parameters, worked examples, and simplifications are in the
 
 Engine imports no Three.js, Lit, DOM, browser clock, storage, network, or other
 workspace. Its TypeScript project has no DOM or ambient Node types. There is no
-landing classification (step 2.2), scheduler, or input handling; the fixed-step
+scheduler or input handling; the fixed-step
 session and input mapping live in the app
 (`apps/game/src/session.ts`, `controls.ts`).

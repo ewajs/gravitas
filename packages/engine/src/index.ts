@@ -1,4 +1,4 @@
-/** Pure flight dynamics with surface contact, body-rate assistance, and orientation helpers. @module */
+/** Pure flight dynamics with surface contact, touchdown judging, body-rate assistance, and orientation helpers. @module */
 export type { Vector3, Quaternion, VehiclePose } from './pose';
 export {
   stepFlight,
@@ -10,7 +10,18 @@ export {
   type FlightEnvironment,
 } from './flight';
 export { rateControlTorque, type AttitudeSettings } from './attitude';
-export { bodyToWorld, headingAngle } from './orientation';
+export { bodyToWorld, headingAngle, tiltAngle } from './orientation';
+export {
+  classifyTouchdown,
+  NO_TOUCHDOWN,
+  updateTouchdown,
+  type TouchdownCheck,
+  type TouchdownLimits,
+  type TouchdownOutcome,
+  type TouchdownRecord,
+  type TouchdownSnapshot,
+  type TouchdownTick,
+} from './touchdown';
 export {
   contactFacts,
   FRICTION_SLIP_SCALE,

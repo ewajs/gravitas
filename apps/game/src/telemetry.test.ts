@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FlightState, Quaternion } from '@gravitas/engine';
-import { flightTelemetry, footClearance, headingFrame, tiltRadians } from './telemetry';
+import { tiltAngle as tiltRadians } from '@gravitas/engine';
+import { flightTelemetry, footClearance, headingFrame } from './telemetry';
 import { START_ALTITUDE, START_STATE } from './scenario';
 
 const upright = { x: 0, y: 0, z: 0, w: 1 };

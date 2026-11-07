@@ -1,6 +1,7 @@
 import {
   bodyToWorld,
   headingAngle,
+  tiltAngle,
   type FlightState,
   type Quaternion,
   type Vector3,
@@ -20,12 +21,6 @@ export function footClearance(pose: VehiclePose): number {
     lowest = Math.min(lowest, pose.position.y + bodyToWorld(pose.orientation, foot.position).y);
   }
   return lowest;
-}
-
-/** Angle between body +Y and world +Y in radians, independent of yaw. */
-export function tiltRadians(q: Quaternion): number {
-  // The world Y component of body +Y is 1 - 2(x² + z²).
-  return Math.acos(Math.max(-1, Math.min(1, 1 - 2 * (q.x * q.x + q.z * q.z))));
 }
 
 /**
@@ -50,7 +45,7 @@ export function flightTelemetry(state: FlightState, throttle: number): FlightTel
     verticalSpeed: state.velocity.y,
     horizontalSpeed: Math.hypot(state.velocity.x, state.velocity.z),
     padDistance: Math.hypot(state.position.x - PAD_POSITION.x, state.position.z - PAD_POSITION.z),
-    tilt: tiltRadians(q),
+    tilt: tiltAngle(q),
     fuel: state.fuelMass / LANDER.fuelCapacity,
     throttle,
     hoverThrottle: (mass * -ENVIRONMENT.gravity.y) / LANDER.maxThrust,

@@ -10,6 +10,8 @@ import {
 } from '@gravitas/ui';
 import { KeyboardControls, type KeyCommand } from './controls';
 import { ATTITUDE, CENTER_OF_MASS_HEIGHT, FEET, LANDER } from './lander';
+import { landingReport } from './report';
+import { LANDING_LIMITS } from './rules';
 import { ENVIRONMENT, START_STATE } from './scenario';
 import { FlightSession } from './session';
 import { flightTelemetry } from './telemetry';
@@ -27,6 +29,7 @@ const session = new FlightSession({
   vehicle: LANDER,
   attitude: ATTITUDE,
   environment: ENVIRONMENT,
+  limits: LANDING_LIMITS,
 });
 const keyboard = new KeyboardControls(window, keyCommand);
 let viewport: Viewport | undefined;
@@ -47,6 +50,7 @@ function legCompression(): number[] {
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
   hud.phase = session.phase;
+  hud.report = landingReport(session);
   hud.telemetry = flightTelemetry(session.state, session.throttle);
 }
 
@@ -61,7 +65,9 @@ function draw(timestamp: number): void {
     viewport?.setVehiclePose(session.state, session.previous);
     viewport?.setLegCompression(legCompression());
     viewport?.render(session.alpha);
-    const due = session.phase === 'flying' && timestamp - lastPublished >= TELEMETRY_INTERVAL_MS;
+    // Keep instruments live while a crash plays out after the verdict, too.
+    const moving = session.phase === 'flying' || session.phase === 'complete';
+    const due = moving && timestamp - lastPublished >= TELEMETRY_INTERVAL_MS;
     if (due || session.phase !== phase) {
       publish();
       lastPublished = timestamp;
@@ -84,7 +90,8 @@ const sizeObserver = new ResizeObserver(resume);
 
 function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   if (action === 'toggle') {
-    const toggled = { ready: 'start', flying: 'pause', paused: 'resume' };
+    // After a verdict, P does nothing; restart (Enter or the button) starts over.
+    const toggled = { ready: 'start', flying: 'pause', paused: 'resume', complete: undefined };
     const next = toggled[session.phase] as FlightRequest['action'] | undefined;
     if (!next) return;
     action = next;

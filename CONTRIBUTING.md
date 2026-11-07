@@ -63,7 +63,8 @@ workspaces locally; there is no package publishing or separate library build.
 
 Vitest covers flight dynamics against independent references, the fixed-step session
 (frame-rate independence, overload, pause, impact and settling), surface contact
-against analytic references, key mapping, heading and
+against analytic references, touchdown judging boundaries, scripted whole-flight
+regression pilots, key mapping, heading and
 telemetry/radar geometry, the chase rig, pose validation/blending, and artwork
 placement; empty suites are not allowed. Browser flight tests poll for outcomes
 rather than assuming real time, because software renderers run below 60 fps.

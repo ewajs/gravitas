@@ -9,6 +9,8 @@ export const uiTokens = css`
     --gravitas-line: #3c4857;
     --gravitas-accent: #efd0a1;
     --gravitas-focus: #bfe5ff;
+    --gravitas-good: #9fe0a8;
+    --gravitas-bad: #ffa08f;
     --gravitas-radius: 10px;
     color: var(--gravitas-text);
     font-family: system-ui, sans-serif;

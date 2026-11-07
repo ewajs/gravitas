@@ -34,7 +34,8 @@ container.append(hud); // Overlay host: position: relative with an explicit heig
 ```
 
 `FlightHud` is also exported for TypeScript consumers, along with `FlightTelemetry`,
-`RadarVector`, `FlightPhase`, `FlightRequest`, and `LocaleRequest`. Telemetry is a **presentation
+`RadarVector`, `FlightPhase`, `FlightRequest`, `LandingReport`, `LandingCheck`, and
+`LocaleRequest`. Telemetry is a **presentation
 snapshot** in SI units; the host computes it from its own flight state and contact
 geometry. Pass a new immutable object when it changes, at a deliberate rate (the
 game uses 10 Hz). HUD reactivity never owns or advances flight state.
@@ -54,12 +55,27 @@ uses its own scale; directions matter more than lengths. The host supplies the
 vectors in the same heading frame as its camera. The disc has a static
 accessible name, and tilt, horizontal speed, and pad distance are also readouts.
 
+## Start card and results
+
+In `ready`, a "How to fly" card lists the essential keys and the goal. Set
+`hud.report` (a `LandingReport`) when `phase` is `complete`. The HUD shows:
+
+- the verdict title (landed, off the pad, too rough, crash) and a summary or cause;
+- each `LandingCheck` with ✓/✗ and screen-reader text, its value and limit
+  (speeds in m/s, tilt in degrees, distance in m);
+- fuel left and flight time;
+- a Try again button that emits `restart`.
+
+The host decides every value; the HUD only explains. `--gravitas-good` and
+`--gravitas-bad` colour the marks and titles.
+
 ## Requests
 
 The HUD decides nothing about the flight. Its buttons emit
 `CustomEvent<FlightRequest>` named `flight-request`, which bubbles across the
-shadow root. The primary button follows the phase (Start, Pause, Resume), and
-Restart appears once a flight has begun. Opening Help while
+shadow root. The primary button follows the phase (Start, Pause, Resume; none
+after a verdict), and Restart (Try again after a verdict) appears once a flight
+has begun. Opening Help while
 `phase` is `flying` emits a `pause` request first. The host applies requests to its
 session and sets `phase`. Keyboard flight controls belong to the host.
 
@@ -83,7 +99,8 @@ failure, scene-label, subtitle, and key-hint text to hosts after awaiting `setLo
 ## Styling and accessibility
 
 Override `--gravitas-panel`, `--gravitas-text`, `--gravitas-muted`, `--gravitas-line`,
-`--gravitas-accent`, `--gravitas-focus`, and `--gravitas-radius` on the HUD element.
+`--gravitas-accent`, `--gravitas-focus`, `--gravitas-good`, `--gravitas-bad`, and
+`--gravitas-radius` on the HUD element.
 Defaults live in `src/tokens.ts`. HUD panels do not intercept scene gestures;
 interactive controls do. The phase message is a polite live region below the
 header. The help dialog makes the background inert and supports Escape and focus

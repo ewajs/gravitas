@@ -1,4 +1,5 @@
 import {
+  clamp,
   classifyTouchdown,
   contactFacts,
   MAX_FLIGHT_STEP,
@@ -192,9 +193,10 @@ export class FlightSession {
           this.#throttle = this.#pendingThrottle;
           this.#pendingThrottle = undefined;
         }
-        this.#throttle = Math.min(
+        this.#throttle = clamp(
+          this.#throttle + pilot.throttleChange * THROTTLE_RATE * FIXED_STEP,
+          0,
           1,
-          Math.max(0, this.#throttle + pilot.throttleChange * THROTTLE_RATE * FIXED_STEP),
         );
         bodyTorque = rateControlTorque(this.#state.angularVelocity, pilot.rates, vehicle, attitude);
       }

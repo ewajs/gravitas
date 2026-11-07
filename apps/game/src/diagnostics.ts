@@ -1,3 +1,5 @@
+import { clamp } from '@gravitas/engine';
+
 /** One drawn frame's measurements. */
 export interface FrameSample {
   /** Time since the previous frame, in ms (display-paced, so near 16.7 at 60 Hz). */
@@ -18,7 +20,7 @@ export interface FrameStats {
 export function percentile(values: readonly number[], fraction: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil(fraction * sorted.length) - 1));
+  const rank = clamp(Math.ceil(fraction * sorted.length) - 1, 0, sorted.length - 1);
   return sorted[rank]!;
 }
 

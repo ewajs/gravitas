@@ -1,5 +1,5 @@
-import { bodyToWorld } from '@gravitas/engine';
-import { LANDER } from './lander';
+import { bodyToWorld, clamp } from '@gravitas/engine';
+import { ATTITUDE, LANDER } from './lander';
 import { ENVIRONMENT, PAD_POSITION } from './scenario';
 import type { FlightSession, PilotInput } from './session';
 import { footClearance } from './telemetry';
@@ -9,8 +9,6 @@ import { footClearance } from './telemetry';
  * use only the player's inputs (held rate keys and the throttle lever ramp).
  */
 export type Pilot = (session: FlightSession) => PilotInput;
-
-const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value));
 
 // Moves the lever toward a target with the held-key ramp, like a player would.
 function lever(session: FlightSession, target: number): -1 | 0 | 1 {
@@ -49,18 +47,19 @@ export const padPilot: Pilot = (session) => {
   const up = bodyToWorld(s.orientation, { x: 0, y: 1, z: 0 });
   // Lean along world X (forward) and Z (left of forward is −Z here).
   const steer = (offset: number, velocity: number) => {
-    const wanted = clamp(-0.25 * offset, 2.5);
-    return altitude < 2 ? 0 : clamp(Math.atan((0.8 * (wanted - velocity)) / g), 0.3);
+    const wanted = clamp(-0.25 * offset, -2.5, 2.5);
+    return altitude < 2 ? 0 : clamp(Math.atan((0.8 * (wanted - velocity)) / g), -0.3, 0.3);
   };
   const leanX = steer(s.position.x - PAD_POSITION.x, s.velocity.x);
   const leanZ = steer(s.position.z - PAD_POSITION.z, s.velocity.z);
-  const maxRate = Math.PI / 6;
+  // Rate requests are fractions of the assist's maximum rate.
+  const { maxRate } = ATTITUDE;
   return {
     // −X body rate leans thrust toward +X world; +Z body rate leans it toward −Z world.
     rates: {
-      x: -clamp((2 * (leanX - Math.asin(clamp(up.x, 1)))) / maxRate, 1),
+      x: -clamp((2 * (leanX - Math.asin(clamp(up.x, -1, 1)))) / maxRate.x, -1, 1),
       y: 0,
-      z: -clamp((2 * (leanZ - Math.asin(clamp(up.z, 1)))) / maxRate, 1),
+      z: -clamp((2 * (leanZ - Math.asin(clamp(up.z, -1, 1)))) / maxRate.z, -1, 1),
     },
     throttleChange: lever(session, descentThrottle(session, -Math.max(0.6, altitude / 8))),
   };

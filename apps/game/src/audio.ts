@@ -1,3 +1,4 @@
+import { clamp } from '@gravitas/engine';
 import type { Actuation } from './session';
 
 /** Target levels for the continuous sounds; pure, so it can be tested without audio. */
@@ -12,7 +13,7 @@ export interface AudioLevels {
 
 /** Maps applied actuation to sound levels. Quiet at idle; never louder than ~0.4. */
 export function audioLevels(actuation: Actuation): AudioLevels {
-  const throttle = Math.min(1, Math.max(0, actuation.throttle));
+  const throttle = clamp(actuation.throttle, 0, 1);
   const { x, y, z } = actuation.attitude;
   const attitude = Math.min(1, Math.max(Math.abs(x), Math.abs(y), Math.abs(z)));
   return {

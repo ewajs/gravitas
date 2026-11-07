@@ -15,6 +15,14 @@ export const DETENT_HALF_WIDTH = 0.035;
 export const STICK_RADIUS = 56;
 // Lever change per arrow key press when the lever has keyboard focus.
 const KEY_STEP = 0.05;
+// Pseudo pointer IDs for yaw buttons held from the keyboard (pointer IDs are ≥ 0).
+const KEY_POINTER = -10;
+
+// Touch and pen always steer; a mouse only with its main button, so a right-click
+// (whose menu can swallow the button release) never starts a drag.
+function mainButton(event: PointerEvent): boolean {
+  return event.pointerType !== 'mouse' || event.button === 0;
+}
 
 interface Drag {
   readonly pointer: number;
@@ -74,6 +82,14 @@ export class TouchControls extends LitElement {
       :host {
         --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
         --touch-top: 30%;
+        /* Yaw buttons sit above the zones but never over the host's header
+           (12 px margin + 44 px buttons), even with browser bars shrinking the
+           screen; the zones start below them. */
+        --yaw-top: max(
+          calc(var(--touch-top) - 60px),
+          calc(max(12px, env(safe-area-inset-top)) + 60px)
+        );
+        --zone-top: calc(var(--yaw-top) + 60px);
         position: absolute;
         inset: 0;
         pointer-events: none;
@@ -94,9 +110,18 @@ export class TouchControls extends LitElement {
       .zone {
         position: absolute;
         bottom: 0;
-        top: var(--touch-top);
+        top: var(--zone-top);
         pointer-events: auto;
         touch-action: none;
+      }
+      /* Drawn parts never take a touch: the zone is always the event target, so
+         nothing is lost when a part is redrawn or removed under the finger. */
+      .lever,
+      .lever *,
+      .stick-hint,
+      .base,
+      .base * {
+        pointer-events: none;
       }
       .left {
         left: 0;
@@ -248,7 +273,7 @@ export class TouchControls extends LitElement {
       .yaw {
         position: absolute;
         right: max(20px, calc(env(safe-area-inset-right) + 8px));
-        top: calc(var(--touch-top) - 60px);
+        top: var(--yaw-top);
         display: flex;
         gap: 12px;
         pointer-events: auto;
@@ -326,7 +351,11 @@ export class TouchControls extends LitElement {
 
   /** @internal */
   protected willUpdate(changed: Map<PropertyKey, unknown>): void {
-    if (changed.has('disabled') && this.disabled) this.#releaseAll();
+    if (changed.has('disabled') && this.disabled) {
+      this.#releaseAll();
+      // A value sent in the same frame as a pause may never be applied; show the host's.
+      this.lever = undefined;
+    }
     // Once released, the host's applied value replaces the last value sent.
     if (changed.has('throttle') && !this.#leverDrag) this.lever = undefined;
   }
@@ -359,7 +388,7 @@ export class TouchControls extends LitElement {
   }
 
   #leverDown = (event: PointerEvent): void => {
-    if (this.disabled || this.#leverDrag) return;
+    if (this.disabled || this.#leverDrag || !mainButton(event)) return;
     const track = this.renderRoot.querySelector<HTMLElement>('.track');
     const travel = Math.max(1, track?.getBoundingClientRect().height ?? 1);
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
@@ -416,7 +445,7 @@ export class TouchControls extends LitElement {
   // ---- Stick ----
 
   #stickDown = (event: PointerEvent): void => {
-    if (this.disabled || this.#stickPointer !== undefined) return;
+    if (this.disabled || this.#stickPointer !== undefined || !mainButton(event)) return;
     const zone = event.currentTarget as HTMLElement;
     zone.setPointerCapture(event.pointerId);
     this.#stickPointer = event.pointerId;
@@ -459,7 +488,7 @@ export class TouchControls extends LitElement {
   // ---- Yaw ----
 
   #yawDown(direction: -1 | 1, event: PointerEvent): void {
-    if (this.disabled) return;
+    if (this.disabled || !mainButton(event)) return;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
     this.#yawPointers.set(event.pointerId, direction);
     this.#syncYaw();
@@ -470,6 +499,21 @@ export class TouchControls extends LitElement {
     if (!this.#yawPointers.delete(event.pointerId)) return;
     this.#syncYaw();
   };
+
+  // Space or Enter holds a yaw button too, under a pseudo pointer per direction.
+  #yawKey(direction: -1 | 1, event: KeyboardEvent): void {
+    if (event.key !== ' ' && event.key !== 'Enter') return;
+    event.preventDefault();
+    const id = KEY_POINTER + direction;
+    if (event.type === 'keyup') this.#yawPointers.delete(id);
+    else if (this.disabled || event.repeat) return;
+    else this.#yawPointers.set(id, direction);
+    this.#syncYaw();
+  }
+
+  #yawBlur(direction: -1 | 1): void {
+    if (this.#yawPointers.delete(KEY_POINTER + direction)) this.#syncYaw();
+  }
 
   #syncYaw(): void {
     const held = new Set(this.#yawPointers.values());
@@ -516,6 +560,7 @@ export class TouchControls extends LitElement {
         @pointerup=${this.#leverUp}
         @pointercancel=${this.#leverUp}
         @lostpointercapture=${this.#leverUp}
+        @contextmenu=${(event: Event) => event.preventDefault()}
       >
         <div
           class="lever ${this.#leverDrag ? 'held' : ''}"
@@ -559,6 +604,7 @@ export class TouchControls extends LitElement {
         @pointerup=${this.#stickUp}
         @pointercancel=${this.#stickUp}
         @lostpointercapture=${this.#stickUp}
+        @contextmenu=${(event: Event) => event.preventDefault()}
       >
         ${
           this.stick
@@ -593,6 +639,9 @@ export class TouchControls extends LitElement {
       @pointerup=${this.#yawUp}
       @pointercancel=${this.#yawUp}
       @lostpointercapture=${this.#yawUp}
+      @keydown=${(event: KeyboardEvent) => this.#yawKey(direction, event)}
+      @keyup=${(event: KeyboardEvent) => this.#yawKey(direction, event)}
+      @blur=${() => this.#yawBlur(direction)}
       @contextmenu=${(event: Event) => event.preventDefault()}
     >
       ${direction === -1 ? icons.yawLeft() : icons.yawRight()}

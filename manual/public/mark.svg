@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" color="#4cc3e0">
+  <!-- Gravitas mark, "Kepler": a body and its moon on a tilted orbit. Drawn in
+       currentColor; the root color attribute sets it. Use above 32 px; smaller
+       sizes use mark-small.svg. -->
+  <title>Gravitas</title>
+  <mask id="gravitas-mark-gap">
+    <rect x="-10" y="-10" width="68" height="68" fill="#fff" />
+    <circle cx="31.6" cy="10.95" r="4.8" fill="#000" />
+  </mask>
+  <g transform="rotate(-24 24 24)">
+    <ellipse cx="24" cy="24" rx="18" ry="14.4" fill="none" stroke="currentColor"
+      stroke-opacity="0.5" stroke-width="2" mask="url(#gravitas-mark-gap)" />
+    <circle cx="13.2" cy="24" r="4" fill="currentColor" />
+    <circle cx="31.6" cy="10.95" r="2.6" fill="currentColor" />
+  </g>
+</svg>

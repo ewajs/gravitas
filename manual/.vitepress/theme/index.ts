@@ -8,6 +8,9 @@ import Integrators from './explorers/Integrators.vue';
 import Legs from './explorers/Legs.vue';
 import Cannon from './explorers/Cannon.vue';
 import './learn.css';
+// The game's typefaces, self-hosted; brand colours are set in the config's head.
+import '@fontsource-variable/inter/wght.css';
+import '@fontsource-variable/space-grotesk/wght.css';
 
 // The default theme plus the Learn section's interactive explorers, available in
 // any manual page as <FreeFall />, <Rocket />, and so on.

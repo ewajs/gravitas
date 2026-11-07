@@ -243,3 +243,15 @@ test('a failing value never displays as if it met its limit', async ({ page }, i
   await expect(page.getByTestId('check-tilt')).toContainText('10.4°');
   await expect(page.getByTestId('check-tilt')).toContainText('Limit: 10°');
 });
+
+test('the developer overlay appears only behind ?debug', async ({ page }, info) => {
+  await open(page, info.project.name);
+  await expect(page.locator('#diagnostics')).toHaveCount(0);
+  const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
+  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en&debug`);
+  await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
+  const overlay = page.locator('#diagnostics');
+  await expect(overlay).toContainText('fps');
+  await expect.poll(async () => Number(await overlay.getAttribute('data-fps'))).toBeGreaterThan(5);
+  expect(Number(await overlay.getAttribute('data-draw-calls'))).toBeGreaterThan(0);
+});

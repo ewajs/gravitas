@@ -80,6 +80,13 @@ export class Viewport {
     return 'isWebGPUBackend' in backend && backend.isWebGPUBackend ? 'webgpu' : 'webgl2';
   }
 
+  /** Draw calls and triangles of the last rendered frame; null before initialization. */
+  get renderStats(): { readonly drawCalls: number; readonly triangles: number } | null {
+    if (!this.#ready || !this.#renderer) return null;
+    const { drawCalls, triangles } = this.#renderer.info.render;
+    return { drawCalls, triangles };
+  }
+
   /**
    * Copies validated poses without changing the caller's data. Pass the last two
    * completed simulation ticks; render(alpha) blends between them. A single pose

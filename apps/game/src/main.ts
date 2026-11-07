@@ -10,6 +10,7 @@ import {
   type SoundRequest,
 } from '@gravitas/ui';
 import { FlightAudio } from './audio';
+import { DiagnosticsOverlay } from './diagnostics';
 import { KeyboardControls, type KeyCommand } from './controls';
 import { ATTITUDE, CENTER_OF_MASS_HEIGHT, FEET, LANDER } from './lander';
 import { landingReport } from './report';
@@ -48,6 +49,10 @@ let lastPublished = -Infinity;
 let stopped = false;
 let destroyed = false;
 let lastOutcome = session.outcome.status;
+// Developer diagnostics only behind an explicit ?debug switch; zero cost otherwise.
+const diagnostics = parameters.has('debug')
+  ? new DiagnosticsOverlay(document.querySelector('main')!)
+  : undefined;
 
 hud.heading = 'Gravitas';
 hud.muted = settings.muted;
@@ -118,6 +123,7 @@ function draw(timestamp: number): void {
   const elapsed = lastFrame === undefined ? 0 : (timestamp - lastFrame) / 1000;
   lastFrame = timestamp;
   try {
+    const workStart = diagnostics ? performance.now() : 0;
     const phase = session.phase;
     session.advance(elapsed, keyboard.sample());
     viewport?.setVehiclePose(session.state, session.previous);
@@ -126,6 +132,18 @@ function draw(timestamp: number): void {
     viewport?.render(session.alpha);
     audio.update(session.actuation);
     soundEvents();
+    if (diagnostics) {
+      const now = performance.now();
+      diagnostics.record({ interval: elapsed * 1000, work: now - workStart }, now, () => ({
+        backend: viewport?.backend ?? 'none',
+        phase: session.phase,
+        ticks: session.ticks,
+        discardedSeconds: session.discardedSeconds,
+        alpha: session.alpha,
+        drawCalls: viewport?.renderStats?.drawCalls ?? 0,
+        triangles: viewport?.renderStats?.triangles ?? 0,
+      }));
+    }
     // Keep instruments live while a crash plays out after the verdict, too.
     const moving = session.phase === 'flying' || session.phase === 'complete';
     const due = moving && timestamp - lastPublished >= TELEMETRY_INTERVAL_MS;
@@ -157,6 +175,9 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
     if (!next) return;
     action = next;
   }
+  // Starting or resuming begins timing at the next frame: wall time before it (such
+  // as the first gesture creating the audio context) is never simulated.
+  if (action === 'start' || action === 'resume') lastFrame = undefined;
   if (action === 'start') {
     session.start();
     // Seen once is enough: later visits start without the card (Help keeps the keys).
@@ -208,6 +229,7 @@ function stopRendering(): void {
   session.pause();
   keyboard.dispose();
   audio.dispose();
+  diagnostics?.dispose();
   window.removeEventListener('keydown', unlockAudio, true);
   window.removeEventListener('pointerdown', unlockAudio, true);
   delete host.dataset.audio;

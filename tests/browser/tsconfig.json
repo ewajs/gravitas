@@ -6,5 +6,5 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts", "../measure/**/*.ts"]
 }

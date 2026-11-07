@@ -61,6 +61,7 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run build:game`                      | Build only the game (also used by local browser suites)     |
 | `npm run docs`                            | Generate library API references and developer guides        |
 | `npm run manual` / `npm run manual:dev`   | Build (with dead-link check) / serve the bilingual manual   |
+| `npm run measure`                         | Fly a workload on both browsers; report fps/work/draw calls |
 
 Vitest covers flight dynamics against independent references, the fixed-step session
 (frame-rate independence, overload, pause, impact and settling), surface contact
@@ -137,7 +138,10 @@ tolerances, not cross-platform bit equality. Browser tests fail on unexpected
 page/console errors; explicitly declare expected errors.
 
 Keep heavy matrices, long simulation runs, and benchmarks targeted to changes
-they inform, with broader checks at milestones. Establish performance budgets
+they inform, with broader checks at milestones. Add `?debug` to the game URL for
+the developer overlay (frame rate, main-thread work, draw calls, dropped time),
+and run `npm run measure` for a repeatable frame-rate report. Record results and
+the device in [performance measurements](docs/verification/performance.md). Establish performance budgets
 from measured scenes and named devices. Do not test implementation trivia.
 
 Docs-only changes also check local links, consistency, and diff whitespace.

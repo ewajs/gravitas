@@ -226,6 +226,8 @@ export function createScene(centerOfMassHeight: number) {
   return {
     scene,
     vehicle,
+    /** Foot meshes in foot order; tests inspect them. Not part of any public API. */
+    feet: legs.map((leg) => leg.foot),
     /** The vehicle's drawn structure, without effects; tests measure it. */
     artwork,
     effects,

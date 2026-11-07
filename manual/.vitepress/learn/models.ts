@@ -5,18 +5,24 @@ import {
   contactFacts,
   MAX_FLIGHT_STEP,
   rateControlTorque,
+  rotationAbout,
   stepFlight,
+  toDegrees,
+  toRadians,
   type ContactPoint,
   type FlightState,
   type VehicleParameters,
 } from '@gravitas/engine';
-import { ATTITUDE, CONTACTS, LANDER } from '../../../apps/game/src/lander';
+import { ATTITUDE, CENTER_OF_MASS_HEIGHT, CONTACTS, LANDER } from '../../../apps/game/src/lander';
 
 /** A plotted point. */
 export type Point = readonly [x: number, y: number];
 
 const ZERO = { x: 0, y: 0, z: 0 } as const;
 const UPRIGHT = { x: 0, y: 0, z: 0, w: 1 } as const;
+const COAST = { throttle: 0, bodyTorque: ZERO } as const;
+// The game's lander without contact points, for explorers that never touch the ground.
+const FREE_FLIGHT_LANDER: VehicleParameters = { ...LANDER, contacts: [] };
 
 const state = (changes: Partial<FlightState>): FlightState => ({
   position: ZERO,
@@ -60,10 +66,9 @@ export function freeFall(h0: number, v0: number, g: number): FreeFall {
   const engine: Point[] = [[0, h0]];
   let s = state({ position: { x: 0, y: h0, z: 0 }, velocity: { x: 0, y: v0, z: 0 } });
   const environment = { gravity: { x: 0, y: -g, z: 0 } };
-  const vehicle = { ...LANDER, contacts: [] };
   const every = Math.max(1, Math.round(impactTime / MAX_FLIGHT_STEP / 30));
   for (let n = 1; s.position.y > 0 && n < 60 * 600; n++) {
-    s = stepFlight(s, { throttle: 0, bodyTorque: ZERO }, vehicle, environment, MAX_FLIGHT_STEP);
+    s = stepFlight(s, COAST, FREE_FLIGHT_LANDER, environment, MAX_FLIGHT_STEP);
     if (n % every === 0 || s.position.y <= 0) {
       engine.push([n * MAX_FLIGHT_STEP, Math.max(0, s.position.y)]);
     }
@@ -101,7 +106,7 @@ export function rocket(
   tiltDegrees: number,
   g = GRAVITY.moon,
 ): Rocket {
-  const tilt = (tiltDegrees * Math.PI) / 180;
+  const tilt = toRadians(tiltDegrees);
   const mass = LANDER.dryMass + fuel;
   const thrust = throttle * LANDER.maxThrust;
   const flow = thrust / LANDER.exhaustVelocity;
@@ -115,17 +120,15 @@ export function rocket(
     formula.push([t, climb - g * t]);
   }
   // The engine flies the same burn with the vehicle held at that tilt (no rotation).
-  const orientation = { x: 0, y: 0, z: Math.sin(-tilt / 2), w: Math.cos(-tilt / 2) };
-  let s = state({ orientation, fuelMass: fuel });
+  let s = state({ orientation: rotationAbout('z', -tilt), fuelMass: fuel });
   const engine: Point[] = [[0, 0]];
-  const vehicle = { ...LANDER, contacts: [] };
   const steps = Math.round(duration / MAX_FLIGHT_STEP);
   const every = Math.max(1, Math.round(steps / 30));
   for (let n = 1; n <= steps; n++) {
     s = stepFlight(
       s,
       { throttle, bodyTorque: ZERO },
-      vehicle,
+      FREE_FLIGHT_LANDER,
       { gravity: { x: 0, y: -g, z: 0 } },
       MAX_FLIGHT_STEP,
     );
@@ -165,12 +168,10 @@ export interface RateResponse {
  */
 export function rateResponse(fraction: number, responseTime: number, hold = 1.5): RateResponse {
   const settings = { ...ATTITUDE, responseTime };
-  const vehicle = { ...LANDER, contacts: [] };
   let s = state({ fuelMass: 60 });
   const rate: Point[] = [[0, 0]];
   const request: Point[] = [[0, 0]];
   const angle: Point[] = [[0, 0]];
-  const toDegrees = 180 / Math.PI;
   let pitch = 0;
   const total = hold + 2.5;
   for (let n = 1; n * MAX_FLIGHT_STEP <= total + 1e-9; n++) {
@@ -179,15 +180,21 @@ export function rateResponse(fraction: number, responseTime: number, hold = 1.5)
     const bodyTorque = rateControlTorque(
       s.angularVelocity,
       { x: wanted, y: 0, z: 0 },
-      vehicle,
+      FREE_FLIGHT_LANDER,
       settings,
     );
-    s = stepFlight(s, { throttle: 0, bodyTorque }, vehicle, { gravity: ZERO }, MAX_FLIGHT_STEP);
+    s = stepFlight(
+      s,
+      { throttle: 0, bodyTorque },
+      FREE_FLIGHT_LANDER,
+      { gravity: ZERO },
+      MAX_FLIGHT_STEP,
+    );
     pitch += s.angularVelocity.x * MAX_FLIGHT_STEP;
     if (n % 3 === 0) {
-      rate.push([t, s.angularVelocity.x * toDegrees]);
-      request.push([t, wanted * settings.maxRate.x * toDegrees]);
-      angle.push([t, pitch * toDegrees]);
+      rate.push([t, toDegrees(s.angularVelocity.x)]);
+      request.push([t, toDegrees(wanted * settings.maxRate.x)]);
+      angle.push([t, toDegrees(pitch)]);
     }
   }
   return {
@@ -195,36 +202,40 @@ export function rateResponse(fraction: number, responseTime: number, hold = 1.5)
     request,
     angle,
     fuel: 60 - s.fuelMass,
-    limit: (LANDER.maxTorque.x / LANDER.inertia.x) * toDegrees,
+    limit: toDegrees(LANDER.maxTorque.x / LANDER.inertia.x),
   };
 }
 
 // ---------------------------------------------------------------- integration
+
+/**
+ * One classic Runge–Kutta step of size `h` for a state written as plain numbers,
+ * given its derivative `f`. The spring and Newton's cannon share it.
+ */
+function rk4<S extends readonly number[]>(s: S, f: (state: S) => S, h: number): S {
+  const add = (a: S, b: S, k: number) => a.map((value, i) => value + b[i]! * k) as unknown as S;
+  const k1 = f(s);
+  const k2 = f(add(s, k1, h / 2));
+  const k3 = f(add(s, k2, h / 2));
+  const k4 = f(add(s, k3, h));
+  return s.map(
+    (value, i) => value + (h / 6) * (k1[i]! + 2 * k2[i]! + 2 * k3[i]! + k4[i]!),
+  ) as unknown as S;
+}
 
 /** One step of x″ = −ω²x, as [position, velocity]. */
 type Oscillator = readonly [x: number, v: number];
 
 const OMEGA = 2 * Math.PI; // One oscillation per second.
 const accel = ([x]: Oscillator) => -OMEGA * OMEGA * x;
+const spring = ([x, v]: Oscillator): Oscillator => [v, accel([x, v])];
 
 function eulerStep([x, v]: Oscillator, h: number): Oscillator {
   return [x + v * h, v + accel([x, v]) * h];
 }
 
 function rk4Step(s: Oscillator, h: number): Oscillator {
-  const f = ([x, v]: Oscillator): Oscillator => [v, accel([x, v])];
-  const add = (a: Oscillator, b: Oscillator, k: number): Oscillator => [
-    a[0] + b[0] * k,
-    a[1] + b[1] * k,
-  ];
-  const k1 = f(s);
-  const k2 = f(add(s, k1, h / 2));
-  const k3 = f(add(s, k2, h / 2));
-  const k4 = f(add(s, k3, h));
-  return [
-    s[0] + (h / 6) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]),
-    s[1] + (h / 6) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]),
-  ];
+  return rk4(s, spring, h);
 }
 
 export interface Integrators {
@@ -329,7 +340,7 @@ export function legDrop(
   };
   const mass = LANDER.dryMass + 60;
   let s = state({
-    position: { x: 0, y: 1.5 + 0.02, z: 0 },
+    position: { x: 0, y: CENTER_OF_MASS_HEIGHT + 0.02, z: 0 },
     velocity: { x: 0, y: -speed, z: 0 },
     fuelMass: 60,
   });
@@ -344,13 +355,13 @@ export function legDrop(
     const leg = facts.find((fact) => fact.kind === 'leg')!;
     touched ||= leg.normalForce > 0;
     maxCompression = Math.max(maxCompression, leg.penetration);
-    if (touched) bounce = Math.max(bounce, s.position.y - 1.5);
+    if (touched) bounce = Math.max(bounce, s.position.y - CENTER_OF_MASS_HEIGHT);
     bellStrike ||= facts.some((fact) => fact.id === 'engine-bell' && fact.normalForce > 0);
     if (n % 2 === 0) {
       compression.push([n * MAX_FLIGHT_STEP, leg.penetration]);
       velocity.push([n * MAX_FLIGHT_STEP, s.velocity.y]);
     }
-    s = stepFlight(s, { throttle: 0, bodyTorque: ZERO }, vehicle, environment, MAX_FLIGHT_STEP);
+    s = stepFlight(s, COAST, vehicle, environment, MAX_FLIGHT_STEP);
   }
   const omega = Math.sqrt((4 * stiffness) / mass);
   return {
@@ -396,25 +407,13 @@ export function cannon(speed: number, altitude = 100_000): Cannon {
     const r3 = Math.hypot(x, y) ** 3;
     return [vx, vy, (-MOON.mu * x) / r3, (-MOON.mu * y) / r3];
   };
-  const add = (p: S, d: S, k: number): S => [
-    p[0] + d[0] * k,
-    p[1] + d[1] * k,
-    p[2] + d[2] * k,
-    p[3] + d[3] * k,
-  ];
   let s: S = [0, r0, speed, 0];
   const h = 5;
   const limit = period ? Math.min(period * 60 * 1.02, 6 * 3600) : 3 * 3600;
   const path: Point[] = [[0, r0 / 1000]];
   let outcome: Cannon['outcome'] = energy >= 0 ? 'escape' : 'orbit';
   for (let t = 0; t < limit; t += h) {
-    const k1 = f(s);
-    const k2 = f(add(s, k1, h / 2));
-    const k3 = f(add(s, k2, h / 2));
-    const k4 = f(add(s, k3, h));
-    s = [0, 1, 2, 3].map(
-      (i) => s[i]! + (h / 6) * (k1[i]! + 2 * k2[i]! + 2 * k3[i]! + k4[i]!),
-    ) as unknown as S;
+    s = rk4(s, f, h);
     if (Math.round(t / h) % 6 === 0) path.push([s[0] / 1000, s[1] / 1000]);
     if (Math.hypot(s[0], s[1]) <= MOON.radius) {
       outcome = 'crash';

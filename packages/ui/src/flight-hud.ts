@@ -2,12 +2,14 @@ import { LitElement, html, nothing } from 'lit';
 import { property } from 'lit/decorators.js';
 import { msg, updateWhenLocaleChanges } from '@lit/localize';
 import { helpDialog, quickCard } from './help';
+import { icons } from './icons';
 import { instruments } from './instruments';
 import { type Locale, viewportMessages } from './localization';
 import { reportCard, verdictTitle } from './report-card';
 import { hudStyles } from './styles';
 import { uiTokens } from './tokens';
 import type {
+  AppearanceRequest,
   FlightPhase,
   FlightRequest,
   FlightTelemetry,
@@ -40,6 +42,12 @@ export class FlightHud extends LitElement {
   @property({ type: Boolean }) localePending = false;
   /** Whether the last locale request failed; the current locale stays usable. */
   @property({ type: Boolean }) localeError = false;
+  /**
+   * Solid panels without backdrop blur, as the player chose in Help. The system's
+   * `prefers-reduced-transparency` has the same effect without it.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'reduce-transparency' })
+  reduceTransparency = false;
 
   constructor() {
     super();
@@ -86,6 +94,16 @@ export class FlightHud extends LitElement {
     );
   }
 
+  private requestAppearance(reduceTransparency: boolean) {
+    this.dispatchEvent(
+      new CustomEvent<AppearanceRequest>('appearance-request', {
+        detail: { reduceTransparency },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   private openHelp() {
     // Reading help should never cost the player their flight.
     if (this.phase === 'flying') this.request('pause');
@@ -109,34 +127,56 @@ export class FlightHud extends LitElement {
     }
   }
 
-  private primaryAction() {
-    switch (this.phase) {
-      case 'ready':
-        return html`<button @click=${() => this.request('start')}>
-          ${msg('Comenzar', { id: 'start' })}
-        </button>`;
-      case 'flying':
-        return html`<button @click=${() => this.request('pause')}>
-          ${msg('Pausar', { id: 'pause' })}
-        </button>`;
-      case 'paused':
-        return html`<button @click=${() => this.request('resume')}>
-          ${msg('Reanudar', { id: 'resume' })}
-        </button>`;
-      case 'complete':
-        return nothing;
-    }
+  // Icon buttons beside the view options while a flight is under way.
+  private flightActions() {
+    if (this.phase !== 'flying' && this.phase !== 'paused') return nothing;
+    const flying = this.phase === 'flying';
+    const toggle = flying ? msg('Pausar', { id: 'pause' }) : msg('Reanudar', { id: 'resume' });
+    const restart = msg('Reiniciar', { id: 'restart' });
+    return html`<div class="actions">
+      <button
+        class="icon"
+        @click=${() => this.request(flying ? 'pause' : 'resume')}
+        aria-label=${toggle}
+        title=${toggle}
+        aria-keyshortcuts="P"
+      >
+        ${flying ? icons.pause() : icons.play()}
+      </button>
+      <button
+        class="icon"
+        @click=${() => this.request('restart')}
+        aria-label=${restart}
+        title=${restart}
+        aria-keyshortcuts="Enter"
+      >
+        ${icons.restart()}
+      </button>
+    </div>`;
   }
 
   /** Lit template implementation, separate from the host-facing property/event contract. @internal */
   render() {
     const text = viewportMessages();
+    const mute = msg('Silenciar', { id: 'mute' });
+    const help = msg('Ayuda', { id: 'help' });
+    const underway = this.phase === 'flying' || this.phase === 'paused';
+    // The live region always exists, so later messages are announced. It is only
+    // visually hidden when empty, and after a verdict, when the card shows the title.
+    const message = this.phaseMessage();
+    const quiet = !message || this.phase === 'complete';
     return html`
-      <header>
-        <div class="identity">
-          <h1>${this.heading}</h1>
-          <p id="subtitle">${text.subtitle}</p>
+      <header class=${underway ? 'underway' : ''}>
+        <div class="brand">
+          <div class="identity">
+            <h1>${this.heading}</h1>
+          </div>
+          <p class="mission">
+            <span class="dot ${this.phase}" aria-hidden="true"></span>
+            <span id="subtitle">${text.subtitle}</span>
+          </p>
         </div>
+        ${this.flightActions()}
         <nav aria-label=${msg('Opciones de vista', { id: 'view-options' })}>
           <select
             aria-label=${msg('Idioma', { id: 'language' })}
@@ -148,11 +188,24 @@ export class FlightHud extends LitElement {
             <option value="es-AR">ES</option>
             <option value="en">EN</option>
           </select>
-          <button @click=${this.toggleSound} aria-pressed=${this.muted ? 'true' : 'false'}>
-            ${msg('Silenciar', { id: 'mute' })}
+          <button
+            class="icon"
+            @click=${this.toggleSound}
+            aria-pressed=${this.muted ? 'true' : 'false'}
+            aria-label=${mute}
+            title=${mute}
+            aria-keyshortcuts="M"
+          >
+            ${this.muted ? icons.muted() : icons.sound()}
           </button>
-          <button @click=${this.openHelp} aria-haspopup="dialog">
-            ${msg('Ayuda', { id: 'help' })}
+          <button
+            class="icon"
+            @click=${this.openHelp}
+            aria-haspopup="dialog"
+            aria-label=${help}
+            title=${help}
+          >
+            ${icons.help()}
           </button>
         </nav>
       </header>
@@ -161,44 +214,48 @@ export class FlightHud extends LitElement {
       ${
         this.status === 'ready'
           ? html`<div class="overlay">
-                <p id="phase" role="status" class=${this.phase === 'complete' ? 'sr' : ''}>
-                  ${this.phaseMessage()}
-                </p>
+                <p id="phase" role="status" class=${quiet ? 'sr' : ''}>${message}</p>
                 ${this.phase === 'ready' && this.showControls ? quickCard() : nothing}
-                ${this.phase === 'complete' && this.report ? reportCard(this.report, this.locale, () => this.request('restart')) : nothing}
-              </div>
-              <div class="bottom">
                 ${
-                  this.telemetry
-                    ? html`<section
-                        class="instruments"
-                        aria-label=${msg('Instrumentos de vuelo', { id: 'instruments' })}
-                      >
-                        ${instruments(this.telemetry, this.locale)}
-                      </section>`
+                  this.phase === 'ready'
+                    ? html`<div class="actions">
+                        <button
+                          class="primary"
+                          @click=${() => this.request('start')}
+                          aria-keyshortcuts="P"
+                        >
+                          ${msg('Comenzar', { id: 'start' })}<kbd aria-hidden="true">P</kbd>
+                        </button>
+                      </div>`
                     : nothing
                 }
-                <div class="side">
-                  <div class="actions">
-                    ${this.primaryAction()}
-                    ${
-                      this.phase === 'ready'
-                        ? nothing
-                        : html`<button @click=${() => this.request('restart')}>
-                            ${
-                              this.phase === 'complete'
-                                ? msg('Reintentar', { id: 'retry' })
-                                : msg('Reiniciar', { id: 'restart' })
-                            }
-                          </button>`
-                    }
-                  </div>
-                  <p id="controls">${text.controls}</p>
-                </div>
-              </div>`
+              </div>
+              ${
+                this.telemetry
+                  ? html`<section
+                      class="instruments"
+                      aria-label=${msg('Instrumentos de vuelo', { id: 'instruments' })}
+                    >
+                      ${instruments(this.telemetry, this.locale)}
+                    </section>`
+                  : nothing
+              }
+              <p id="controls">${text.controls}</p>
+              ${
+                this.phase === 'complete' && this.report
+                  ? html`<div class="results">
+                      ${reportCard(this.report, this.locale, this.manualHref, () => this.request('restart'))}
+                    </div>`
+                  : nothing
+              }`
           : nothing
       }
-      ${helpDialog(this.manualHref, () => this.closeHelp())}
+      ${helpDialog(
+        this.manualHref,
+        this.reduceTransparency,
+        () => this.closeHelp(),
+        (reduce) => this.requestAppearance(reduce),
+      )}
     `;
   }
 }

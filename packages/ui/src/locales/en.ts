@@ -73,4 +73,14 @@ export const templates = {
   'open-manual': 'Open the manual (new tab)',
   mute: 'Mute',
   'help-mute': 'Mute / unmute sound',
+  'hover-label': 'Hover',
+  'safe-sink': 'Safe sink',
+  'safe-sink-up-to': 'Safe sink up to',
+  'too-fast': 'Sinking faster than the safe sink',
+  'sink-help':
+    'The scale under vertical speed shades how fast it is wise to sink at your altitude. It is a guide: the landing limits do not change.',
+  'display-title': 'Display',
+  'reduce-transparency': 'Reduce transparency',
+  'reduce-transparency-note':
+    'Solid panels without blur. It is on anyway when your system asks for less transparency.',
 };

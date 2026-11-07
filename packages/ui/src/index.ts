@@ -2,6 +2,7 @@
 export { setLocale, viewportMessages, type Locale } from './localization';
 export { FlightHud, registerUi } from './flight-hud';
 export type {
+  AppearanceRequest,
   FlightPhase,
   FlightRequest,
   FlightTelemetry,

@@ -14,6 +14,12 @@ export interface SoundRequest {
   readonly muted: boolean;
 }
 
+/** A requested appearance setting; the host applies and persists it, then sets the property. */
+export interface AppearanceRequest {
+  /** Solid panels without backdrop blur. */
+  readonly reduceTransparency: boolean;
+}
+
 /** Session phase decided by the host; the HUD only presents it. */
 export type FlightPhase = 'ready' | 'flying' | 'paused' | 'complete';
 
@@ -63,6 +69,11 @@ export interface FlightTelemetry {
   readonly altitude: number;
   /** World vertical velocity in metres per second; negative is descending. */
   readonly verticalSpeed: number;
+  /**
+   * Fastest sink the host advises at this altitude, in metres per second
+   * (positive). A hint drawn under vertical speed; omit it to hide the scale.
+   */
+  readonly safeSink?: number;
   /** Horizontal speed magnitude in metres per second. */
   readonly horizontalSpeed: number;
   /** Horizontal distance from the pad reference, in metres. */

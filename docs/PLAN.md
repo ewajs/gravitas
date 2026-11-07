@@ -287,11 +287,107 @@ pinch zoom and double-tap zoom are blocked.
         [ADR 0017](decisions/0017-phone-play.md) and
         [mobile verification](verification/mobile.md).
 
+## M5 — From orbit to surface
+
+The engine grows from a flat local hop to a whole moon: gravity from a spherical
+body, frames and precision fit for planetary distances, orbits and time warp, a
+cratered surface built from real elevation data, and a second vehicle, ending in a
+level where the pilot lands anywhere on the Moon from orbit. Owner decisions on
+2026-11-07: about 80% of the effort goes to engine features and about 20% to small
+polish woven in between; engine throttle realism (response lag, minimum thrust,
+restart limits) is tabled until the vehicles and missions work, where vehicle tuning
+belongs. The opening hop stays available and its regression flights stay
+bit-identical unless a step says otherwise.
+
+- [ ] **5.1 Central-body gravity and frames:** a gravity model the scenario selects:
+      today's uniform field, or an inverse-square point mass (the Moon: mean radius
+      1,737.4 km, GM 4,902.8 km³/s²). A Moon-centred inertial frame for orbital
+      state, a local surface frame (topocentric, Y up) for the lander, and
+      engine-side conversions between them; a precision budget for float64 state
+      at lunar distances. An ADR for frames, rotation of the Moon (likely ignored at
+      first, documented), and what the viewport receives. **Verify:** two-body
+      reference cases (circular period, energy and angular momentum conservation
+      over many orbits, escape speed); frame round trips; opening flights
+      bit-identical under the uniform model.
+- [ ] **5.2 Orbits and time warp:** orbital elements from state and back (pure
+      engine functions); unpowered coasting propagated analytically (Kepler) or
+      integrated, with switching rules decided here; time-warp levels the session
+      offers, with limits (no warp under thrust, near the surface, or at contact).
+      **Verify:** Kepler against RK4, element round trips including near-circular
+      and near-equatorial cases, warp never skipping contact or a thrust change,
+      wall time versus simulated time under warp.
+- [ ] **5.3 Planetary-scale view and orbital instruments:** a lit Moon sphere,
+      camera-relative (floating-origin) rendering so float32 GPUs stay steady at
+      planetary distances, an orbit line, an orbit/map camera beside the chase
+      camera; HUD apoapsis, periapsis, time to each, orbital speed, and warp
+      controls on keyboard, gamepad, and touch. **Verify:** no jitter at orbital
+      distances on both backends; instrument values against engine elements; phone
+      layout tests still clear the centre.
+- [ ] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
+      public NASA elevation grid, with everything finer generated from a fixed
+      seed, so any spot can be landed on. Owner decision on 2026-11-07: LDEM_4
+      only, no streamed higher-resolution tiles. Two stacked PRs:
+  - [ ] **5.4a Height model and contact:** a pure engine height function over the
+        sphere: the LRO LOLA LDEM_4 grid (about 7.6 km per sample, the whole Moon
+        in roughly 2 MB) sampled smoothly, plus procedural detail below its
+        resolution (craters following the lunar size–frequency distribution,
+        boulders, and fractal roughness) from one static seed, so the same spot
+        always looks and feels the same. The app loads the grid once and hands the
+        engine a plain typed array. Contact, local surface normals, and altitude
+        above the ground come from this one function. `npm run moon-data`
+        downloads the source product, checks its checksum, and writes the shipped
+        asset with a provenance and licence note. **Verify:** sampling against the
+        source grid; continuity at the poles and the date line; procedural detail
+        identical across runs; contact reference cases on slopes; flat-ground
+        contact unchanged where the curvature is negligible.
+  - [ ] **5.4b Terrain rendering:** a level-of-detail sphere built on a cube with
+        a quadtree of tiles (detail grows near the camera), meshed from the same
+        height function so what is drawn matches what the legs touch near the
+        ground; tiles generated and released on demand, in a worker if profiling
+        asks for one; lighting with a low Sun so relief reads, and a Moon colour
+        map. A performance budget set from the 3.3 measurements and held on the
+        Galaxy A70 class: a first download of a few megabytes and fixed triangle
+        and memory ceilings. **Verify:** `npm run measure` against the budget on
+        both browsers; no gaps or cracks between tiles; drawn height against the
+        engine height under the legs; both backends.
+- [ ] **5.5 Free landing from orbit:** a second level with its own vehicle. Two
+      stacked PRs:
+  - [ ] **5.5a Vehicle definitions and a descent vehicle:** a vehicle becomes
+        plain, validated data (mass properties, main engine thrust and specific
+        impulse, attitude thrusters, legs and hull contact points, centre of
+        mass, and the viewport's model description) that the engine, the
+        viewport, and the game read instead of the first lander's constants. The
+        first lander becomes the first definition, unchanged; a new descent
+        vehicle with propellant for about 2 km/s is the second. Owner decision on
+        2026-11-07: this is the seed of a future vehicle library, kept to what two
+        vehicles need; no staging, vehicle selector, editor, or tabled throttle
+        realism. **Verify:** definition validation unit tests; opening flights
+        bit-identical with the first lander as data; the descent vehicle's hover
+        throttle, mass flow, and delta-v against the rocket equation.
+  - [ ] **5.5b The level:** chosen from the start card beside the opening hop:
+        start in lunar orbit in the descent vehicle, deorbit, and land anywhere on
+        the Moon. No pad; the verdict uses the existing limits-based classifier
+        with level-specific limits on vertical speed, horizontal speed, and tilt
+        from the local vertical, and the lander must stay upright once settled, so
+        a slope or a boulder field can tip it. Instruments for picking a spot:
+        local slope and roughness under the radar, and a ground-track marker.
+        Manual pages (es/en) and Learn material on orbits and descent.
+        **Verify:** a scripted pilot flying from orbit to a landing on flat mare
+        and failing on a steep crater wall; fuel use against the rocket equation;
+        both browser suites.
+
+Polish, woven in between steps (about one step in five):
+
+- [ ] **5.p1 Phone fixes:** whatever the owner's on-device check of v0.3.1 on the
+      iPhone 15 Pro and the Galaxy A70 turns up.
+- [ ] **5.p2 Offline play and updates:** a service worker so an installed game
+      opens without a connection, with a quiet notice when a new version is ready.
+
 ## Later decisions
 
-Workers based on profiling; PWA offline/update flow; orbits/reference frames;
-curved terrain; multiple vehicles; construction/staging; replay/save formats;
-library publication. No implied order.
+Workers based on profiling; multiple vehicles and missions, with engine throttle
+realism (response lag, minimum thrust, restart limits) and other vehicle tuning;
+construction/staging; replay/save formats; library publication. No implied order.
 
 MIT is selected for code/documentation. Track third-party asset licenses and
 provenance when assets arrive.

@@ -86,7 +86,9 @@ describe('orbital elements', () => {
     expect(orbit.specificEnergy).toBeCloseTo(-mu / (2 * a), 4);
     // At apoapsis: half a period to periapsis, a full one to the next apoapsis.
     expect(orbit.timeToPeriapsis).toBeCloseTo(orbit.period / 2, 6);
-    expect(orbit.timeToApoapsis! % orbit.period).toBeCloseTo(0, 4);
+    // Exactly at apoapsis, rounding puts the next one either now or a period away.
+    const toApoapsis = orbit.timeToApoapsis!;
+    expect(Math.min(toApoapsis, orbit.period - toApoapsis)).toBeCloseTo(0, 4);
   });
 
   it('round-trips elements through position and velocity, special cases included', () => {

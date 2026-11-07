@@ -34,8 +34,8 @@ export {
   type SurfaceFrame,
   type SurfacePosition,
 } from './frames';
+export { coastAttitude } from './rotation';
 export {
-  coastAttitude,
   coastOnRails,
   orbitFromState,
   orbitOf,
@@ -53,14 +53,19 @@ export { bodyToWorld, headingAngle, tiltAngle } from './orientation';
 export {
   add,
   addScaled,
+  addScaledQuaternion,
   clamp,
   conjugate,
   cross,
   dot,
   magnitude,
+  modulo,
   multiplyQuaternions,
   normalizeQuaternion,
   rotationAbout,
+  scale,
+  signedAngle,
+  subtract,
   toDegrees,
   toRadians,
 } from './math';

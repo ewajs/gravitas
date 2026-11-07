@@ -116,8 +116,8 @@ const later = coastOnRails(state, vehicle.inertia, MOON, 'body-fixed', time, 600
 `orbitFromState` and `stateFromOrbit` convert between inertial position and
 velocity and the six classical elements (radii in metres from the centre, angles
 in radians). `propagateKepler` solves Kepler's problem for any conic.
-`coastOnRails` adds torque-free rotation (`coastAttitude`) and the frame
-conversions; it is what the game's rails time warp runs
+`coastOnRails` adds torque-free rotation (`coastAttitude`, which shares
+`stepFlight`'s Euler equations and quaternion rate) and the frame conversions; it is what the game's rails time warp runs
 ([ADR 0019](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0019-orbits-and-time-warp.md)).
 
 ## Surface contact
@@ -167,9 +167,11 @@ Equations, parameters, worked examples, and simplifications are in the
 ## Math helpers
 
 The dynamics use small helpers over the shared `Vector3` and `Quaternion` types,
-and hosts use the same ones instead of their own copies: `add`, `addScaled`,
-`dot`, `cross`, and `magnitude` for vectors; `normalizeQuaternion`, `conjugate`,
-`multiplyQuaternions`, and `rotationAbout` for rotations; and `clamp`, `toRadians`, and `toDegrees` for
+and hosts use the same ones instead of their own copies: `add`, `subtract`,
+`scale`, `addScaled`, `dot`, `cross`, `magnitude`, and `signedAngle` for vectors;
+`normalizeQuaternion`, `conjugate`, `multiplyQuaternions`, `addScaledQuaternion`,
+and `rotationAbout` for rotations; and `clamp`, `modulo` (a remainder that is
+never negative, for wrapping angles and times), `toRadians`, and `toDegrees` for
 numbers. They return new objects but, unlike the simulation functions, do not
 validate (NaN in gives NaN out), because they run in every integration stage.
 Engine angles are radians; convert degrees only at the edges. The main entry

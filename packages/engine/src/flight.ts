@@ -15,7 +15,14 @@ import {
   type FrameRotation,
   type GravityField,
 } from './gravity';
-import { add, addScaled, normalizeQuaternion } from './math';
+import {
+  add,
+  addScaled,
+  addScaledQuaternion,
+  multiplyQuaternions,
+  normalizeQuaternion,
+} from './math';
+import { angularAcceleration, quaternionRate } from './rotation';
 import { bounded, positive, unitQuaternion, vector } from './validation';
 
 /** Physical state owned by the host; all vectors are independent immutable snapshots. */
@@ -128,10 +135,7 @@ function advance(s: FlightState, d: FlightState, h: number): FlightState {
     position: addScaled(s.position, d.position, h),
     velocity: addScaled(s.velocity, d.velocity, h),
     angularVelocity: addScaled(s.angularVelocity, d.angularVelocity, h),
-    orientation: {
-      ...addScaled(s.orientation, d.orientation, h),
-      w: s.orientation.w + d.orientation.w * h,
-    },
+    orientation: addScaledQuaternion(s.orientation, d.orientation, h),
     fuelMass: s.fuelMass + d.fuelMass * h,
   };
 }
@@ -156,8 +160,6 @@ function derivative(
   a: Actuation,
 ): FlightState {
   const q = s.orientation;
-  const w = s.angularVelocity;
-  const i = v.inertia;
   const gravity = gravityAcceleration(environment.gravity, s.position);
   const mass = v.dryMass + Math.max(0, s.fuelMass);
   const contact =
@@ -184,19 +186,8 @@ function derivative(
         contact.force.z / mass +
         (acceleration * 2 * (q.y * q.z + q.x * q.w)) / normSquared,
     },
-    // Euler's equation in principal body axes: I w-dot = torque - w cross (I w).
-    angularVelocity: {
-      x: (torque.x + (i.y - i.z) * w.y * w.z) / i.x,
-      y: (torque.y + (i.z - i.x) * w.z * w.x) / i.y,
-      z: (torque.z + (i.x - i.y) * w.x * w.y) / i.z,
-    },
-    // Body-to-world quaternion: q-dot = 1/2 q * [omega_body, 0].
-    orientation: {
-      x: (q.w * w.x + q.y * w.z - q.z * w.y) / 2,
-      y: (q.w * w.y + q.z * w.x - q.x * w.z) / 2,
-      z: (q.w * w.z + q.x * w.y - q.y * w.x) / 2,
-      w: -(q.x * w.x + q.y * w.y + q.z * w.z) / 2,
-    },
+    angularVelocity: angularAcceleration(s.angularVelocity, v.inertia, torque),
+    orientation: quaternionRate(q, s.angularVelocity),
     fuelMass: -a.massFlow,
   };
   return environment.rotation ? inRotatingFrame(s, derivatives, environment.rotation) : derivatives;
@@ -207,17 +198,11 @@ function derivative(
 // behind by the frame's own spin: q-dot = 1/2 q * omega_body - 1/2 Omega_world * q.
 function inRotatingFrame(s: FlightState, d: FlightState, rotation: FrameRotation): FlightState {
   const fictitious = rotatingFrameAcceleration(rotation, s.position, s.velocity);
-  const q = s.orientation;
-  const o = rotation.angularVelocity;
+  const frameSpin = multiplyQuaternions({ ...rotation.angularVelocity, w: 0 }, s.orientation);
   return {
     ...d,
     velocity: add(d.velocity, fictitious),
-    orientation: {
-      x: d.orientation.x - (q.w * o.x + o.y * q.z - o.z * q.y) / 2,
-      y: d.orientation.y - (q.w * o.y + o.z * q.x - o.x * q.z) / 2,
-      z: d.orientation.z - (q.w * o.z + o.x * q.y - o.y * q.x) / 2,
-      w: d.orientation.w + (o.x * q.x + o.y * q.y + o.z * q.z) / 2,
-    },
+    orientation: addScaledQuaternion(d.orientation, frameSpin, -0.5),
   };
 }
 

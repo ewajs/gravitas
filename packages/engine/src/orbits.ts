@@ -1,4 +1,4 @@
-import type { Quaternion, Vector3 } from './pose';
+import type { Vector3 } from './pose';
 import type { FlightState } from './flight';
 import {
   bodyFixedToInertial,
@@ -6,7 +6,19 @@ import {
   validateBody,
   type CelestialBody,
 } from './frames';
-import { cross, dot, magnitude, normalizeQuaternion } from './math';
+import {
+  cross,
+  dot,
+  magnitude,
+  modulo,
+  multiplyQuaternions,
+  rotationAbout,
+  scale,
+  signedAngle,
+  subtract,
+} from './math';
+import { bodyToWorld } from './orientation';
+import { coastAttitude } from './rotation';
 import { bounded, finite, nonNegative, positive, unitQuaternion, vector } from './validation';
 
 // Two-body orbits around a CelestialBody, in its inertial frame (ADR 0018): the
@@ -77,11 +89,6 @@ const X: Vector3 = { x: 1, y: 0, z: 0 };
 
 const toTextbook = (v: Vector3): Vector3 => ({ x: v.x, y: -v.z, z: v.y });
 const fromTextbook = (v: Vector3): Vector3 => ({ x: v.x, y: v.z, z: -v.y });
-const scale = (v: Vector3, s: number): Vector3 => ({ x: v.x * s, y: v.y * s, z: v.z * s });
-const wrap = (angle: number) => ((angle % TWO_PI) + TWO_PI) % TWO_PI;
-// Signed angle from a to b about the axis n (a unit normal).
-const angleAbout = (a: Vector3, b: Vector3, n: Vector3) =>
-  Math.atan2(dot(cross(a, b), n), dot(a, b));
 
 /**
  * The orbit through an inertial position and velocity around a body with
@@ -101,12 +108,9 @@ export function orbitFromState(state: OrbitalState, gravitationalParameter: numb
   positive(hMagnitude, 'angular momentum (a straight-line fall has no orbital plane)');
   const hHat = scale(h, 1 / hMagnitude);
   const speedSquared = dot(v, v);
+  // e = ((v² − μ/r) r − (r·v) v) / μ, pointing at periapsis.
   const eVector = scale(
-    {
-      x: (speedSquared - mu / radius) * r.x - dot(r, v) * v.x,
-      y: (speedSquared - mu / radius) * r.y - dot(r, v) * v.y,
-      z: (speedSquared - mu / radius) * r.z - dot(r, v) * v.z,
-    },
+    subtract(scale(r, speedSquared - mu / radius), scale(v, dot(r, v))),
     1 / mu,
   );
   const e = magnitude(eVector);
@@ -117,10 +121,10 @@ export function orbitFromState(state: OrbitalState, gravitationalParameter: numb
   const equatorial = nodeLength < EQUATORIAL * hMagnitude;
   const circular = e < CIRCULAR;
   const reference = equatorial ? X : scale(node, 1 / nodeLength);
-  const ascendingNode = equatorial ? 0 : wrap(Math.atan2(node.y, node.x));
-  const argumentOfPeriapsis = circular ? 0 : wrap(angleAbout(reference, eVector, hHat));
-  const fromPeriapsis = angleAbout(circular ? reference : eVector, r, hHat);
-  const trueAnomaly = e < 1 ? wrap(fromPeriapsis) : fromPeriapsis;
+  const ascendingNode = equatorial ? 0 : modulo(Math.atan2(node.y, node.x), TWO_PI);
+  const argumentOfPeriapsis = circular ? 0 : modulo(signedAngle(reference, eVector, hHat), TWO_PI);
+  const fromPeriapsis = signedAngle(circular ? reference : eVector, r, hHat);
+  const trueAnomaly = e < 1 ? modulo(fromPeriapsis, TWO_PI) : fromPeriapsis;
   const elements: OrbitalElements = {
     periapsis: p / (1 + e),
     eccentricity: circular ? 0 : e,
@@ -147,14 +151,18 @@ export function stateFromOrbit(
   // Perifocal frame (x toward periapsis, z along h), then node, tilt, and periapsis turns.
   const position = { x: r * Math.cos(nu), y: r * Math.sin(nu), z: 0 };
   const velocity = { x: -speed * Math.sin(nu), y: speed * (e + Math.cos(nu)), z: 0 };
-  const turn = (u: Vector3) =>
-    fromTextbook(
-      rotateZ(
-        rotateX(rotateZ(u, elements.argumentOfPeriapsis), elements.inclination),
-        elements.ascendingNode,
-      ),
-    );
-  return { position: turn(position), velocity: turn(velocity) };
+  // Perifocal to textbook axes: turn by ω about z, tilt by i about x, turn by Ω about z.
+  const turn = multiplyQuaternions(
+    rotationAbout('z', elements.ascendingNode),
+    multiplyQuaternions(
+      rotationAbout('x', elements.inclination),
+      rotationAbout('z', elements.argumentOfPeriapsis),
+    ),
+  );
+  return {
+    position: fromTextbook(bodyToWorld(turn, position)),
+    velocity: fromTextbook(bodyToWorld(turn, velocity)),
+  };
 }
 
 /**
@@ -260,7 +268,7 @@ export function timeToRadius(
   const gap =
     timeSincePeriapsis(e, p, gravitationalParameter, descending) -
     timeSincePeriapsis(e, p, gravitationalParameter, orbit.trueAnomaly);
-  if (e < 1) return wrapTime(gap, orbit.period);
+  if (e < 1) return modulo(gap, orbit.period);
   return gap >= 0 ? gap : undefined;
 }
 
@@ -321,68 +329,6 @@ export function coastOnRails(
   return frame === 'inertial' ? next : inertialToBodyFixed(next, body, time + dt);
 }
 
-/**
- * Torque-free rotation for `dt` seconds: Euler's equations and the quaternion rate,
- * by RK4 in steps short enough that the body turns at most 0.01 rad per step (and
- * at most 1 s). Orientation and rates are inertial.
- */
-export function coastAttitude(
-  orientation: Quaternion,
-  angularVelocity: Vector3,
-  inertia: Vector3,
-  dt: number,
-): { readonly orientation: Quaternion; readonly angularVelocity: Vector3 } {
-  const rate = magnitude(angularVelocity);
-  if (rate === 0 || dt === 0)
-    return { orientation: { ...orientation }, angularVelocity: { ...angularVelocity } };
-  const steps = Math.ceil(dt / Math.min(1, 0.01 / rate));
-  const h = dt / steps;
-  const derivative = (q: Quaternion, w: Vector3): [Quaternion, Vector3] => [
-    {
-      x: (q.w * w.x + q.y * w.z - q.z * w.y) / 2,
-      y: (q.w * w.y + q.z * w.x - q.x * w.z) / 2,
-      z: (q.w * w.z + q.x * w.y - q.y * w.x) / 2,
-      w: -(q.x * w.x + q.y * w.y + q.z * w.z) / 2,
-    },
-    {
-      x: ((inertia.y - inertia.z) * w.y * w.z) / inertia.x,
-      y: ((inertia.z - inertia.x) * w.z * w.x) / inertia.y,
-      z: ((inertia.x - inertia.y) * w.x * w.y) / inertia.z,
-    },
-  ];
-  const addQ = (q: Quaternion, d: Quaternion, k: number): Quaternion => ({
-    x: q.x + d.x * k,
-    y: q.y + d.y * k,
-    z: q.z + d.z * k,
-    w: q.w + d.w * k,
-  });
-  const addV = (v: Vector3, d: Vector3, k: number): Vector3 => ({
-    x: v.x + d.x * k,
-    y: v.y + d.y * k,
-    z: v.z + d.z * k,
-  });
-  let q = orientation;
-  let w = angularVelocity;
-  for (let n = 0; n < steps; n++) {
-    const [q1, w1] = derivative(q, w);
-    const [q2, w2] = derivative(addQ(q, q1, h / 2), addV(w, w1, h / 2));
-    const [q3, w3] = derivative(addQ(q, q2, h / 2), addV(w, w2, h / 2));
-    const [q4, w4] = derivative(addQ(q, q3, h), addV(w, w3, h));
-    q = normalizeQuaternion({
-      x: q.x + (h / 6) * (q1.x + 2 * q2.x + 2 * q3.x + q4.x),
-      y: q.y + (h / 6) * (q1.y + 2 * q2.y + 2 * q3.y + q4.y),
-      z: q.z + (h / 6) * (q1.z + 2 * q2.z + 2 * q3.z + q4.z),
-      w: q.w + (h / 6) * (q1.w + 2 * q2.w + 2 * q3.w + q4.w),
-    });
-    w = {
-      x: w.x + (h / 6) * (w1.x + 2 * w2.x + 2 * w3.x + w4.x),
-      y: w.y + (h / 6) * (w1.y + 2 * w2.y + 2 * w3.y + w4.y),
-      z: w.z + (h / 6) * (w1.z + 2 * w2.z + 2 * w3.z + w4.z),
-    };
-  }
-  return { orientation: q, angularVelocity: w };
-}
-
 function withTiming(elements: OrbitalElements, mu: number, energy: number): Orbit {
   const e = elements.eccentricity;
   const p = elements.periapsis * (1 + e);
@@ -393,8 +339,8 @@ function withTiming(elements: OrbitalElements, mu: number, energy: number): Orbi
   let timeToPeriapsis: number | undefined;
   let timeToApoapsis: number | undefined;
   if (bound && e > 0) {
-    timeToPeriapsis = wrapTime(-now, period);
-    timeToApoapsis = wrapTime(period / 2 - now, period);
+    timeToPeriapsis = modulo(-now, period);
+    timeToApoapsis = modulo(period / 2 - now, period);
   } else if (!bound && now < 0) {
     timeToPeriapsis = -now;
   }
@@ -426,8 +372,6 @@ function timeSincePeriapsis(e: number, p: number, mu: number, nu: number): numbe
   return (e * Math.sinh(H) - H) / Math.sqrt(mu / (-a) ** 3);
 }
 
-const wrapTime = (t: number, period: number) => ((t % period) + period) % period;
-
 // Stumpff functions; series near zero, where the closed forms cancel badly.
 function stumpffC(z: number): number {
   if (Math.abs(z) < 1e-3) return 1 / 2 - z / 24 + (z * z) / 720 - (z * z * z) / 40_320;
@@ -443,18 +387,6 @@ function stumpffS(z: number): number {
   }
   const root = Math.sqrt(-z);
   return (Math.sinh(root) - root) / root ** 3;
-}
-
-function rotateZ(v: Vector3, angle: number): Vector3 {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  return { x: c * v.x - s * v.y, y: s * v.x + c * v.y, z: v.z };
-}
-
-function rotateX(v: Vector3, angle: number): Vector3 {
-  const c = Math.cos(angle);
-  const s = Math.sin(angle);
-  return { x: v.x, y: c * v.y - s * v.z, z: s * v.y + c * v.z };
 }
 
 function validateElements(elements: OrbitalElements): void {

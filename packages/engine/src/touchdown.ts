@@ -1,5 +1,6 @@
 import type { ContactFact } from './contact';
 import type { FlightState } from './flight';
+import { magnitude } from './math';
 import { tiltAngle } from './orientation';
 import { positive } from './validation';
 
@@ -131,13 +132,11 @@ export function updateTouchdown(
     Math.max(leg.approachSpeed, approachBefore.get(leg.id) ?? 0),
   );
   const { before, after } = tick;
-  const v = after.velocity;
-  const w = after.angularVelocity;
   const still =
     loadedLegs.length === legs.length &&
     legs.length > 0 &&
-    Math.hypot(v.x, v.y, v.z) < limits.restSpeed &&
-    Math.hypot(w.x, w.y, w.z) < limits.restAngularSpeed;
+    magnitude(after.velocity) < limits.restSpeed &&
+    magnitude(after.angularVelocity) < limits.restAngularSpeed;
   const hull = touching.find((fact) => fact.kind === 'hull');
   return {
     touchdown:

@@ -1,4 +1,5 @@
 import type { Quaternion, Vector3 } from './pose';
+import { clamp } from './math';
 
 /** Rotates a body-frame vector into the world by a unit body-to-world quaternion. */
 export function bodyToWorld(q: Quaternion, v: Vector3): Vector3 {
@@ -27,5 +28,5 @@ export function headingAngle(q: Quaternion): number {
 /** Angle between body +Y and world +Y in radians, independent of heading. */
 export function tiltAngle(q: Quaternion): number {
   // The world Y component of body +Y is 1 − 2(x² + z²).
-  return Math.acos(Math.max(-1, Math.min(1, 1 - 2 * (q.x * q.x + q.z * q.z))));
+  return Math.acos(clamp(1 - 2 * (q.x * q.x + q.z * q.z), -1, 1));
 }

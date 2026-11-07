@@ -3,8 +3,9 @@
 Pure flight dynamics over plain data, independent of rendering and browser APIs.
 It exports the shared `VehiclePose` contract, `stepFlight` for one rigid vehicle
 with optional surface contact, `contactFacts`,
-`rateControlTorque` for body-rate assistance, and the orientation helpers
-`bodyToWorld` and `headingAngle`. The host owns state, time,
+`rateControlTorque` for body-rate assistance, the orientation helpers
+`bodyToWorld`, `headingAngle`, and `tiltAngle`, and the vector and angle
+[math helpers](#math-helpers) the dynamics use. The host owns state, time,
 input mapping, and any mission rules.
 
 ```ts
@@ -37,8 +38,8 @@ coordinates. `FlightState` extends the pose with world velocity, body-axis angul
 velocity, and fuel, so presentation consumers can take flight state directly.
 
 The types are readonly, but TypeScript does not freeze runtime objects. Engine
-functions validate their inputs, throw `RangeError` for invalid data, and return
-new objects without mutating or aliasing caller data. Viewport separately validates
+simulation functions validate their inputs, throw `RangeError` for invalid data,
+and return new objects without mutating or aliasing caller data. Viewport separately validates
 poses at its boundary; the UI assumes valid snapshots. Mutating a shared object
 does not notify Lit, so pass a new snapshot when presentation data changes.
 
@@ -101,6 +102,23 @@ torque. Zero input brakes rotation; it never auto-levels or cancels velocity.
 Equations, parameters, worked examples, and simplifications are in the
 [flight model](https://github.com/ewajs/gravitas/blob/main/docs/FLIGHT.md) and
 [ADR 0008](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0008-flight-model.md).
+
+## Math helpers
+
+The dynamics use small helpers over the shared `Vector3` and `Quaternion` types,
+and hosts use the same ones instead of their own copies: `add`, `addScaled`,
+`dot`, `cross`, and `magnitude` for vectors; `normalizeQuaternion`, `conjugate`,
+and `rotationAbout` for rotations; and `clamp`, `toRadians`, and `toDegrees` for
+numbers. They return new objects but, unlike the simulation functions, do not
+validate (NaN in gives NaN out), because they run in every integration stage.
+Engine angles are radians; convert degrees only at the edges.
+
+```ts
+import { clamp, rotationAbout, toRadians } from '@gravitas/engine';
+
+const rolled = rotationAbout('z', toRadians(30)); // A 30° roll about +Z (right-hand rule)
+const lever = clamp(throttle + change, 0, 1);
+```
 
 ## Boundaries and future work
 

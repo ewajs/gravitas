@@ -1,4 +1,4 @@
-import type { Quaternion, Vector3, VehiclePose } from './pose';
+import type { Vector3, VehiclePose } from './pose';
 import {
   contactLoads,
   validateContacts,
@@ -6,6 +6,7 @@ import {
   type ContactPoint,
   type Surface,
 } from './contact';
+import { add, addScaled, normalizeQuaternion } from './math';
 import { bounded, positive, unitQuaternion, vector } from './validation';
 
 /** Physical state owned by the host; all vectors are independent immutable snapshots. */
@@ -105,17 +106,13 @@ function attitudeMassFlow(torque: Vector3, v: VehicleParameters): number {
   return force / v.attitudeExhaustVelocity;
 }
 
-function add(a: Vector3, b: Vector3, scale: number): Vector3 {
-  return { x: a.x + b.x * scale, y: a.y + b.y * scale, z: a.z + b.z * scale };
-}
-
 function advance(s: FlightState, d: FlightState, h: number): FlightState {
   return {
-    position: add(s.position, d.position, h),
-    velocity: add(s.velocity, d.velocity, h),
-    angularVelocity: add(s.angularVelocity, d.angularVelocity, h),
+    position: addScaled(s.position, d.position, h),
+    velocity: addScaled(s.velocity, d.velocity, h),
+    angularVelocity: addScaled(s.angularVelocity, d.angularVelocity, h),
     orientation: {
-      ...add(s.orientation, d.orientation, h),
+      ...addScaled(s.orientation, d.orientation, h),
       w: s.orientation.w + d.orientation.w * h,
     },
     fuelMass: s.fuelMass + d.fuelMass * h,
@@ -150,11 +147,7 @@ function derivative(
     environment.surface && v.contacts
       ? contactLoads(s, v.contacts, environment.surface)
       : { force: ZERO, torque: ZERO };
-  const torque = {
-    x: a.torque.x + contact.torque.x,
-    y: a.torque.y + contact.torque.y,
-    z: a.torque.z + contact.torque.z,
-  };
+  const torque = add(a.torque, contact.torque);
   // Intermediate RK stages need a unit rotation for thrust, but q-dot uses the raw stage q.
   const normSquared = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
   const acceleration = a.thrust / mass;
@@ -204,15 +197,7 @@ function rk4(
   const k3 = d(advance(s, k2, h / 2));
   const k4 = d(advance(s, k3, h));
   const result = advance(advance(advance(advance(s, k1, h / 6), k2, h / 3), k3, h / 3), k4, h / 6);
-  const q = result.orientation;
-  const length = Math.hypot(q.x, q.y, q.z, q.w);
-  const orientation: Quaternion = {
-    x: q.x / length,
-    y: q.y / length,
-    z: q.z / length,
-    w: q.w / length,
-  };
-  return { ...result, orientation };
+  return { ...result, orientation: normalizeQuaternion(result.orientation) };
 }
 
 function integrate(

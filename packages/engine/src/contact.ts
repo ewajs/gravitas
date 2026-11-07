@@ -1,4 +1,5 @@
-import type { Quaternion, Vector3, VehiclePose } from './pose';
+import type { Vector3, VehiclePose } from './pose';
+import { add, addScaled, conjugate, cross, dot, magnitude, normalizeQuaternion } from './math';
 import { bodyToWorld } from './orientation';
 import { finite, nonNegative, positive, vector } from './validation';
 
@@ -94,23 +95,6 @@ export function validateContacts(contacts: readonly ContactPoint[]): void {
   }
 }
 
-function cross(a: Vector3, b: Vector3): Vector3 {
-  return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x };
-}
-
-function dot(a: Vector3, b: Vector3): number {
-  return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-function unit(q: Quaternion): Quaternion {
-  const length = Math.hypot(q.x, q.y, q.z, q.w);
-  return { x: q.x / length, y: q.y / length, z: q.z / length, w: q.w / length };
-}
-
-function conjugate(q: Quaternion): Quaternion {
-  return { x: -q.x, y: -q.y, z: -q.z, w: q.w };
-}
-
 /** Per-point evaluation shared by forces and facts. */
 function evaluate(
   motion: ContactMotion,
@@ -119,31 +103,19 @@ function evaluate(
   visit: (point: ContactPoint, fact: ContactFact, force: Vector3, arm: Vector3) => void,
 ): void {
   // RK stages may carry a slightly non-unit quaternion; geometry uses its rotation.
-  const q = unit(motion.orientation);
+  const q = normalizeQuaternion(motion.orientation);
   const omega = bodyToWorld(q, motion.angularVelocity);
   for (const point of contacts) {
     const arm = bodyToWorld(q, point.position);
-    const position = {
-      x: motion.position.x + arm.x,
-      y: motion.position.y + arm.y,
-      z: motion.position.z + arm.z,
-    };
-    const spin = cross(omega, arm);
-    const velocity = {
-      x: motion.velocity.x + spin.x,
-      y: motion.velocity.y + spin.y,
-      z: motion.velocity.z + spin.z,
-    };
+    const position = add(motion.position, arm);
+    const velocity = add(motion.velocity, cross(omega, arm));
     const ground = surfaceBelow(surface, position.x, position.z);
     const n = ground.normal;
     const penetration = Math.max(0, (ground.height - position.y) * n.y);
     const normalVelocity = dot(velocity, n);
-    const tangent = {
-      x: velocity.x - normalVelocity * n.x,
-      y: velocity.y - normalVelocity * n.y,
-      z: velocity.z - normalVelocity * n.z,
-    };
-    const slipSpeed = Math.hypot(tangent.x, tangent.y, tangent.z);
+    // Velocity along the surface: the normal component removed.
+    const tangent = addScaled(velocity, n, -normalVelocity);
+    const slipSpeed = magnitude(tangent);
     // One-sided: the ground pushes but never pulls, even while the damper is extending.
     const damping = normalVelocity < 0 ? point.damping : point.reboundDamping;
     const normalForce =
@@ -191,7 +163,10 @@ export function contactLoads(
     torque.y += t.y;
     torque.z += t.z;
   });
-  return { force, torque: bodyToWorld(conjugate(unit(motion.orientation)), torque) };
+  return {
+    force,
+    torque: bodyToWorld(conjugate(normalizeQuaternion(motion.orientation)), torque),
+  };
 }
 
 /**

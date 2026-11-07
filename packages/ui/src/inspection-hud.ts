@@ -8,6 +8,7 @@ import { uiTokens } from './tokens';
 
 /** A requested locale; the host loads it and commits the successful selection. */
 export interface LocaleRequest {
+  /** Requested supported locale; the host commits it after loading succeeds. */
   readonly locale: Locale;
 }
 
@@ -34,6 +35,7 @@ export class InspectionHud extends LitElement {
     updateWhenLocaleChanges(this);
   }
 
+  /** Lit styling hook; hosts customize the documented CSS tokens. @internal */
   static styles = [
     uiTokens,
     css`
@@ -275,6 +277,7 @@ export class InspectionHud extends LitElement {
     this.renderRoot.querySelector('dialog')?.close();
   }
 
+  /** Lit template implementation, separate from the host-facing property/event contract. @internal */
   render() {
     const text = viewportMessages();
     const values =

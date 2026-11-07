@@ -1,0 +1,36 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Gravitas developer docs",
+  "entryPointStrategy": "packages",
+  "entryPoints": ["packages/engine", "packages/viewport", "packages/ui"],
+  "packageOptions": {
+    "entryPoints": ["src/index.ts"],
+    "readme": "README.md",
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "excludeInternal": true,
+    "excludeExternals": true
+  },
+  "readme": "docs/developer/README.md",
+  "projectDocuments": ["docs/developer/integration.md"],
+  "out": "apps/game/dist/docs",
+  "treatWarningsAsErrors": true,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "invalidPath": true,
+    "rewrittenLink": true,
+    "notDocumented": true
+  },
+  "requiredToBeDocumented": ["Class", "Interface", "TypeAlias", "Function", "Method", "Accessor"],
+  "visibilityFilters": {
+    "inherited": false,
+    "external": false
+  },
+  "navigationLinks": {
+    "Game": "/gravitas/",
+    "Repository": "https://github.com/ewajs/gravitas"
+  },
+  "includeVersion": false,
+  "navigation": { "includeGroups": true, "includeCategories": false }
+}

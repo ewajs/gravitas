@@ -37,7 +37,7 @@ then commit `hud.locale` and update document language, accessible scene labels,
 and any URL/settings state. Clear `localePending` in `finally`; set `localeError`
 on failure while preserving the previous locale. The selector stays focusable
 but ignores additional requests while pending. See the complete lifecycle and
-error handling in [the app](../../apps/game/src/main.ts).
+error handling in [the app](https://github.com/ewajs/gravitas/blob/main/apps/game/src/main.ts).
 
 Lit properties pass values down; the custom event requests an action up. UI never
 imports viewport. The app connects the event to `viewport.setLabel()` without

@@ -10,8 +10,11 @@ export type BackendRequest = 'auto' | 'webgl2';
 export type RenderBackend = 'webgpu' | 'webgl2';
 /** Host element, accessible canvas description, and optional backend override. */
 export interface ViewportOptions {
+  /** Sized host element that receives the canvas after initialization. */
   readonly container: HTMLElement;
+  /** Localized canvas description for assistive technology. */
   readonly label: string;
+  /** Defaults to auto, allowing WebGPU with Three.js's WebGL 2 fallback. */
   readonly backend?: BackendRequest;
 }
 
@@ -36,6 +39,7 @@ export class Viewport {
   #deviceFailure: Error | undefined;
   #label: string;
 
+  /** Creates an unloaded viewport; call init() before drawing. */
   constructor(options: ViewportOptions) {
     if (options.backend && !['auto', 'webgl2'].includes(options.backend)) {
       throw new RangeError('Unknown viewport backend');

@@ -23,7 +23,7 @@ TypeScript strict, npm workspaces, Vite, Node 24 LTS. The viewport uses Three.js
 WebGPURenderer with WebGL 2 fallback; its lifecycle/pose API is independent of
 dynamics. Engine defines the shared pose contract. The Lit HUD shows pad offset
 and tilt, with live es-AR/English switching and keyboard-accessible help.
-CI runs fast checks and builds the app; browser suites
+CI runs fast checks and builds the app and developer docs; browser suites
 run locally when relevant. GitHub Pages serves that build after successful main checks.
 See [delivery verification](docs/verification/delivery.md) for its current status.
 
@@ -41,7 +41,9 @@ the camera, and open Help/Ayuda for controls and readout definitions. Add
 `?lang=en` for English or `?backend=webgl2` to explicitly
 request WebGL 2. With no backend override, Three.js selects the available backend.
 `npm run check` runs format/lint/type checks and the test runner; `npm run build`
-writes the production shell to `apps/game/dist`. Use `npm run preview` to serve it.
+writes the game and developer docs to `apps/game/dist`. Use
+`npm run preview -- --base /gravitas/` to serve the game at `/gravitas/` and
+the API site at `/gravitas/docs/`. `npm run docs` rebuilds only the documentation.
 See [Contributing](CONTRIBUTING.md) for individual commands and boundaries.
 
 ```sh
@@ -58,12 +60,15 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 - [Decisions](docs/decisions/README.md): choices and their tradeoffs.
 - [Contributing](CONTRIBUTING.md): workflow, dependencies, and verification.
 - [Agent instructions](AGENTS.md): shared rules for Claude and Codex.
+- [Developer docs](docs/developer/README.md): library guides, API build, and integration walkthrough.
+- [Engine library](packages/engine/README.md): shared pose data, units, and frames.
 - [Viewport library](packages/viewport/README.md): pose/lifecycle contract and ownership.
 - [UI/localization](packages/ui/README.md): inspection HUD, help, and live language switching.
 
-Separate package references and a player manual arrive with their
-implementations. Names under `@gravitas/*` are internal workspace identifiers;
-npm publication is deferred.
+The generated package references deploy alongside the game at `/gravitas/docs/`
+after this step merges; live publication is pending. The separate bilingual player
+manual is planned for M2. Names under `@gravitas/*` are internal workspace
+identifiers; npm publication is deferred.
 
 ## License
 

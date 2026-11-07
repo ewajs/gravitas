@@ -5,6 +5,7 @@ import {
   MAX_FLIGHT_STEP,
   NO_TOUCHDOWN,
   stepFlight,
+  toRadians,
   updateTouchdown,
   type ContactFact,
   type ContactPoint,
@@ -18,9 +19,9 @@ import {
 const limits: TouchdownLimits = {
   maxVerticalSpeed: 2,
   maxHorizontalSpeed: 1,
-  maxTilt: (10 * Math.PI) / 180,
+  maxTilt: toRadians(10),
   maxLegImpactSpeed: 5,
-  maxRestingTilt: (60 * Math.PI) / 180,
+  maxRestingTilt: toRadians(60),
   settleTime: 1,
   restSpeed: 0.1,
   restAngularSpeed: 0.05,
@@ -35,7 +36,7 @@ const settled = (touchdown: TouchdownRecord['touchdown']): TouchdownRecord => ({
 const at = (verticalSpeed: number, horizontalSpeed: number, tiltDegrees: number) => ({
   verticalSpeed,
   horizontalSpeed,
-  tilt: (tiltDegrees * Math.PI) / 180,
+  tilt: toRadians(tiltDegrees),
 });
 
 describe('touchdown classification boundaries', () => {

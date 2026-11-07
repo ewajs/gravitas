@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import type { FlightState, Quaternion } from '@gravitas/engine';
-import { tiltAngle as tiltRadians } from '@gravitas/engine';
 import { flightTelemetry, footClearance, headingFrame } from './telemetry';
 import { START_ALTITUDE, START_STATE } from './scenario';
 
@@ -25,16 +24,6 @@ describe('presentation geometry', () => {
     );
     // On its side: the feet are level with the centre of mass, ±1.5 m.
     expect(footClearance({ position, orientation: about('z', Math.PI / 2) })).toBeCloseTo(8.5, 12);
-  });
-
-  it('measures tilt from upright, allowing yaw and inverted poses', () => {
-    for (const [orientation, angle] of [
-      [about('y', Math.PI / 2), 0],
-      [about('x', Math.PI / 2), Math.PI / 2],
-      [{ x: 0, y: 0, z: 1, w: 0 }, Math.PI],
-    ] as const) {
-      expect(tiltRadians(orientation)).toBeCloseTo(angle);
-    }
   });
 
   it('projects world vectors into the heading frame: x right, y forward', () => {

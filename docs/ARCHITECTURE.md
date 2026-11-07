@@ -6,7 +6,8 @@ bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
 contact, touchdown judging, and the bilingual player manual implemented (M2).
 Actuator effects, sound and settings, diagnostics, and the manual's Learn section
 implemented (M3). Engine central-body gravity, rotating frames, and frame
-conversions implemented (5.1); the game does not use them yet. See [the flight model](FLIGHT.md),
+conversions implemented (5.1); orbital elements, Kepler propagation, and session
+time warp implemented (5.2). The game does not fly orbits yet. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -49,7 +50,10 @@ entry point. Its gravity fields (`GravityField`: uniform or central) and optiona
 `FrameRotation` make up the environment's physics; `CelestialBody`, the built-in
 `MOON`, and pure frame conversions (body-fixed, inertial, surface) let a host fly
 anywhere on or around a spherical body
-([ADR 0018](decisions/0018-gravity-and-frames.md)). `contactFacts` and the `Surface` seam report surface contact
+([ADR 0018](decisions/0018-gravity-and-frames.md)). Its orbit functions turn states
+into classical elements and back, solve Kepler's problem, find the next descent
+through an altitude, and coast a whole state on rails
+([ADR 0019](decisions/0019-orbits-and-time-warp.md)). `contactFacts` and the `Surface` seam report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,
@@ -90,7 +94,11 @@ settings/results at meaningful boundaries, not each tick.
 
 Start at 60 Hz simulation with animation-frame rendering, an accumulator, and a
 bounded number of catch-up steps. Account explicitly for discarded wall time
-under overload; do not silently fast-forward physics.
+under overload; do not silently fast-forward physics. Time warp is explicit: 2×
+and 4× run the same fixed steps faster (the catch-up bound scales with the
+factor); 10× to 1000× coast on rails along the Kepler orbit, one exact jump per
+frame, with nothing to interpolate. Input, the rails floor, ground contact, pause,
+and restart return to 1× ([ADR 0019](decisions/0019-orbits-and-time-warp.md)).
 
 Pause on document hide. Paused or hidden wall time never becomes simulation time;
 the sub-step remainder from before a pause is kept so the picture does not jump.
@@ -129,7 +137,8 @@ Engine state is float64 in every frame: at lunar distances one unit in the last
 place is under a nanometre, and a 100 km circular orbit integrated at 60 Hz closes
 to micrometres after a full period. Rendering is float32, so the viewport will
 draw relative to the camera (a floating origin) when planetary distances reach
-the screen (5.3). Orbital propagation for time warp is decided in 5.2.
+the screen (5.3). On-rails coasting uses Kepler's analytic solution
+([ADR 0019](decisions/0019-orbits-and-time-warp.md)).
 
 ## Workers, saves, and reproduction
 

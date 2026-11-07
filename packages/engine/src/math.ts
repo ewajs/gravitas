@@ -18,6 +18,16 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 /**
+ * Floored remainder: `value` wrapped into [0, `divisor`) for a positive divisor,
+ * unlike `%`, which keeps the sign of `value`. Wraps angles into [0, 2π) and times
+ * into one orbital period.
+ * @group Math
+ */
+export function modulo(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
+}
+
+/**
  * Converts an angle in degrees to radians, the engine's angle unit.
  * @group Math
  */
@@ -39,6 +49,22 @@ export function toDegrees(radians: number): number {
  */
 export function add(a: Vector3, b: Vector3): Vector3 {
   return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z };
+}
+
+/**
+ * Component-wise difference `a − b`, such as the offset from one point to another.
+ * @group Math
+ */
+export function subtract(a: Vector3, b: Vector3): Vector3 {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+
+/**
+ * Vector `v` multiplied by a number, such as a unit direction given a length.
+ * @group Math
+ */
+export function scale(v: Vector3, factor: number): Vector3 {
+  return { x: v.x * factor, y: v.y * factor, z: v.z * factor };
 }
 
 /**
@@ -67,6 +93,15 @@ export function cross(a: Vector3, b: Vector3): Vector3 {
 }
 
 /**
+ * Signed angle in radians from `from` to `to`, turning about the unit `axis` by the
+ * right-hand rule, in (−π, π]. Both vectors should be perpendicular to the axis.
+ * @group Math
+ */
+export function signedAngle(from: Vector3, to: Vector3, axis: Vector3): number {
+  return Math.atan2(dot(cross(from, to), axis), dot(from, to));
+}
+
+/**
  * Euclidean length of a vector, such as a speed from a velocity.
  * @group Math
  */
@@ -82,6 +117,15 @@ export function magnitude(v: Vector3): number {
 export function normalizeQuaternion(q: Quaternion): Quaternion {
   const length = Math.hypot(q.x, q.y, q.z, q.w);
   return { x: q.x / length, y: q.y / length, z: q.z / length, w: q.w / length };
+}
+
+/**
+ * All four components of `q + d × scale`, such as an orientation advanced by its
+ * rate in an integration stage (the result is not normalized).
+ * @group Math
+ */
+export function addScaledQuaternion(q: Quaternion, d: Quaternion, scale: number): Quaternion {
+  return { x: q.x + d.x * scale, y: q.y + d.y * scale, z: q.z + d.z * scale, w: q.w + d.w * scale };
 }
 
 /**

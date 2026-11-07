@@ -1,7 +1,7 @@
 import type { Quaternion, Vector3 } from './pose';
 import type { FlightState } from './flight';
 import type { CentralGravity, FrameRotation } from './gravity';
-import { conjugate, cross, multiplyQuaternions, rotationAbout } from './math';
+import { add, conjugate, cross, multiplyQuaternions, rotationAbout, subtract } from './math';
 import { bodyToWorld } from './orientation';
 import { bounded, finite, positive } from './validation';
 
@@ -166,10 +166,9 @@ export function bodyFixedToSurfaceFrame(state: FlightState, frame: SurfaceFrame)
 
 /** A flight state re-expressed from a surface frame into the body-fixed frame. */
 export function surfaceFrameToBodyFixed(state: FlightState, frame: SurfaceFrame): FlightState {
-  const p = bodyToWorld(frame.orientation, state.position);
   return {
     ...state,
-    position: { x: p.x + frame.origin.x, y: p.y + frame.origin.y, z: p.z + frame.origin.z },
+    position: add(bodyToWorld(frame.orientation, state.position), frame.origin),
     velocity: bodyToWorld(frame.orientation, state.velocity),
     orientation: multiplyQuaternions(frame.orientation, state.orientation),
   };
@@ -189,11 +188,7 @@ export function bodyFixedToInertial(
   finite(time, 'time');
   const turn = rotationAbout('y', body.rotationRate * time);
   const spin = cross({ x: 0, y: body.rotationRate, z: 0 }, state.position);
-  const velocity = {
-    x: state.velocity.x + spin.x,
-    y: state.velocity.y + spin.y,
-    z: state.velocity.z + spin.z,
-  };
+  const velocity = add(state.velocity, spin);
   return {
     ...state,
     position: bodyToWorld(turn, state.position),
@@ -218,20 +213,13 @@ export function inertialToBodyFixed(
   return {
     ...state,
     position,
-    velocity: { x: turned.x - spin.x, y: turned.y - spin.y, z: turned.z - spin.z },
+    velocity: subtract(turned, spin),
     orientation: multiplyQuaternions(back, state.orientation),
   };
 }
 
 function pointToSurface(point: Vector3, frame: SurfaceFrame): Vector3 {
-  return vectorToSurface(
-    {
-      x: point.x - frame.origin.x,
-      y: point.y - frame.origin.y,
-      z: point.z - frame.origin.z,
-    },
-    frame,
-  );
+  return vectorToSurface(subtract(point, frame.origin), frame);
 }
 
 function vectorToSurface(v: Vector3, frame: SurfaceFrame): Vector3 {

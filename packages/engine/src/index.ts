@@ -1,4 +1,4 @@
-/** Pure flight dynamics under uniform or central-body gravity, in fixed or rotating frames, with surface contact, touchdown judging, body-rate assistance, orientation helpers, and shared vector and angle math. @module */
+/** Pure flight dynamics under uniform or central-body gravity, in fixed or rotating frames, two-body orbits and on-rails coasting, with surface contact, touchdown judging, body-rate assistance, orientation helpers, and shared vector and angle math. @module */
 export type { Vector3, Quaternion, VehiclePose } from './pose';
 export {
   stepFlight,
@@ -34,19 +34,38 @@ export {
   type SurfaceFrame,
   type SurfacePosition,
 } from './frames';
+export { coastAttitude } from './rotation';
+export {
+  coastOnRails,
+  orbitFromState,
+  orbitOf,
+  propagateKepler,
+  stateFromOrbit,
+  timeToAltitude,
+  timeToRadius,
+  type Orbit,
+  type OrbitalElements,
+  type OrbitalState,
+  type OrbitFrame,
+} from './orbits';
 export { rateControlTorque, type AttitudeSettings } from './attitude';
 export { bodyToWorld, headingAngle, tiltAngle } from './orientation';
 export {
   add,
   addScaled,
+  addScaledQuaternion,
   clamp,
   conjugate,
   cross,
   dot,
   magnitude,
+  modulo,
   multiplyQuaternions,
   normalizeQuaternion,
   rotationAbout,
+  scale,
+  signedAngle,
+  subtract,
   toDegrees,
   toRadians,
 } from './math';

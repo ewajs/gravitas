@@ -1,5 +1,5 @@
 import type { Vector3 } from './pose';
-import { cross } from './math';
+import { cross, dot, scale, subtract } from './math';
 import { positive, vector } from './validation';
 
 /**
@@ -43,13 +43,10 @@ export interface FrameRotation {
 /** Gravitational acceleration at a world position, in metres per second squared. */
 export function gravityAcceleration(field: GravityField, position: Vector3): Vector3 {
   if (field.kind === 'uniform') return field.acceleration;
-  const dx = position.x - field.centre.x;
-  const dy = position.y - field.centre.y;
-  const dz = position.z - field.centre.z;
-  const r2 = dx * dx + dy * dy + dz * dz;
+  const offset = subtract(position, field.centre);
+  const r2 = dot(offset, offset);
   // −μ r̂ / r² = −μ r / r³.
-  const scale = -field.gravitationalParameter / (r2 * Math.sqrt(r2));
-  return { x: dx * scale, y: dy * scale, z: dz * scale };
+  return scale(offset, -field.gravitationalParameter / (r2 * Math.sqrt(r2)));
 }
 
 /**
@@ -62,18 +59,10 @@ export function rotatingFrameAcceleration(
   velocity: Vector3,
 ): Vector3 {
   const omega = rotation.angularVelocity;
-  const r = {
-    x: position.x - rotation.axisPoint.x,
-    y: position.y - rotation.axisPoint.y,
-    z: position.z - rotation.axisPoint.z,
-  };
+  const r = subtract(position, rotation.axisPoint);
   const coriolis = cross(omega, velocity);
   const centrifugal = cross(omega, cross(omega, r));
-  return {
-    x: -2 * coriolis.x - centrifugal.x,
-    y: -2 * coriolis.y - centrifugal.y,
-    z: -2 * coriolis.z - centrifugal.z,
-  };
+  return subtract(scale(coriolis, -2), centrifugal);
 }
 
 /** Rejects a field with non-finite or non-physical values. */

@@ -46,6 +46,8 @@ export interface DiagnosticFacts {
   readonly alpha: number;
   readonly drawCalls: number;
   readonly triangles: number;
+  /** A line about the device and display (size, orientation, input, panels). */
+  readonly device?: string;
 }
 
 const WINDOW = 120;
@@ -68,9 +70,11 @@ export class DiagnosticsOverlay {
     this.#element.setAttribute('aria-hidden', 'true');
     Object.assign(this.#element.style, {
       position: 'absolute',
-      top: '8px',
+      top: 'max(8px, env(safe-area-inset-top))',
       left: '50%',
       transform: 'translateX(-50%)',
+      maxWidth: 'calc(100% - 16px)',
+      whiteSpace: 'pre-wrap',
       margin: '0',
       padding: '6px 10px',
       font: '11px/1.4 ui-monospace, monospace',
@@ -94,6 +98,7 @@ export class DiagnosticsOverlay {
     this.#element.textContent = [
       `${stats.fps.toFixed(1)} fps  ${stats.intervalMs.toFixed(1)} ms/frame  work p50 ${stats.workP50Ms.toFixed(2)} p95 ${stats.workP95Ms.toFixed(2)} ms`,
       `${f.backend}  ${f.drawCalls} draws  ${f.triangles} tris  ${f.phase}  tick ${f.ticks}  α ${f.alpha.toFixed(2)}  dropped ${f.discardedSeconds.toFixed(3)} s`,
+      ...(f.device ? [f.device] : []),
     ].join('\n');
     Object.assign(this.#element.dataset, {
       fps: stats.fps.toFixed(2),

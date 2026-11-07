@@ -116,6 +116,16 @@ applied, and `syncTouchControls()` shows it while flying or paused when the
 setting is Always, or Automatic and touch is the device in use (the first touch
 anywhere switches to it; keys or a pad switch away).
 
+## Phones
+
+`main.ts` treats a device without hover and with a coarse pointer as a phone or
+tablet: it starts on touch, and in portrait during a flight it sets
+`hud.rotatePrompt` and pauses (turning back leaves the flight paused).
+`blockPageZoom()` (`zoom.ts`) cancels iOS Safari's `gesture*` events and the
+second tap of a double tap outside controls; `index.html`'s viewport meta tag and
+`style.css` (`touch-action`, no overscroll, no callout) cover the rest. The 3D
+view keeps its own pinch, which OrbitControls reads from pointer events.
+
 ## Sound and settings
 
 `settings.ts` loads language, mute, "start card seen", "reduce transparency", and "touch controls"

@@ -153,6 +153,22 @@ controls.addEventListener('yaw-input', (e) => e.detail.direction); // −1 left,
 The element decides nothing about the flight; the game maps its values to pilot
 input. Hide it with the `hidden` attribute.
 
+When the host shows the touch controls, it sets `hud.touchControls` (the
+`touch-controls` attribute) and the HUD keeps their zones clear: the readouts
+become one strip along the top left (altitude, vertical speed, horizontal speed,
+tilt, fuel; the safe-sink scale and fuel bar give way, while the amber caution
+stays), the radar and pad distance sit at the bottom between the zones, and the
+throttle gauge and legend hide because the lever shows the throttle and hover.
+Both elements respect `env(safe-area-inset-*)`.
+
+## Phone prompts and short screens
+
+`hud.rotatePrompt` shows a "Turn your phone sideways" card over a dimmed scene,
+below the header, so language, sound, and Help stay usable. The host decides when
+(the game: a phone in portrait during a flight) and pauses the flight. On screens
+at most 500 px tall, the start card shows without the instruments behind it, and
+the results card puts the checks in a second column from 600 px wide.
+
 ## Input device
 
 `hud.inputDevice` (`'keyboard'` by default, `'gamepad'`, or `'touch'`) names the

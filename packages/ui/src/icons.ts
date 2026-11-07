@@ -21,16 +21,22 @@ export const icons = {
     icon(
       svg`<circle cx="12" cy="12" r="9"></circle><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .9-1 1.6"></path><path d="M12 16.8v.2"></path>`,
     ),
-  /** Turning left (counter-clockwise seen from above), for the yaw button. */
+  /** Turning left: an arc over the top ending in a left arrow (↶), for the yaw button. */
   yawLeft: (size = 22) =>
     icon(
-      svg`<path d="M16.5 6.2A8 8 0 1 0 20 12"></path><path d="M16.8 2.5l-.3 3.8 3.8.3"></path>`,
+      svg`<path d="M19 15a7 7 0 0 0-14 0"></path><path d="M2.5 12.5 5 15l2.5-2.5"></path>`,
       size,
     ),
-  /** Turning right (clockwise seen from above). */
+  /** Turning right (↷). */
   yawRight: (size = 22) =>
     icon(
-      svg`<path d="M7.5 6.2A8 8 0 1 1 4 12"></path><path d="M7.2 2.5l.3 3.8-3.8.3"></path>`,
+      svg`<path d="M5 15a7 7 0 0 1 14 0"></path><path d="M16.5 12.5 19 15l2.5-2.5"></path>`,
+      size,
+    ),
+  /** A phone turning sideways, for the rotate prompt. */
+  rotate: (size = 48) =>
+    icon(
+      svg`<rect x="7" y="3" width="10" height="18" rx="2"></rect><path d="M11 18h2"></path><path d="M20 8a8 8 0 0 1 0 8"></path><path d="M20 16l-2.2.2.2-2.2"></path>`,
       size,
     ),
   close: () => icon(svg`<path d="M6 6l12 12M18 6L6 18"></path>`),

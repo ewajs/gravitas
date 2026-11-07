@@ -238,8 +238,8 @@ export const hudStyles = css`
   .overlay {
     position: absolute;
     top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px);
-    left: var(--gap);
-    right: var(--gap);
+    left: max(var(--gap), env(safe-area-inset-left));
+    right: max(var(--gap), env(safe-area-inset-right));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -629,7 +629,8 @@ export const hudStyles = css`
     inset: 0;
     display: grid;
     place-items: center;
-    padding: var(--gap);
+    padding: max(var(--gap), env(safe-area-inset-top)) max(var(--gap), env(safe-area-inset-right))
+      max(var(--gap), env(safe-area-inset-bottom)) max(var(--gap), env(safe-area-inset-left));
     background: var(--gravitas-backdrop);
     animation: fade 240ms ease-out both;
   }
@@ -989,23 +990,43 @@ export const hudStyles = css`
     .hover-label {
       display: none;
     }
-    .results {
-      padding: var(--gap);
-    }
+
     .report {
       padding: 18px;
       gap: 14px;
     }
   }
 
-  /* Short landscape screens: tighter spacing; the mobile layout arrives in 4.4. */
+  /* Short landscape screens (phones on their side): tighter spacing, the start
+     card without the instruments behind it, and a two-column results card. */
   @media (max-height: 500px) {
     :host {
       --gap: 12px;
     }
     .overlay {
-      top: calc(var(--gap) + 52px);
+      top: calc(max(var(--gap), env(safe-area-inset-top)) + 52px);
       gap: 8px;
+    }
+    /* Before the first start, the card explains; the opening readouts can wait. */
+    .instruments.behind-card {
+      display: none;
+    }
+    .card {
+      padding: 12px 18px;
+    }
+    .card h2 {
+      margin-bottom: 8px;
+    }
+    .quick-keys {
+      gap: 6px 14px;
+      margin-bottom: 8px;
+    }
+    #phase {
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .mission {
+      display: none;
     }
     .panel {
       padding: 12px 16px;
@@ -1037,5 +1058,173 @@ export const hudStyles = css`
       padding: 16px 20px;
       gap: 12px;
     }
+  }
+  @media (max-height: 500px) and (min-width: 600px) {
+    .report {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      grid-template-areas:
+        'verdict checks'
+        'totals checks'
+        'actions checks';
+      align-content: start;
+      column-gap: 22px;
+      width: min(760px, 100%);
+    }
+    .verdict {
+      grid-area: verdict;
+    }
+    .checks {
+      grid-area: checks;
+      align-self: start;
+    }
+    .totals {
+      grid-area: totals;
+    }
+    .card-actions {
+      grid-area: actions;
+      align-self: end;
+    }
+    .checks li {
+      padding: 8px 0;
+    }
+    .report h2 {
+      font-size: 20px;
+    }
+  }
+
+  /* Touch controls showing: the lower part of each side belongs to a thumb, so
+     the readouts become one strip along the top, the radar sits between the
+     thumbs, and the throttle gauge gives way to the lever. */
+  :host([touch-controls]) {
+    --gap: 12px;
+  }
+  :host([touch-controls]) header .brand,
+  :host([touch-controls]) #controls,
+  :host([touch-controls]) .throttle,
+  :host([touch-controls]) figcaption,
+  :host([touch-controls]) .sink,
+  :host([touch-controls]) .bar.fuel {
+    display: none;
+  }
+  :host([touch-controls]) header .actions {
+    margin-inline-start: auto;
+  }
+  :host([touch-controls]) .instruments {
+    position: static;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :host([touch-controls]) .instruments .panel {
+    position: absolute;
+    border: 1px solid var(--gravitas-line);
+    border-radius: var(--gravitas-radius);
+    background: var(--gravitas-panel);
+    -webkit-backdrop-filter: var(--gravitas-panel-filter);
+    backdrop-filter: var(--gravitas-panel-filter);
+  }
+  :host([touch-controls]) .flight-panel {
+    top: max(var(--gap), env(safe-area-inset-top));
+    left: max(var(--gap), env(safe-area-inset-left));
+    /* Room for the five icon buttons on the right of the header. */
+    right: auto;
+    inline-size: max-content;
+    max-inline-size: calc(
+      100% - max(var(--gap), env(safe-area-inset-left)) - max(
+          var(--gap),
+          env(safe-area-inset-right)
+        ) -
+        284px
+    );
+    min-inline-size: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+    padding: 6px 14px;
+  }
+  :host([touch-controls]) .headline,
+  :host([touch-controls]) .details {
+    display: flex;
+    gap: 14px;
+    padding: 0;
+    border: 0;
+  }
+  :host([touch-controls]) .details {
+    padding-inline-start: 14px;
+    border-inline-start: 1px solid var(--gravitas-line);
+  }
+  :host([touch-controls]) .instruments dt {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  :host([touch-controls]) .instruments dd {
+    margin-top: 1px;
+  }
+  :host([touch-controls]) dl.headline dd {
+    font-size: 22px;
+  }
+  :host([touch-controls]) dl.headline .unit,
+  :host([touch-controls]) .instruments .unit {
+    font-size: 11px;
+  }
+  :host([touch-controls]) .details dd,
+  :host([touch-controls]) .pad-readout dd {
+    font-size: 15px;
+  }
+  :host([touch-controls]) .navigation-panel {
+    bottom: max(var(--gap), env(safe-area-inset-bottom));
+    /* Centred between the thumb zones of the touch controls. */
+    left: min(32%, 240px);
+    right: min(46%, 400px);
+    inline-size: fit-content;
+    margin-inline: auto;
+    padding: 8px 12px;
+  }
+  :host([touch-controls]) .navigation {
+    display: grid;
+    gap: 4px;
+  }
+  :host([touch-controls]) .radar {
+    inline-size: 92px;
+    block-size: 92px;
+  }
+  :host([touch-controls]) .overlay {
+    top: calc(max(var(--gap), env(safe-area-inset-top)) + 64px);
+  }
+
+  /* Portrait during a flight on a phone: ask for landscape over a dimmed scene,
+     keeping the header (language, sound, Help) usable. */
+  .rotate {
+    position: absolute;
+    inset: calc(max(var(--gap), env(safe-area-inset-top)) + 56px) 0 0;
+    display: grid;
+    place-items: center;
+    padding: var(--gap);
+    background: var(--gravitas-backdrop);
+    pointer-events: auto;
+    animation: fade 200ms ease-out both;
+  }
+  .rotate .card {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    max-inline-size: 320px;
+    text-align: center;
+  }
+  .rotate .icon {
+    color: var(--gravitas-accent);
+  }
+  .rotate h2 {
+    margin: 0;
+  }
+  .rotate p {
+    font-size: 14px;
+    color: var(--gravitas-muted);
   }
 `;

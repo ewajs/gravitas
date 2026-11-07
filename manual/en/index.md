@@ -15,6 +15,16 @@ mission: set a lunar lander down on a pad, gently and upright.
 At the end you get a result that explains what happened: speeds at touchdown,
 tilt, distance from the pad, and fuel left. **Enter** or **Try again** starts over.
 
+## On a phone
+
+Gravitas flies with the phone **sideways** (landscape). Menus, Help, and results
+work either way, but if you start flying with the phone upright, the game asks
+you to turn it and keeps the flight paused until you tap **Resume**. Sideways, your
+left thumb works the throttle and your right thumb the tilt (see
+[Flying](./flying#on-a-touch-screen)). The instruments line up along the top and
+the radar sits between your thumbs, so nothing is under your fingers. Pinching or
+double-tapping never zooms the page: a pinch zooms the camera.
+
 ## In this manual
 
 - [Flying](./flying): every control and how the lander responds.

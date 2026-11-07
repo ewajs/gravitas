@@ -17,6 +17,7 @@ import { DiagnosticsOverlay } from './diagnostics';
 import { KeyboardControls } from './controls';
 import { GamepadControls } from './gamepad';
 import { TouchControlsSource } from './touch';
+import { blockPageZoom } from './zoom';
 import { PilotInputs, type InputCommand } from './input';
 import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import { landingReport } from './report';
@@ -52,9 +53,13 @@ const inputs = new PilotInputs([
   ),
   new TouchControlsSource(touchControls),
 ]);
-// A phone or tablet (no hover, coarse pointer) starts with touch; others with keys.
+// A phone or tablet (coarse pointer) starts with touch; others with keys.
 // Coarse primary pointer: some Android phones also report hover, so it is not tested.
 const touchFirst = matchMedia('(pointer: coarse)').matches;
+// Flights are landscape-only on such a device; portrait asks the player to turn it.
+const portrait = matchMedia('(orientation: portrait)');
+const reducedTransparency = matchMedia('(prefers-reduced-transparency: reduce)');
+const allowPageZoom = blockPageZoom(document);
 const defaultDevice: InputDevice = touchFirst ? 'touch' : 'keyboard';
 // The device the player last used; help, hints, and touch controls follow it.
 let inputDevice: InputDevice = defaultDevice;
@@ -145,10 +150,33 @@ function syncTouchControls(): void {
   }
   const mode = settings.touchControls;
   const wanted = mode === 'always' || (mode === 'auto' && inputDevice === 'touch');
-  const underway = session.phase === 'flying' || session.phase === 'paused';
-  touchControls.hidden = !(wanted && underway);
+  const shown = wanted && underway() && !rotateNeeded();
+  touchControls.hidden = !shown;
   touchControls.disabled = session.phase !== 'flying';
-  hud.touchControls = wanted && underway;
+  hud.touchControls = shown;
+}
+
+function underway(): boolean {
+  return session.phase === 'flying' || session.phase === 'paused';
+}
+
+// A phone or tablet held upright during a flight. Menus, Help, the start card, and
+// the results card work in both orientations; only flying needs landscape.
+function rotateNeeded(): boolean {
+  return touchFirst && portrait.matches && underway();
+}
+
+// While the prompt shows, the flight is paused; turning back leaves it paused, so
+// the player resumes with their thumbs in place (as after a hidden tab).
+function syncRotation(): void {
+  const needed = rotateNeeded();
+  hud.rotatePrompt = needed;
+  if (needed && session.phase === 'flying') flightAction('pause');
+}
+
+function orientationChanged(): void {
+  syncRotation();
+  syncTouchControls();
 }
 
 // The first touch anywhere shows the touch controls (in automatic mode).
@@ -179,6 +207,7 @@ function publish(): void {
   touchControls.throttle = session.throttle;
   touchControls.hoverThrottle = telemetry.hoverThrottle;
   syncTouchControls();
+  syncRotation();
 }
 
 function draw(timestamp: number): void {
@@ -210,6 +239,16 @@ function draw(timestamp: number): void {
         alpha: session.alpha,
         drawCalls: viewport?.renderStats?.drawCalls ?? 0,
         triangles: viewport?.renderStats?.triangles ?? 0,
+        // For on-device checks: screen, input, and whether the glass blur is on.
+        device: [
+          `${innerWidth}×${innerHeight} @${devicePixelRatio.toFixed(2)}x`,
+          portrait.matches ? 'portrait' : 'landscape',
+          `input ${inputDevice}`,
+          touchControls.hidden ? 'touch off' : 'touch on',
+          settings.reduceTransparency || reducedTransparency.matches
+            ? 'solid panels'
+            : 'glass blur',
+        ].join('  '),
       }));
     }
     // Keep instruments live while a crash plays out after the verdict, too.
@@ -353,6 +392,8 @@ function destroy(): void {
   window.removeEventListener('blur', windowBlurred);
   window.removeEventListener('pagehide', pageHidden);
   window.removeEventListener('pointerdown', pointerDown, true);
+  portrait.removeEventListener('change', orientationChanged);
+  allowPageZoom();
 }
 
 function fail(error: unknown): void {
@@ -420,6 +461,7 @@ window.addEventListener('pointerdown', unlockAudio, true);
 window.addEventListener('blur', windowBlurred);
 window.addEventListener('pagehide', pageHidden);
 window.addEventListener('pointerdown', pointerDown, true);
+portrait.addEventListener('change', orientationChanged);
 
 async function start(): Promise<void> {
   // An explicit ?lang= wins; otherwise the last language chosen here; else Spanish.

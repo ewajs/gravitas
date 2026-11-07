@@ -244,12 +244,19 @@ pinch zoom and double-tap zoom are blocked.
       pinch and double-tap zoom blocked; a compact HUD; install to the home screen;
       the WebGL 2 fallback. Phone testing happens on the deployed site after
       merging. Two stacked PRs:
-  - [ ] **4.4a Mobile layout:** a compact landscape phone HUD that leaves both
-        thumb zones clear; a rotate prompt in portrait during flight (auto-pause);
-        pinch and double-tap zoom blocked; safe areas for the notch and home
-        indicator; the start card and results card usable on phones. **Verify:**
-        emulated iPhone 15 Pro and Galaxy A70 layouts in both languages and
-        orientations, on both backends.
+  - [x] **4.4a Mobile layout:** with the touch controls showing, the readouts
+        become a strip along the top, the radar sits between the thumbs, and the
+        throttle gauge gives way to the lever, so both thumb zones stay clear; a
+        "Turn your phone sideways" prompt during a flight in portrait (auto-pause;
+        menus, Help, and results work upright); page zoom blocked (viewport meta,
+        `touch-action`, iOS gesture and double-tap handling); `viewport-fit=cover`
+        with safe-area insets; the start card without the instruments behind it
+        and a two-column results card on short screens; device facts in `?debug`.
+        **Verify:** emulated iPhone 15 Pro and Galaxy A70 layouts in both
+        languages and orientations with overlap checks, emulated safe areas, a
+        real pinch that never zooms the page, the WebGL 2 fallback, both backends.
+        See [ADR 0017](decisions/0017-phone-play.md) and
+        [mobile verification](verification/mobile.md).
   - [ ] **4.4b Installable app:** a web app manifest (landscape, fullscreen with a
         standalone fallback, theme colours, the 4.2c icons), iOS home-screen tags,
         and manual notes on installing and on measuring the glass blur; no

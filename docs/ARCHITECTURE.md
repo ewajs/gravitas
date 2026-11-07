@@ -210,8 +210,17 @@ Main deployments publish all three.
    language, canvas label, and URL. The renderer, camera, and session remain intact.
 9. `?debug` adds a developer overlay (`diagnostics.ts`). It summarizes frame
    interval, main-thread work, dropped time, and viewport's `renderStats` at 4 Hz,
-   with no logging and no cost without the switch.
-10. Device loss becomes a render error; the app stops, disposes, pauses the session,
+   plus the screen size and pixel ratio, orientation, input device, touch
+   controls, and whether panels are glass or solid, with no logging and no cost
+   without the switch.
+10. On a phone or tablet (a coarse primary pointer), a flight in portrait
+    sets the HUD's `rotatePrompt` and pauses; the HUD only draws the prompt. The
+    page blocks its own zoom (viewport meta, `touch-action`, and `zoom.ts` for iOS
+    Safari's gesture events and double tap) and draws under the notch
+    (`viewport-fit=cover`) with safe-area insets in every layer's CSS. When the
+    game shows the touch controls it sets the HUD's `touchControls`, and the HUD
+    moves its panels out of the thumb zones.
+11. Device loss becomes a render error; the app stops, disposes, pauses the session,
     releases the input sources, and presents a localized failure. Language and help
     remain usable.
 

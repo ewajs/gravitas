@@ -1037,7 +1037,7 @@ export class FlightHud extends LitElement {
             : nothing
         }
         <p class="about">
-          ${msg('Aterrizaje limpio: tocar a 2 m/s o menos hacia abajo, a 1 m/s o menos de costado y con menos de 10° de inclinación, y quedarse quieto sobre las cuatro patas un segundo. Si la estructura toca el suelo, una pata golpea a más de 5 m/s o el módulo vuelca, es un accidente.', { id: 'rules-help' })}
+          ${msg('Aterrizaje limpio: tocar a 2 m/s o menos hacia abajo, a 1 m/s o menos de costado y con 10° de inclinación o menos, y quedarse quieto sobre las cuatro patas un segundo. Si la estructura toca el suelo, una pata golpea a más de 5 m/s o el módulo vuelca, es un accidente.', { id: 'rules-help' })}
         </p>
         <p class="about">
           ${msg('El radar mira hacia donde apunta el módulo: arriba es adelante (W). El punto muestra hacia dónde se inclina el empuje; la flecha, tu deriva horizontal; el rombo, la plataforma (hueco a más de 60 m). Para frenar la deriva, inclinate en contra de la flecha. La marca en la barra de empuje indica cuánto hace falta para flotar.', { id: 'radar-help' })}

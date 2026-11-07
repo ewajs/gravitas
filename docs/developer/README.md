@@ -11,7 +11,7 @@ flight HUD. These guides cover the code that exists today.
 
 | Library guide                                 | Current responsibility                                 |
 | --------------------------------------------- | ------------------------------------------------------ |
-| [Engine](../../packages/engine/README.md)     | Shared pose, pure flight dynamics, and rate assistance |
+| [Engine](../../packages/engine/README.md)     | Shared pose and math, flight dynamics, rate assistance |
 | [Viewport](../../packages/viewport/README.md) | Three.js scene, interpolation, chase camera, lifecycle |
 | [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, help dialog, and localization |
 

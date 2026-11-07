@@ -3,7 +3,9 @@
 **Status:** workspace boundaries, viewport, hosted delivery, engine flight
 dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
 bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
-contact, touchdown judging, and the bilingual player manual implemented (M2). See [the flight model](FLIGHT.md),
+contact, touchdown judging, and the bilingual player manual implemented (M2).
+Actuator effects, sound and settings, diagnostics, and the manual's Learn section
+implemented (M3). See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -31,7 +33,11 @@ type (centre of mass in world metres and a body-to-world quaternion), imported
 directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 `rateControlTorque` assistance; `FlightState` extends `VehiclePose`. Its
 `headingAngle` and `bodyToWorld` helpers give viewport's camera and the app's radar
-one heading definition. `contactFacts` and the `Surface` seam report surface contact
+one heading definition. Its shared math (`math.ts`: vector and quaternion operations,
+`clamp`, `toRadians`/`toDegrees`, `rotationAbout`) serves the dynamics, the app, and
+the manual's Learn models, so none keeps its own copy. Viewport uses Three.js math and
+converts only at its pose boundary; UI, limited to engine types, keeps its one display
+conversion to degrees. `contactFacts` and the `Surface` seam report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,

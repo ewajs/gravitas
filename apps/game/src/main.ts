@@ -15,7 +15,7 @@ import { KeyboardControls, type KeyCommand } from './controls';
 import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import { landingReport } from './report';
 import { ENVIRONMENT, FIRST_DESCENT } from './scenario';
-import { FlightSession, isVerdict } from './session';
+import { FlightSession, isVerdict, type SessionPhase } from './session';
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
 import { flightTelemetry } from './telemetry';
 import './style.css';
@@ -159,8 +159,13 @@ const sizeObserver = new ResizeObserver(resume);
 function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   if (action === 'toggle') {
     // After a verdict, P does nothing; restart (Enter or the button) starts over.
-    const toggled = { ready: 'start', flying: 'pause', paused: 'resume', complete: undefined };
-    const next = toggled[session.phase] as FlightRequest['action'] | undefined;
+    const toggled: Record<SessionPhase, FlightRequest['action'] | undefined> = {
+      ready: 'start',
+      flying: 'pause',
+      paused: 'resume',
+      complete: undefined,
+    };
+    const next = toggled[session.phase];
     if (!next) return;
     action = next;
   }
@@ -231,12 +236,11 @@ function stopRendering(): void {
 
 function destroy(): void {
   destroyed = true;
+  // Also removes the audio-unlock listeners.
   stopRendering();
   hud.removeEventListener('locale-request', localeRequested);
   hud.removeEventListener('flight-request', flightRequested);
   hud.removeEventListener('sound-request', soundRequested);
-  window.removeEventListener('keydown', unlockAudio, true);
-  window.removeEventListener('pointerdown', unlockAudio, true);
   window.removeEventListener('blur', windowBlurred);
   window.removeEventListener('pagehide', pageHidden);
 }

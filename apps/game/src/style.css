@@ -1,5 +1,11 @@
 :root {
   color-scheme: dark;
+  /* No double-tap zoom anywhere, no font inflation in landscape (iOS), no
+     pull-to-refresh or bounce. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
   /* Theme custom properties are declared in index.html at build time. */
   color: var(--gravitas-text);
   background: var(--gravitas-surface);
@@ -9,10 +15,21 @@
 body {
   margin: 0;
 }
+body {
+  overscroll-behavior: none;
+}
+/* The game surface takes every gesture itself: no page pan or pinch zoom, no
+   text selection or iOS callout on a long press. Help and the results card
+   scroll inside themselves. */
 main {
   position: relative;
   height: 100svh;
   overflow: hidden;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 #viewport {
   width: 100%;

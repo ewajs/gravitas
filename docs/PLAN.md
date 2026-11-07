@@ -163,15 +163,15 @@ pinch zoom and double-tap zoom are blocked.
       accessibility tree, CSS, and screenshots identical in 144 states; manual pages
       identical; both browser suites unchanged. Local checks passed on 2026-11-07;
       see [housekeeping verification](verification/housekeeping.md).
-- [~] **4.2 Theme system and identity:** selectable, typed themes that generate CSS
-  variables for the HUD and the manual, plus scene accent colours; a logo and
-  icon set; a self-hosted typeface. A clean, professional look with subtle,
-  responsive animation. Owner decisions on 2026-11-07, from a design canvas:
-  direction "Glass" (frosted translucent panels) with a deeper cyan accent
-  `#4CC3E0`; Space Grotesk and Inter, self-hosted; the "safe sink" scale under
-  vertical speed from direction "Instrument", as a hint; a solid-panel fallback
-  for reduced transparency; one theme for now, no switcher; the "Kepler" mark.
-  Three stacked PRs:
+- [x] **4.2 Theme system and identity:** selectable, typed themes that generate CSS
+      variables for the HUD and the manual, plus scene accent colours; a logo and
+      icon set; a self-hosted typeface. A clean, professional look with subtle,
+      responsive animation. Owner decisions on 2026-11-07, from a design canvas:
+      direction "Glass" (frosted translucent panels) with a deeper cyan accent
+      `#4CC3E0`; Space Grotesk and Inter, self-hosted; the "safe sink" scale under
+      vertical speed from direction "Instrument", as a hint; a solid-panel fallback
+      for reduced transparency; one theme for now, no switcher; the "Kepler" mark.
+      Three stacked PRs:
   - [x] **4.2a Theme system:** a typed theme of colour roles, type, shape, and scene
         accents in `@gravitas/ui/themes` (pure TypeScript, no Lit), generating the
         HUD's and the page's CSS custom properties; viewport `setAccents()` for the
@@ -193,8 +193,17 @@ pinch zoom and double-tap zoom are blocked.
         settings saved before 4.2b still load; browser tests for the setting, the
         system preference, the safe-sink scale, and motion; both browser suites;
         screenshots of every state in both languages at four sizes.
-  - [ ] **4.2c Identity:** the mark and wordmark, favicons, app and social images,
-        and the manual branded from the theme.
+  - [x] **4.2c Identity:** the Kepler mark as two hand-drawn SVG cuts (full,
+        and a heavier small cut for 32 px and below) in the HUD header and on the
+        start card with the wordmark; `npm run icons` renders them with the pinned
+        Playwright into favicons (SVG, 32 and 16 px), the Apple touch icon, install
+        icons (192, 512, maskable; 4.4 writes the manifest), and a 1200 × 630 link
+        preview; Open Graph and Twitter tags; the manual branded from the theme
+        (accent colours with contrast-tested darker steps for light pages, the
+        typefaces, the logo in the nav, and the favicon). **Verify:** icon output
+        byte-identical across runs; brand contrast unit test; browser tests for the
+        served icons and sizes, preview tags, slotted marks, and the manual's logo
+        and brand; both browser suites; screenshots of the game and the manual.
 - [ ] **4.3 Input layer, touch, and gamepad:** one input abstraction. On touch, a
       left-thumb absolute throttle lever with a hover detent, a right-thumb virtual
       stick for proportional pitch and roll rates, yaw buttons, and pause.

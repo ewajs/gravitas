@@ -62,6 +62,7 @@ workspaces locally; there is no package publishing or separate library build.
 | `npm run docs`                            | Generate library API references and developer guides        |
 | `npm run manual` / `npm run manual:dev`   | Build (with dead-link check) / serve the bilingual manual   |
 | `npm run measure`                         | Fly a workload on both browsers; report fps/work/draw calls |
+| `npm run icons`                           | Render the mark into favicons, app icons, and social image  |
 
 Vitest covers flight dynamics against independent references, the fixed-step session
 (frame-rate independence, overload, pause, impact and settling), surface contact

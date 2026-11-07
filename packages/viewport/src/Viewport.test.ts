@@ -11,6 +11,21 @@ describe('viewport arguments', () => {
     }
   });
 
+  it('rejects actuator values outside their ranges', () => {
+    const viewport = new Viewport(options);
+    const attitude = { x: 0, y: 0, z: 0 };
+    for (const throttle of [-0.1, 1.1, NaN]) {
+      expect(() => viewport.setActuators({ throttle, attitude })).toThrow(RangeError);
+    }
+    expect(() =>
+      viewport.setActuators({ throttle: 0.5, attitude: { ...attitude, y: 1.5 } }),
+    ).toThrow(RangeError);
+    expect(() =>
+      viewport.setActuators({ throttle: 1, attitude: { x: -1, y: 1, z: 0 } }),
+    ).not.toThrow();
+    void viewport.dispose();
+  });
+
   it('rejects a render blend outside [0, 1] before drawing', () => {
     const viewport = new Viewport(options);
     for (const alpha of [-0.1, 1.1, NaN]) expect(() => viewport.render(alpha)).toThrow(RangeError);

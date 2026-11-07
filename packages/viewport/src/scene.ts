@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { createEffects } from './effects';
 
 /** Flat ground at y = 0, matching the game's physics surface; decals sit just above. */
 const SURFACE_Y = 0;
@@ -212,6 +213,8 @@ export function createScene(centerOfMassHeight: number) {
   const drop = new THREE.Line(dropGeometry, dropMaterial);
   scene.add(drop);
 
+  const effects = createEffects(vehicle, scene, SURFACE_Y);
+
   const sun = new THREE.DirectionalLight(0xfff1d8, 4);
   sun.position.set(-8, 14, -6);
   sun.castShadow = true;
@@ -223,6 +226,9 @@ export function createScene(centerOfMassHeight: number) {
   return {
     scene,
     vehicle,
+    /** The vehicle's drawn structure, without effects; tests measure it. */
+    artwork,
+    effects,
     /** Moves the below-vehicle marker; `altitude` is the feet's height above y = 0. */
     updateMarker(position: THREE.Vector3, altitude: number) {
       const surface = SURFACE_Y + 0.02;
@@ -241,6 +247,7 @@ export function createScene(centerOfMassHeight: number) {
       });
     },
     dispose() {
+      effects.dispose();
       sun.shadow.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const surface of materials) surface.dispose();

@@ -53,6 +53,16 @@ export interface FlightScenario {
 }
 
 const IDLE: PilotInput = { rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 };
+
+/** What the actuators actually did in the latest tick, normalized for presentation. */
+export interface Actuation {
+  /** Main-engine throttle in [0, 1]; zero when the tank is empty. */
+  readonly throttle: number;
+  /** Attitude torque per body axis as a fraction of its limit, in [−1, 1]. */
+  readonly attitude: Vector3;
+}
+
+const IDLE_ACTUATION: Actuation = { throttle: 0, attitude: { x: 0, y: 0, z: 0 } };
 const AIRBORNE: TouchdownOutcome = { status: 'airborne' };
 
 /**
@@ -73,6 +83,8 @@ export class FlightSession {
   #record: TouchdownRecord = NO_TOUCHDOWN;
   #outcome: TouchdownOutcome = AIRBORNE;
   #completedAt: number | undefined;
+  // Actuators applied during the latest tick, for presentation.
+  #applied: Actuation = IDLE_ACTUATION;
   // Contact facts of the latest tick, reused as the next tick's starting facts.
   #facts: readonly ContactFact[] | undefined;
 
@@ -104,6 +116,10 @@ export class FlightSession {
   /** Wall-clock seconds dropped by the per-frame step limit since the last restart. */
   get discardedSeconds(): number {
     return this.#discarded;
+  }
+  /** Actuators applied in the latest tick; zero before start, while paused, or dry. */
+  get actuation(): Actuation {
+    return this.#phase === 'flying' || this.#phase === 'complete' ? this.#applied : IDLE_ACTUATION;
   }
   /** Latest touchdown judgement; final once the phase is `complete`. */
   get outcome(): TouchdownOutcome {
@@ -143,6 +159,7 @@ export class FlightSession {
     this.#outcome = AIRBORNE;
     this.#completedAt = undefined;
     this.#facts = undefined;
+    this.#applied = IDLE_ACTUATION;
   }
 
   /**
@@ -184,6 +201,18 @@ export class FlightSession {
       this.#accumulator -= FIXED_STEP;
       this.#ticks++;
       steps++;
+      // Thrust and torque only act while propellant remains during the tick.
+      const fueled = this.#state.fuelMass > 0;
+      this.#applied = fueled
+        ? {
+            throttle: this.#throttle,
+            attitude: {
+              x: bodyTorque.x / vehicle.maxTorque.x,
+              y: bodyTorque.y / vehicle.maxTorque.y,
+              z: bodyTorque.z / vehicle.maxTorque.z,
+            },
+          }
+        : IDLE_ACTUATION;
       const before = this.#state;
       this.#previous = this.#state;
       this.#state = next;

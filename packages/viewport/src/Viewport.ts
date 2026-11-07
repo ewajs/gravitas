@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { VehiclePose } from '@gravitas/engine';
 import { CHASE, ChaseRig } from './chase';
+import { NO_ACTUATORS, type Actuators } from './effects';
 import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
 import { createScene } from './scene';
 
@@ -34,6 +35,8 @@ export class Viewport {
   readonly #previous = poseBuffer();
   readonly #current = poseBuffer();
   #rig: ChaseRig | undefined;
+  #actuators: Actuators = NO_ACTUATORS;
+  #reducedMotion: MediaQueryList | undefined;
   #lastRender: number | undefined;
   #renderer: THREE.WebGPURenderer | undefined;
   #controls: OrbitControls | undefined;
@@ -91,6 +94,28 @@ export class Viewport {
   }
 
   /**
+   * Shows what the actuators are doing: engine plume and light scaled by
+   * `throttle` in [0, 1], attitude-thruster puffs from `attitude` (torque per body
+   * axis as a fraction of its limit, each in [−1, 1]), and ground dust near the
+   * surface. Presentation only; pass what the simulation actually applied.
+   */
+  setActuators(actuators: Actuators): void {
+    if (this.#disposed) throw new Error('Viewport has been disposed');
+    const { throttle, attitude } = actuators;
+    const values = [throttle, attitude.x, attitude.y, attitude.z];
+    if (!values.every(Number.isFinite) || throttle < 0 || throttle > 1) {
+      throw new RangeError('Throttle must be in [0, 1] and attitude values finite');
+    }
+    if ([attitude.x, attitude.y, attitude.z].some((value) => Math.abs(value) > 1)) {
+      throw new RangeError('Attitude values must be within [−1, 1]');
+    }
+    this.#actuators = {
+      throttle,
+      attitude: { x: attitude.x, y: attitude.y, z: attitude.z },
+    };
+  }
+
+  /**
    * Draws each landing leg compressed by the given amount, in metres, in foot
    * order: left-front, left-back, right-front, right-back (front is body −Z).
    * Presentation only; pass the host's contact penetration for each foot.
@@ -140,6 +165,13 @@ export class Viewport {
     const altitude = this.#altitude();
     this.#rig?.update(this.#art.vehicle, altitude, dt);
     this.#art.updateMarker(this.#art.vehicle.position, altitude);
+    this.#art.effects.update(
+      this.#actuators,
+      this.#art.vehicle.position,
+      altitude,
+      Math.min(dt, CHASE.maxFrameTime),
+      this.#reducedMotion?.matches ?? false,
+    );
     this.#controls?.update();
     this.#renderer.render(this.#art.scene, this.#camera);
     return true;
@@ -185,6 +217,8 @@ export class Viewport {
       this.#controls.maxPolarAngle = Math.PI * 0.48;
       // The rig moves the target every frame, so panning away would be undone.
       this.#controls.enablePan = false;
+      // Flicker and dust motion stop when the player asks for reduced motion.
+      this.#reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
       this.#controls.addEventListener('start', this.#orbitStarted);
       this.#controls.addEventListener('end', this.#orbitEnded);
       this.#controls.update();

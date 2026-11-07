@@ -118,6 +118,26 @@ test('scene has a lit vehicle, the chase camera keeps it in view, rotation is vi
   await page.waitForTimeout(2500); // Chase framing settles near the ground.
   expect((await page.evaluate(() => window.fixture.sample())).gold).toBeGreaterThan(50);
   await page.locator('canvas').screenshot({ path: info.outputPath('compressed.png') });
+  // Engine and thrusters: a plume appears with throttle and leaves with it.
+  await page.evaluate(() => {
+    window.fixture.setLegCompression([0, 0, 0, 0]);
+    window.fixture.setPose({
+      position: { x: 0, y: 5.5, z: 0 },
+      orientation: { x: 0, y: 0, z: 0, w: 1 },
+    });
+    window.fixture.setActuators(0);
+  });
+  await page.waitForTimeout(2500);
+  const cold = await page.evaluate(() => window.fixture.sample());
+  await page.evaluate(() => window.fixture.setActuators(1, { x: 1, y: 0, z: 0 }));
+  await expect
+    .poll(() => page.evaluate(() => window.fixture.sample().flame))
+    .toBeGreaterThan(cold.flame + 40);
+  await page.locator('canvas').screenshot({ path: info.outputPath('burn.png') });
+  await page.evaluate(() => window.fixture.setActuators(0));
+  await expect
+    .poll(() => page.evaluate(() => window.fixture.sample().flame))
+    .toBeLessThan(cold.flame + 20);
   await page.locator('canvas').screenshot({ path: info.outputPath('fixture.png') });
 });
 
@@ -280,4 +300,27 @@ test.describe('lost graphics context', () => {
     await expect(page.getByRole('alert')).toContainText('No pudimos mostrar');
     await expect(page.locator('canvas')).toHaveCount(0);
   });
+});
+
+test('effects flicker normally and hold still when reduced motion is requested', async ({
+  page,
+}, info) => {
+  const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
+  const steadyBurn = async () => {
+    await page.evaluate((b) => window.fixture.mount(b === 'webgl2' ? 'webgl2' : 'auto'), backend);
+    await page.evaluate(() => {
+      window.fixture.setPose({
+        position: { x: 0, y: 4.5, z: 0 },
+        orientation: { x: 0, y: 0, z: 0, w: 1 },
+      });
+      window.fixture.setActuators(0.8);
+    });
+    await page.waitForTimeout(3000); // Let the chase framing settle completely.
+    const first = await page.locator('canvas').screenshot();
+    await page.waitForTimeout(400);
+    return first.equals(await page.locator('canvas').screenshot());
+  };
+  expect(await steadyBurn()).toBe(false); // Flame flicker and dust swell move.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await steadyBurn()).toBe(true);
 });

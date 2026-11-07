@@ -90,6 +90,7 @@ function draw(timestamp: number) {
   session.advance(elapsed, keyboard.sample()); // Whole 60 Hz ticks, at most 5
   viewport.setVehiclePose(session.state, session.previous);
   viewport.setLegCompression(legCompression()); // contactFacts penetration per foot
+  viewport.setActuators(session.actuation); // What the last tick applied: plume, puffs, dust
   viewport.render(session.alpha); // Blend by the accumulator remainder
   // Publish telemetry at 10 Hz while flying, and at once on phase changes.
   frame = requestAnimationFrame(draw);

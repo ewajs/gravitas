@@ -5,7 +5,11 @@ import { createScene } from './scene';
 it('places level feet on the pad while transforms use the supplied centre of mass', () => {
   const art = createScene(1.5);
   // Precise bounds use vertices; transformed local boxes overstate the angled struts.
-  const bounds = () => new Box3().setFromObject(art.vehicle, true);
+  // Measure the structure only: effects such as the plume hang below the bell.
+  const bounds = () => {
+    art.vehicle.updateMatrixWorld(true);
+    return new Box3().setFromObject(art.artwork, true);
+  };
   try {
     expect(art.vehicle.position.y).toBe(1.5);
     expect(bounds().min.y).toBeCloseTo(0, 6);
@@ -21,7 +25,10 @@ it('places level feet on the pad while transforms use the supplied centre of mas
 
 it('draws compressed legs: feet stay on the surface and struts follow them', () => {
   const art = createScene(1.5);
-  const bounds = () => new Box3().setFromObject(art.vehicle, true);
+  const bounds = () => {
+    art.vehicle.updateMatrixWorld(true);
+    return new Box3().setFromObject(art.artwork, true);
+  };
   try {
     art.vehicle.position.y = 1.5 - 0.2; // Centre of mass lowered by a 0.2 m compression.
     art.setLegCompression([0.2, 0.2, 0.2, 0.2]);

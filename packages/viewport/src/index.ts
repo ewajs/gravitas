@@ -5,3 +5,4 @@ export {
   type BackendRequest,
   type RenderBackend,
 } from './Viewport';
+export type { Actuators } from './effects';

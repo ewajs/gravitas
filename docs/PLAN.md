@@ -113,8 +113,13 @@ construction, staging, or progression required.
 Owner playtesting tunes camera, controls, and limits. Steps that need no human
 playtest come first:
 
-- [ ] **3.1 Effects:** throttle-scaled engine plume, attitude-thruster puffs, dust
-      near the ground; restrained, reduced-motion aware.
+- [x] **3.1 Effects:** throttle-scaled engine plume and light, attitude-thruster
+      puffs aimed from each quad's torque geometry, soft ground dust; untone-mapped
+      flame colours; `viewport.setActuators` fed by what the session actually applied
+      (zero when dry). **Verify:** mapping unit tests (plume length, quad directions,
+      dust thresholds), actuator validation, browser plume appears/leaves,
+      reduced-motion frames identical, both backends. Local checks passed on
+      2026-11-07; see [effects verification](verification/effects.md).
 - [ ] **3.2 Audio and settings:** synthesized engine/thruster sound, mute, local
       settings persisted at meaningful boundaries.
 - [ ] **3.3 Diagnostics (stretch):** an explicit `?debug` overlay (frame time,

@@ -69,3 +69,10 @@ fonts), same machine and workload: WebGPU 60.00 fps, main-thread work 0.7 ms p50
 and 0.8 ms p95, 0.05 s discarded, 45 draw calls, 19,501 triangles; SwiftShader
 WebGL 2 15.19 fps. All proposed budgets still hold on the reference device. The
 blur's cost on the test phones is measured in 4.4.
+
+## Phones (pending, 4.4)
+
+The test phones (iPhone 15 Pro, Galaxy A70) are measured on the deployed site
+after 4.4 merges, with glass and with solid panels; the procedure is in
+[mobile verification](mobile.md#measuring-the-glass-blur-on-a-phone). Glass stays
+the default on phones until then.

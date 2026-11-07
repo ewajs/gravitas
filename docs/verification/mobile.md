@@ -65,3 +65,32 @@ the PR.
   its third line names the screen and pixel ratio, orientation, input device,
   touch controls, and whether panels are glass or solid. Help → Display →
   "Reduce transparency" switches to solid panels to compare.
+
+## 4.4b Installable app
+
+Verified locally on 2026-11-07 (`tests/browser/pwa.spec.ts`, production build
+under `/gravitas/`):
+
+- The page links `manifest.webmanifest`, served at `/gravitas/manifest.webmanifest`.
+  Its name, short name, `display: standalone` with `display_override`
+  (`["fullscreen", "standalone"]`), `orientation: landscape`, and theme and
+  background colours (the theme's `#04060B`) are as intended; `start_url`,
+  `scope`, and `id` resolve to `/gravitas/`; every icon is served at its declared
+  size, with `any` and `maskable` purposes.
+- iOS tags: `apple-mobile-web-app-capable`, `mobile-web-app-capable` (so Chrome
+  does not warn), title, and a black-translucent status bar.
+- No service worker controls the page.
+- Not verified: the install flow itself (Chrome's install prompt, Safari's Add to
+  Home Screen), full screen on the A70, and the status bar over the notch in the
+  installed iPhone app. Try both after deployment.
+
+## Measuring the glass blur on a phone
+
+Open the deployed game with `?debug` (for English, `?lang=en&debug`). The overlay
+shows the frame rate, main-thread work, draw calls, the backend, and a third line
+with the screen size and pixel ratio, orientation, input device, touch controls,
+and `glass blur` or `solid panels`. Fly for half a minute and note the frame rate
+and work p95; then open Help → Display → Reduce transparency (panels turn solid)
+and fly again. Record both, with the device and browser, in
+[performance measurements](performance.md). If the blur costs the A70 its frame
+rate, the owner can decide to default phones to solid panels.

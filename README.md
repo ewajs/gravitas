@@ -4,9 +4,10 @@ A spaceflight game for the web, built alongside reusable simulation, Three.js
 viewport, and Lit UI libraries. Ambitious in direction; small, reviewable steps
 in delivery.
 
-**Status:** a flyable first descent: keyboard flight with a heading-following chase
-camera, a bilingual HUD with landing radar, fixed-step physics, pause and restart. Touchdown stops the flight without a landing
-verdict until M2. The first playable target is a short lunar landing challenge; orbital flight and
+**Status:** a complete lunar landing challenge (v0.2.0) with physical touchdown,
+explained verdicts, effects, sound, a bilingual manual, and the Glass look. Fly
+with the keyboard, a gamepad, or on-screen touch controls; phones play in
+landscape and can install the game to the home screen. Orbital flight and
 construction are later possibilities.
 
 [Open the live build](https://ewajs.github.io/gravitas/).
@@ -39,6 +40,8 @@ npm run dev
 
 Open the URL Vite prints and press P to start the descent. W/S/A/D/Q/E rotate,
 R/F move the throttle lever, Z/X set full or cut, P pauses, and Enter restarts.
+A standard gamepad and touch controls also fly (see the manual); `npm run dev --
+--host` serves the dev build to a phone on the same network.
 Drag to look around and scroll to zoom. The radar shows lean (dot), drift
 (arrow), and the pad (diamond); lean against the arrow to stop drifting. Use the
 ES/EN selector to change language mid-flight, and open Help/Ayuda for all controls. Add

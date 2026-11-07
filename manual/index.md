@@ -28,6 +28,25 @@ instrumentos se ordenan arriba y el radar entre los pulgares, para que nada
 quede bajo tus dedos. El juego no hace zoom al pellizcar ni al tocar dos veces:
 pellizcar acerca la cámara.
 
+### Instalarlo en la pantalla de inicio
+
+Podés agregar Gravitas a la pantalla de inicio y abrirlo como una app, a pantalla
+completa y en horizontal:
+
+- **iPhone (Safari):** tocá el botón **Compartir** y elegí **Agregar a inicio**.
+- **Android (Chrome):** abrí el menú **⋮** y elegí **Instalar app** (o **Agregar a
+  la pantalla principal**).
+
+Igual necesita conexión: todavía no funciona sin internet.
+
+### Si va lento
+
+Los paneles translúcidos desenfocan la escena de fondo, y eso cuesta trabajo
+gráfico. Si el teléfono no llega a moverse con fluidez, abrí **Ayuda → Pantalla →
+Reducir transparencia**: los paneles pasan a ser sólidos. Para ver los cuadros
+por segundo, agregá `?debug` a la dirección (por ejemplo
+`https://ewajs.github.io/gravitas/?debug`).
+
 ## Qué vas a encontrar acá
 
 - [Volar](./flying): todos los controles y cómo responde el módulo.

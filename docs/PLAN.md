@@ -240,7 +240,7 @@ pinch zoom and double-tap zoom are blocked.
         the active device. **Verify:** mapping, source, and settings unit tests;
         browser tests with real multi-touch on emulated phones, both backends. See
         [input verification](verification/input.md).
-- [ ] **4.4 Mobile layout and PWA:** landscape-only flight with a rotate prompt;
+- [x] **4.4 Mobile layout and PWA:** landscape-only flight with a rotate prompt;
       pinch and double-tap zoom blocked; a compact HUD; install to the home screen;
       the WebGL 2 fallback. Phone testing happens on the deployed site after
       merging. Two stacked PRs:
@@ -257,10 +257,14 @@ pinch zoom and double-tap zoom are blocked.
         real pinch that never zooms the page, the WebGL 2 fallback, both backends.
         See [ADR 0017](decisions/0017-phone-play.md) and
         [mobile verification](verification/mobile.md).
-  - [ ] **4.4b Installable app:** a web app manifest (landscape, fullscreen with a
-        standalone fallback, theme colours, the 4.2c icons), iOS home-screen tags,
-        and manual notes on installing and on measuring the glass blur; no
-        service worker. **Verify:** manifest and icons served under `/gravitas/`.
+  - [x] **4.4b Installable app:** a web app manifest generated from the theme
+        (landscape; full screen on Android with a standalone fallback; the 4.2c
+        icons including the maskable one; start and scope under `/gravitas/`),
+        iOS home-screen tags, and manual notes (es/en) on installing and on the
+        glass blur (`?debug` to measure, Reduce transparency for solid panels); no
+        service worker. **Verify:** manifest, icons, and tags served under
+        `/gravitas/`; both browser suites. See
+        [mobile verification](verification/mobile.md).
 
 ## Later decisions
 

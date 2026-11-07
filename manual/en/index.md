@@ -25,6 +25,24 @@ left thumb works the throttle and your right thumb the tilt (see
 the radar sits between your thumbs, so nothing is under your fingers. Pinching or
 double-tapping never zooms the page: a pinch zooms the camera.
 
+### Install it to your home screen
+
+You can add Gravitas to your home screen and open it like an app, full screen and
+sideways:
+
+- **iPhone (Safari):** tap **Share** and choose **Add to Home Screen**.
+- **Android (Chrome):** open the **⋮** menu and choose **Install app** (or **Add to
+  Home screen**).
+
+It still needs a connection: it does not work offline yet.
+
+### If it feels slow
+
+The translucent panels blur the scene behind them, which costs graphics work. If
+your phone does not move smoothly, open **Help → Display → Reduce transparency**:
+the panels turn solid. To see the frame rate, add `debug` to the address (for
+example `https://ewajs.github.io/gravitas/?lang=en&debug`).
+
 ## In this manual
 
 - [Flying](./flying): every control and how the lander responds.

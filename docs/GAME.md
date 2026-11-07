@@ -65,7 +65,9 @@ card work in both orientations. With the touch controls showing, the readouts
 become one strip along the top, the radar sits between the thumbs, the HUD's
 throttle gauge gives way to the lever, and nothing sits in the lower part of
 either side. The page never zooms (pinch or double tap); a pinch on the scene
-zooms the camera. The layout respects the notch and the home indicator. On short
+zooms the camera. The game installs to a phone's home screen (a web app manifest
+with the theme's colours and the Kepler icons) and opens full screen on Android,
+standalone on iOS, in landscape; it still needs a connection. The layout respects the notch and the home indicator. On short
 landscape screens the start card shows without the instruments behind it, and
 the results card has two columns.
 

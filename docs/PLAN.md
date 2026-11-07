@@ -265,25 +265,27 @@ pinch zoom and double-tap zoom are blocked.
         service worker. **Verify:** manifest, icons, and tags served under
         `/gravitas/`; both browser suites. See
         [mobile verification](verification/mobile.md).
-  - [~] **4.4c Phone HUD:** after the owner's first check of v0.3.0 on an iPhone
-    15 Pro in Safari (strip wrapping at 734 × 331, radar over the pad, the
-    start card overflowing upright, desktop panels behind the results), the
-    approved design option A, "corner chips": on a landscape phone with the
-    touch layout, one readout card top left that never wraps, pause and a ⋯
-    menu (language, sound, restart, Help) top right, a small radar card
-    under them with the yaw buttons beside it, a slim lever, and the centre
-    from the lander to the pad clear; the same layout before the start and
-    behind the results (`touchLayout`); upright, a slim header, a wrapping
-    "How to fly", a "turn your phone" row, and Start, without instruments.
-    Tablets and desktops unchanged. **Verify:** browser tests at the sizes the
-    browsers really give (Safari 734 × 331 and 393 × 652, installed 852 × 393
-    with insets, A70 Chrome 914 × 355 and 411 × 786, installed 914 × 411):
-    a clear-centre corridor while ready, flying, and paused; no overflow of
-    any element or text in every phase, both languages; thumb zones; the
-    menu's keyboard and focus behaviour; desktop and tablet screenshots
-    identical before and after; both browser suites. See
-    [ADR 0017](decisions/0017-phone-play.md) and
-    [mobile verification](verification/mobile.md).
+  - [x] **4.4c Phone HUD:** after the owner's first check of v0.3.0 on an iPhone
+        15 Pro in Safari (strip wrapping at 734 × 331, radar over the pad, the
+        start card overflowing upright, desktop panels behind the results), the
+        approved design option A, "corner chips": on a landscape phone with the
+        touch layout, one readout card top left that never wraps, pause and a ⋯
+        menu (language, sound, restart, Help) top right, a small radar card
+        under them with the yaw buttons beside it, a slim lever, and the centre
+        from the lander to the pad clear; the same layout before the start and
+        behind the results (`touchLayout`); upright, a slim header, a wrapping
+        "How to fly", a "turn your phone" row, and Start, without instruments.
+        Tablets and desktops unchanged. **Verify:** browser tests at the sizes the
+        browsers really give (Safari 734 × 331 and 393 × 652, installed 852 × 393
+        with insets, A70 Chrome 914 × 355 and 411 × 786, installed 914 × 411):
+        a clear-centre corridor while ready, flying, and paused; no overflow of
+        any element or text in every phase, both languages; thumb zones; the
+        menu's keyboard and focus behaviour; desktop and tablet screenshots
+        identical before and after (bar the start card's wrap fix); both browser
+        suites. Local checks passed on 2026-11-07; on-device checks follow
+        deployment. See
+        [ADR 0017](decisions/0017-phone-play.md) and
+        [mobile verification](verification/mobile.md).
 
 ## Later decisions
 

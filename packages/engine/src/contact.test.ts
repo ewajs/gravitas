@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   contactFacts,
   MAX_FLIGHT_STEP,
+  rotationAbout,
   stepFlight,
+  tiltAngle,
+  toRadians,
   type ContactPoint,
   type FlightEnvironment,
   type FlightState,
-  type Quaternion,
   type VehicleParameters,
 } from './index';
 
@@ -81,13 +83,6 @@ function simulate(
   }
   return s;
 }
-const tilt = (q: Quaternion) => Math.acos(Math.min(1, 1 - 2 * (q.x * q.x + q.z * q.z)));
-const aboutZ = (angle: number): Quaternion => ({
-  x: 0,
-  y: 0,
-  z: Math.sin(angle / 2),
-  w: Math.cos(angle / 2),
-});
 
 describe('surface contact references', () => {
   it('rests on four legs compressed by m·g / 4k with no hull contact', () => {
@@ -168,13 +163,16 @@ describe('surface contact references', () => {
     [38, false],
     [52, true],
   ])('released at %s° on two feet, tips over: %s (static limit 45°)', (degrees, tips) => {
-    const angle = (degrees * Math.PI) / 180;
+    const angle = toRadians(degrees);
     // Rolled about +Z, the −X feet are lowest; place them on the surface.
     const footY = -1.5 * Math.sin(angle) - 1.5 * Math.cos(angle);
-    const start = state({ position: { x: 0, y: -footY, z: 0 }, orientation: aboutZ(angle) });
+    const start = state({
+      position: { x: 0, y: -footY, z: 0 },
+      orientation: rotationAbout('z', angle),
+    });
     const end = simulate(start, 6);
-    if (tips) expect(tilt(end.orientation)).toBeGreaterThan((60 * Math.PI) / 180);
-    else expect(tilt(end.orientation)).toBeLessThan((3 * Math.PI) / 180);
+    if (tips) expect(tiltAngle(end.orientation)).toBeGreaterThan(toRadians(60));
+    else expect(tiltAngle(end.orientation)).toBeLessThan(toRadians(3));
   });
 
   it('reaches the engine bell only on a hard impact', () => {

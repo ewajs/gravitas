@@ -2,7 +2,7 @@
 
 Optional Lit flight HUD: a heading-up landing radar, localized readouts, fuel and
 throttle gauges, phase messages, start/pause/restart buttons, language selection,
-loading/failure messages, and a native-dialog control reference. It imports engine types only and has no dependency on viewport or the app.
+loading/failure messages, and a native-dialog control reference. It imports engine types plus the pure helpers in `@gravitas/engine/math`, and has no dependency on viewport or the app.
 
 ```ts
 import { registerUi, setLocale } from '@gravitas/ui';
@@ -12,7 +12,7 @@ await setLocale('en');
 const hud = document.createElement('gravitas-flight-hud');
 hud.heading = 'My lander'; // Branding belongs to the host.
 hud.locale = 'en';
-hud.phase = 'ready'; // 'ready' | 'flying' | 'paused' | 'contact', owned by the host.
+hud.phase = 'ready'; // 'ready' | 'flying' | 'paused' | 'complete', owned by the host.
 hud.telemetry = {
   altitude: 80, // m, lowest contact point above the surface
   verticalSpeed: -4, // m/s, negative descending
@@ -34,8 +34,8 @@ container.append(hud); // Overlay host: position: relative with an explicit heig
 ```
 
 `FlightHud` is also exported for TypeScript consumers, along with `FlightTelemetry`,
-`RadarVector`, `FlightPhase`, `FlightRequest`, `LandingReport`, `LandingCheck`, and
-`LocaleRequest`. Telemetry is a **presentation
+`RadarVector`, `FlightPhase`, `FlightRequest`, `LandingReport`, `LandingCheck`,
+`LocaleRequest`, and `SoundRequest`. Telemetry is a **presentation
 snapshot** in SI units; the host computes it from its own flight state and contact
 geometry. Pass a new immutable object when it changes, at a deliberate rate (the
 game uses 10 Hz). HUD reactivity never owns or advances flight state.
@@ -118,7 +118,7 @@ Defaults live in `src/tokens.ts`. HUD panels do not intercept scene gestures;
 interactive controls do. The phase message is a polite live region below the
 header. The help dialog makes the background inert and supports Escape and focus
 return. Controls have 44px minimum height and visible focus. Narrow layouts stack
-readouts in three columns and hide the key-hint line, which Help repeats. No
+readouts in two columns and hide the key-hint line, which Help repeats. No
 animation is introduced.
 
 App and browser-test typechecking use UI's legacy decorator/class-field settings

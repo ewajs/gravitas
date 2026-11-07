@@ -93,7 +93,7 @@ export class Viewport {
    * is displayed as-is.
    */
   setVehiclePose(current: VehiclePose, previous: VehiclePose = current): void {
-    if (this.#disposed) throw new Error('Viewport has been disposed');
+    this.#assertNotDisposed();
     assertPose(current);
     if (previous !== current) assertPose(previous);
     copyPose(current, this.#current);
@@ -107,7 +107,7 @@ export class Viewport {
    * surface. Presentation only; pass what the simulation actually applied.
    */
   setActuators(actuators: Actuators): void {
-    if (this.#disposed) throw new Error('Viewport has been disposed');
+    this.#assertNotDisposed();
     const { throttle, attitude } = actuators;
     const values = [throttle, attitude.x, attitude.y, attitude.z];
     if (!values.every(Number.isFinite) || throttle < 0 || throttle > 1) {
@@ -128,7 +128,7 @@ export class Viewport {
    * Presentation only; pass the host's contact penetration for each foot.
    */
   setLegCompression(compressions: readonly number[]): void {
-    if (this.#disposed) throw new Error('Viewport has been disposed');
+    this.#assertNotDisposed();
     if (compressions.length !== 4 || !compressions.every((c) => Number.isFinite(c) && c >= 0)) {
       throw new RangeError('Leg compression needs four finite, non-negative values');
     }
@@ -140,7 +140,7 @@ export class Viewport {
    * distance, without easing. Call after a discontinuity such as a restart.
    */
   resetCamera(): void {
-    if (this.#disposed) throw new Error('Viewport has been disposed');
+    this.#assertNotDisposed();
     if (!this.#rig) return;
     blendPose(this.#current, this.#current, 1, this.#art.vehicle);
     this.#rig.snap(this.#art.vehicle, this.#altitude());
@@ -148,7 +148,7 @@ export class Viewport {
 
   /** Updates the accessible canvas description without resetting camera or GPU resources. */
   setLabel(label: string): void {
-    if (this.#disposed) throw new Error('Viewport has been disposed');
+    this.#assertNotDisposed();
     this.#label = label;
     this.#renderer?.domElement.setAttribute('aria-label', label);
   }
@@ -245,6 +245,11 @@ export class Viewport {
       await this.#releaseResources();
       throw error;
     }
+  }
+
+  // Calls after dispose() throw, so a stale host reference fails loudly.
+  #assertNotDisposed(): void {
+    if (this.#disposed) throw new Error('Viewport has been disposed');
   }
 
   readonly #orbitStarted = () => this.#rig?.setUserActive(true);

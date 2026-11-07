@@ -1,19 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { rotationAbout } from '@gravitas/engine';
 import { ATTITUDE, LANDER } from './lander';
-import { LANDING_LIMITS } from './rules';
-import { ENVIRONMENT, START_STATE } from './scenario';
+import { FIRST_DESCENT, START_STATE } from './scenario';
 import { FIXED_STEP, FlightSession, MAX_STEPS_PER_FRAME, type PilotInput } from './session';
 import { footClearance } from './telemetry';
 
 const idle: PilotInput = { rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 };
-const flying = (start = START_STATE) => {
-  const session = new FlightSession({
-    start,
-    vehicle: LANDER,
-    attitude: ATTITUDE,
-    environment: ENVIRONMENT,
-    limits: LANDING_LIMITS,
-  });
+const flying = () => {
+  const session = new FlightSession(FIRST_DESCENT);
   session.start();
   return session;
 };
@@ -59,13 +53,7 @@ describe('fixed-step runtime', () => {
   });
 
   it('advances only while flying; pause keeps the sub-step remainder', () => {
-    const session = new FlightSession({
-      start: START_STATE,
-      vehicle: LANDER,
-      attitude: ATTITUDE,
-      environment: ENVIRONMENT,
-      limits: LANDING_LIMITS,
-    });
+    const session = new FlightSession(FIRST_DESCENT);
     expect(session.phase).toBe('ready');
     expect(session.advance(1, idle)).toBe(0);
     session.start();
@@ -165,11 +153,8 @@ describe('surface contact in the session', () => {
 describe('after a verdict', () => {
   const near = (changes: Partial<typeof START_STATE>) =>
     new FlightSession({
+      ...FIRST_DESCENT,
       start: { ...START_STATE, position: { x: 0, y: 1.8, z: 0 }, ...changes },
-      vehicle: LANDER,
-      attitude: ATTITUDE,
-      environment: ENVIRONMENT,
-      limits: LANDING_LIMITS,
     });
 
   it('cuts the engine even when the verdict lands mid-frame with throttle held', () => {
@@ -187,9 +172,8 @@ describe('after a verdict', () => {
   });
 
   it('stops the attitude thrusters while a crash tumbles', () => {
-    const tilt = 0.5;
     const session = near({
-      orientation: { x: 0, y: 0, z: Math.sin(tilt / 2), w: Math.cos(tilt / 2) },
+      orientation: rotationAbout('z', 0.5),
       velocity: { x: 0, y: -3, z: 0 },
     });
     session.start();

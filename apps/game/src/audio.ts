@@ -1,3 +1,4 @@
+import { clamp } from '@gravitas/engine';
 import type { Actuation } from './session';
 
 /** Target levels for the continuous sounds; pure, so it can be tested without audio. */
@@ -12,7 +13,7 @@ export interface AudioLevels {
 
 /** Maps applied actuation to sound levels. Quiet at idle; never louder than ~0.4. */
 export function audioLevels(actuation: Actuation): AudioLevels {
-  const throttle = Math.min(1, Math.max(0, actuation.throttle));
+  const throttle = clamp(actuation.throttle, 0, 1);
   const { x, y, z } = actuation.attitude;
   const attitude = Math.min(1, Math.max(Math.abs(x), Math.abs(y), Math.abs(z)));
   return {
@@ -28,6 +29,8 @@ export type Cue = 'landed' | 'rough' | 'crashed';
 
 /** Smoothing time constant for level changes, in seconds: no clicks. */
 const RAMP = 0.06;
+/** Overall output level while not muted. */
+const MASTER_GAIN = 0.8;
 
 /**
  * Synthesized flight sound: filtered noise for the engine and thrusters, a low tone
@@ -68,7 +71,7 @@ export class FlightAudio {
     this.#context = context;
     context.addEventListener('statechange', () => this.#onState(this.state));
     const master = context.createGain();
-    master.gain.value = this.#muted ? 0 : 0.8;
+    master.gain.value = this.#muted ? 0 : MASTER_GAIN;
     master.connect(context.destination);
     this.#master = master;
 
@@ -159,7 +162,7 @@ export class FlightAudio {
     this.#muted = muted;
     this.#onState(this.state);
     if (this.#master && this.#context) {
-      this.#master.gain.setTargetAtTime(muted ? 0 : 0.8, this.#context.currentTime, RAMP);
+      this.#master.gain.setTargetAtTime(muted ? 0 : MASTER_GAIN, this.#context.currentTime, RAMP);
     }
     this.#apply();
   }

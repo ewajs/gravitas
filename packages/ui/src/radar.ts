@@ -1,4 +1,4 @@
-import type { RadarVector } from './flight-hud';
+import type { RadarVector } from './types';
 
 /** Radar disc radius in SVG units; the view box adds a small margin. */
 export const RADAR_RADIUS = 64;

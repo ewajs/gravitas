@@ -3,18 +3,20 @@
 **Status:** workspace boundaries, viewport, hosted delivery, engine flight
 dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
 bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
-contact, touchdown judging, and the bilingual player manual implemented (M2). See [the flight model](FLIGHT.md),
+contact, touchdown judging, and the bilingual player manual implemented (M2).
+Actuator effects, sound and settings, diagnostics, and the manual's Learn section
+implemented (M3). See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
 ## Package boundaries
 
-| Workspace            | Owns                                                               | Allowed project dependencies     |
-| -------------------- | ------------------------------------------------------------------ | -------------------------------- |
-| `@gravitas/engine`   | Plain simulation state, dynamics, simulation stepping              | None                             |
-| `@gravitas/viewport` | Three.js scene, camera, interpolation, effects, GPU lifecycle      | Engine public API/types          |
-| `@gravitas/ui`       | Optional Lit instruments, menus, settings, localization, tokens    | Engine public types where useful |
-| `apps/game`          | Missions, outcomes, input, browser scheduling, assets, persistence | All libraries                    |
+| Workspace            | Owns                                                               | Allowed project dependencies    |
+| -------------------- | ------------------------------------------------------------------ | ------------------------------- |
+| `@gravitas/engine`   | Plain simulation state, dynamics, simulation stepping              | None                            |
+| `@gravitas/viewport` | Three.js scene, camera, interpolation, effects, GPU lifecycle      | Engine public API/types         |
+| `@gravitas/ui`       | Optional Lit instruments, menus, settings, localization, tokens    | Engine types; engine math entry |
+| `apps/game`          | Missions, outcomes, input, browser scheduling, assets, persistence | All libraries                   |
 
 Engine provides generic contact facts; the game turns them into mission outcomes.
 A reusable landing classifier can belong in engine with explicit parameters,
@@ -26,12 +28,21 @@ or Lit dependency. Enforce boundaries in lint, including reverse type-only impor
 Consume packages from TypeScript source initially; publication and stable API
 compatibility promises are deferred.
 
-Each library exports only `src/index.ts`. Engine defines the shared `VehiclePose`
+A library's public API is exactly the entry points its `package.json` `exports`
+lists; nothing else is importable. Each library has `src/index.ts`, and a further
+entry point is added only when a consumer needs a narrower boundary, not for
+convenience. Engine has one: `@gravitas/engine/math`, pure arithmetic that UI may
+call at runtime (UI otherwise imports engine types only, so it displays state and
+never simulates). Engine defines the shared `VehiclePose`
 type (centre of mass in world metres and a body-to-world quaternion), imported
 directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 `rateControlTorque` assistance; `FlightState` extends `VehiclePose`. Its
 `headingAngle` and `bodyToWorld` helpers give viewport's camera and the app's radar
-one heading definition. `contactFacts` and the `Surface` seam report surface contact
+one heading definition. Its shared math (`math.ts`: vector and quaternion operations,
+`clamp`, `toRadians`/`toDegrees`, `rotationAbout`) serves the dynamics, the app, and
+the manual's Learn models, so none keeps its own copy. Viewport uses Three.js math and
+converts only at its pose boundary; UI takes `clamp` and `toDegrees` from the math
+entry point. `contactFacts` and the `Surface` seam report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,

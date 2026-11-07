@@ -1,22 +1,19 @@
-import type { TouchdownOutcome } from '@gravitas/engine';
 import type { LandingCheck, LandingReport } from '@gravitas/ui';
 import { LANDER } from './lander';
 import { LANDING_LIMITS, PAD_RADIUS } from './rules';
-import { PAD_POSITION } from './scenario';
-import type { FlightSession } from './session';
+import { padDistance } from './scenario';
+import { isVerdict, type FlightSession } from './session';
 
 /**
  * Explains a final verdict for the HUD: what happened, each touchdown limit with
  * its value, and how far from the pad. Returns undefined before a verdict.
  */
 export function landingReport(session: FlightSession): LandingReport | undefined {
-  const outcome: TouchdownOutcome = session.outcome;
-  if (outcome.status !== 'landed' && outcome.status !== 'rough' && outcome.status !== 'crashed') {
-    return undefined;
-  }
+  const outcome = session.outcome;
+  if (!isVerdict(outcome)) return undefined;
   // Judge from the verdict moment: a crash may keep sliding or tumbling afterwards.
   const s = session.verdictState ?? session.state;
-  const padDistance = Math.hypot(s.position.x - PAD_POSITION.x, s.position.z - PAD_POSITION.z);
+  const distance = padDistance(s.position);
   const checks: LandingCheck[] = [];
   const check = (id: LandingCheck['id'], value: number, limit: number) =>
     checks.push({ id, value, limit, pass: value <= limit });
@@ -25,10 +22,10 @@ export function landingReport(session: FlightSession): LandingReport | undefined
     check('horizontal-speed', outcome.touchdown.horizontalSpeed, LANDING_LIMITS.maxHorizontalSpeed);
     check('tilt', outcome.touchdown.tilt, LANDING_LIMITS.maxTilt);
   }
-  check('pad-distance', padDistance, PAD_RADIUS);
+  check('pad-distance', distance, PAD_RADIUS);
   const verdict =
     outcome.status === 'landed'
-      ? padDistance <= PAD_RADIUS
+      ? distance <= PAD_RADIUS
         ? 'landed'
         : 'landed-off-pad'
       : outcome.status;

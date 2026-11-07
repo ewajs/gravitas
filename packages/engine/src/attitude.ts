@@ -1,5 +1,6 @@
 import type { Vector3 } from './pose';
 import { MAX_FLIGHT_STEP, validateVehicle, type VehicleParameters } from './flight';
+import { clamp } from './math';
 import { bounded, positive, vector } from './validation';
 
 /** Tuning for proportional body-rate assistance, supplied by the host. */
@@ -34,7 +35,7 @@ export function rateControlTorque(
     const torque =
       (vehicle.inertia[axis] * (input[axis] * settings.maxRate[axis] - angularVelocity[axis])) /
       settings.responseTime;
-    return Math.max(-vehicle.maxTorque[axis], Math.min(vehicle.maxTorque[axis], torque));
+    return clamp(torque, -vehicle.maxTorque[axis], vehicle.maxTorque[axis]);
   };
   return { x: axisTorque('x'), y: axisTorque('y'), z: axisTorque('z') };
 }

@@ -145,11 +145,40 @@ playtest come first:
       [ADR 0013](decisions/0013-learn-section.md) and
       [Learn verification](verification/learn.md).
 
+## M4 — Polish and reach
+
+A tidier codebase first, then a visual identity, and the input and layout work
+that takes the game to phones. Owner decisions on 2026-11-07: flight is
+landscape-only; the test devices are an iPhone 15 Pro and a Samsung Galaxy A70;
+pinch zoom and double-tap zoom are blocked.
+
+- [x] **4.1 Housekeeping:** a review sweep of all source. Engine `math.ts` (vector
+      and quaternion operations, `clamp`, degree conversions, `rotationAbout`) used
+      by the dynamics, the game, and the Learn models; the opening scenario, pad
+      distance, verdict check, and every scripted pilot named once in the game; the
+      1,090-line flight HUD split into element, types, styles, instruments, results
+      card, and help modules with cached number formats; one RK4 and shared plot
+      notation in the manual. No behaviour change. **Verify:** scripted flights and
+      contact integrations bit-identical (69,030 hashed ticks); HUD shadow DOM,
+      accessibility tree, CSS, and screenshots identical in 144 states; manual pages
+      identical; both browser suites unchanged. Local checks passed on 2026-11-07;
+      see [housekeeping verification](verification/housekeeping.md).
+- [ ] **4.2 Theme system and identity:** selectable, typed themes that generate CSS
+      variables for the HUD and the manual, plus scene accent colours; a logo and
+      icon set; a self-hosted typeface. A clean, professional look with subtle,
+      responsive animation; the direction leans sci-fi and is the owner's choice.
+- [ ] **4.3 Input layer, touch, and gamepad:** one input abstraction. On touch, a
+      left-thumb absolute throttle lever with a hover detent, a right-thumb virtual
+      stick for proportional pitch and roll rates, yaw buttons, and pause.
+- [ ] **4.4 Mobile layout and PWA:** landscape-only flight with a rotate prompt;
+      pinch and double-tap zoom blocked; a compact HUD; install to the home screen;
+      the WebGL 2 fallback.
+
 ## Later decisions
 
-Workers based on profiling; PWA install/offline/update flow; touch flight controls
-and supported devices; orbits/reference frames; curved terrain; multiple vehicles;
-construction/staging; replay/save formats; library publication. No implied order.
+Workers based on profiling; PWA offline/update flow; orbits/reference frames;
+curved terrain; multiple vehicles; construction/staging; replay/save formats;
+library publication. No implied order.
 
 MIT is selected for code/documentation. Track third-party asset licenses and
 provenance when assets arrive.

@@ -1,19 +1,11 @@
 import { expect, it } from 'vitest';
-import { ATTITUDE, LANDER } from './lander';
-import { fly, padPilot, verticalPilot } from './pilots';
+import { fly, idlePilot, padPilot, verticalPilot } from './pilots';
 import { landingReport } from './report';
-import { LANDING_LIMITS, PAD_RADIUS } from './rules';
-import { ENVIRONMENT, START_STATE } from './scenario';
+import { PAD_RADIUS } from './rules';
+import { FIRST_DESCENT } from './scenario';
 import { FlightSession } from './session';
 
-const session = () =>
-  new FlightSession({
-    start: START_STATE,
-    vehicle: LANDER,
-    attitude: ATTITUDE,
-    environment: ENVIRONMENT,
-    limits: LANDING_LIMITS,
-  });
+const session = () => new FlightSession(FIRST_DESCENT);
 
 it('has no report before a verdict', () => {
   expect(landingReport(session())).toBeUndefined();
@@ -41,9 +33,7 @@ it('names the failed limit of a rough landing', () => {
 });
 
 it('gives the cause of a crash', () => {
-  const report = landingReport(
-    fly(session(), () => ({ rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 })),
-  )!;
+  const report = landingReport(fly(session(), idlePilot))!;
   expect(report).toMatchObject({ verdict: 'crashed', cause: 'impact' });
   expect(report.checks.find((check) => check.id === 'vertical-speed')!.value).toBeCloseTo(16.6, 0);
 });

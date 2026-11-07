@@ -4,8 +4,10 @@
 // labels name each series. A crosshair tooltip lists every series at the hovered x
 // (pointer or arrow keys), and a table view keeps every value reachable.
 import { computed, ref, useId } from 'vue';
+import { clamp } from '@gravitas/engine';
 import { niceTicks, type Point } from '../learn/models';
 import { useLocale } from './locale';
+import { superscript } from './notation';
 
 export interface Series {
   readonly id: string;
@@ -86,10 +88,6 @@ const yTicks = computed(() =>
     ? niceTicks(yDomain.value[0], yDomain.value[1], 5).filter(Number.isInteger)
     : niceTicks(yDomain.value[0], yDomain.value[1], 5),
 );
-const superscript = (n: number) =>
-  String(n)
-    .replace('-', '⁻')
-    .replace(/\d/g, (d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[Number(d)]!);
 const tickText = (v: number, log: boolean, digits: number) =>
   log ? `10${superscript(v)}` : format(v, digits);
 // Values shown as text. On log axes the data is log₁₀ already, so show the real
@@ -149,15 +147,14 @@ function pointer(event: PointerEvent) {
   const box = svg.value!.getBoundingClientRect();
   const px = ((event.clientX - box.left) / box.width) * W;
   const t = (px - M.left) / (W - M.left - M.right);
-  hover.value =
-    xDomain.value[0] + Math.min(1, Math.max(0, t)) * (xDomain.value[1] - xDomain.value[0]);
+  hover.value = xDomain.value[0] + clamp(t, 0, 1) * (xDomain.value[1] - xDomain.value[0]);
 }
 function key(event: KeyboardEvent) {
   const span = xDomain.value[1] - xDomain.value[0];
   const current = hover.value ?? xDomain.value[0];
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
     const next = current + (event.key === 'ArrowRight' ? 1 : -1) * (span / 40);
-    hover.value = Math.min(xDomain.value[1], Math.max(xDomain.value[0], next));
+    hover.value = clamp(next, xDomain.value[0], xDomain.value[1]);
     event.preventDefault();
   } else if (event.key === 'Escape') hover.value = undefined;
 }

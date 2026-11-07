@@ -67,7 +67,7 @@ Vitest covers flight dynamics against independent references, the fixed-step ses
 (frame-rate independence, overload, pause, impact and settling), surface contact
 against analytic references, touchdown judging boundaries, scripted whole-flight
 regression pilots, key mapping, heading and
-telemetry/radar geometry, the chase rig, effect and audio-level mapping, settings validation, pose validation/blending, and artwork
+telemetry/radar geometry, the chase rig, effect and audio-level mapping, settings validation, shared math conventions, HUD number formats, pose validation/blending, and artwork
 placement; empty suites are not allowed. Browser flight tests poll for outcomes
 rather than assuming real time, because software renderers run below 60 fps.
 Engine source has no DOM/ambient Node types; browser workspaces and build tooling
@@ -75,7 +75,7 @@ opt into their own environments.
 
 Boundary rules check public entry points and dependency direction, including
 type-only imports, re-exports, and dynamic imports. UI can import engine types
-with `import type`; engine cannot depend on other workspaces or runtime packages.
+with `import type` and call the pure helpers in `@gravitas/engine/math`; engine cannot depend on other workspaces or runtime packages.
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
 The player manual lives in `manual/` (Spanish at the root, English in `en/`, same

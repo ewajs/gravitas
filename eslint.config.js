@@ -28,8 +28,14 @@ export default [
         { type: 'game', pattern: 'apps/game' },
       ],
       'boundaries/files': [{ pattern: '**/*.test.ts', category: 'test' }],
-      // Classify npm workspace links by their real package paths, not node_modules.
+      // Resolve imports as TypeScript does, honouring package.json `exports` subpaths
+      // such as @gravitas/engine/math, and classify npm workspace links by their real
+      // package paths, not node_modules.
       'import/resolver': {
+        typescript: {
+          project: ['packages/*/tsconfig.json', 'apps/*/tsconfig.json'],
+          noWarnOnMultipleProjects: true,
+        },
         node: { extensions: ['.ts', '.js', '.css'], preserveSymlinks: false },
       },
     },
@@ -54,6 +60,14 @@ export default [
               allow: {
                 to: { element: { type: 'engine', fileInternalPath: 'src/index.ts' } },
                 dependency: { source: '@gravitas/engine', kind: 'type' },
+              },
+            },
+            {
+              // Pure arithmetic only: the UI displays state and never simulates.
+              from: { element: { type: 'ui' } },
+              allow: {
+                to: { element: { type: 'engine', fileInternalPath: 'src/math.ts' } },
+                dependency: { source: '@gravitas/engine/math' },
               },
             },
             {

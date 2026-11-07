@@ -176,7 +176,9 @@ Main deployments publish all three.
    It selects the initial locale. The page's colours come from the theme, written
    into `index.html` at build time. `index.html` slots the app's mark into the
    HUD and carries the favicons and link-preview tags; `npm run icons` renders the
-   mark into them.
+   mark into them. The Vite config also emits the web app manifest
+   (`manifest.webmanifest`) from the theme and links it, so the installed app's
+   colours match the page; there is no service worker.
 2. The HUD displays loading text, then the app dynamically imports viewport so the
    larger 3D download does not block the initial status presentation.
 3. Viewport is constructed with the centre-of-mass height, receives the theme's

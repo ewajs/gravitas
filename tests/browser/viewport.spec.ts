@@ -107,6 +107,17 @@ test('scene has a lit vehicle, the chase camera keeps it in view, rotation is vi
   );
   const inverted = await page.evaluate(() => window.fixture.sample());
   expect(climbed.y - inverted.y).toBeGreaterThan(8);
+  // Hard landing: body 0.4 m low, legs drawn compressed so the feet stay on the ground.
+  await page.evaluate(() => {
+    window.fixture.setPose({
+      position: { x: 0, y: 1.1, z: 0 },
+      orientation: { x: 0, y: 0, z: 0, w: 1 },
+    });
+    window.fixture.setLegCompression([0.4, 0.4, 0.4, 0.4]);
+  });
+  await page.waitForTimeout(2500); // Chase framing settles near the ground.
+  expect((await page.evaluate(() => window.fixture.sample())).gold).toBeGreaterThan(50);
+  await page.locator('canvas').screenshot({ path: info.outputPath('compressed.png') });
   await page.locator('canvas').screenshot({ path: info.outputPath('fixture.png') });
 });
 

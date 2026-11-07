@@ -1,7 +1,13 @@
-import type { FlightState } from '@gravitas/engine';
+import type { FlightEnvironment, FlightState } from '@gravitas/engine';
 import { CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
 
-/** Centre of the landing pad's top surface, in world metres. */
+/** Constant lunar surface gravity (rounded) over flat ground at y = 0, pad flush with it. */
+export const ENVIRONMENT: FlightEnvironment = {
+  gravity: { x: 0, y: -1.62, z: 0 },
+  surface: { kind: 'flat', height: 0 },
+};
+
+/** Centre of the landing pad, on the surface, in world metres. */
 export const PAD_POSITION = { x: 0, y: 0, z: 0 } as const;
 
 /** Feet height above the surface when the first descent begins, in metres. */

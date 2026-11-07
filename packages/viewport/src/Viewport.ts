@@ -91,6 +91,19 @@ export class Viewport {
   }
 
   /**
+   * Draws each landing leg compressed by the given amount, in metres, in foot
+   * order: left-front, left-back, right-front, right-back (front is body −Z).
+   * Presentation only; pass the host's contact penetration for each foot.
+   */
+  setLegCompression(compressions: readonly number[]): void {
+    if (this.#disposed) throw new Error('Viewport has been disposed');
+    if (compressions.length !== 4 || !compressions.every((c) => Number.isFinite(c) && c >= 0)) {
+      throw new RangeError('Leg compression needs four finite, non-negative values');
+    }
+    this.#art.setLegCompression(compressions);
+  }
+
+  /**
    * Places the chase camera directly behind the current pose at the default
    * distance, without easing. Call after a discontinuity such as a restart.
    */

@@ -46,6 +46,9 @@ const fixture = {
     viewport!.setVehiclePose(pose);
     return before === JSON.stringify(pose);
   },
+  setLegCompression(compressions: number[]) {
+    viewport!.setLegCompression(compressions);
+  },
   sample() {
     // Capture in the same task as render: presented WebGL buffers may be cleared.
     viewport!.render();

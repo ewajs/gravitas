@@ -144,19 +144,27 @@ test('flight keys stay out of form controls and help, which pauses the flight', 
   expect(await reading(page, 'altitude')).toBeLessThan(80);
 });
 
-test('placeholder ground halt keeps touchdown speeds until restart', async ({ page }, info) => {
+test('the surface stops the lander: an unpowered impact ends at rest, then restart', async ({
+  page,
+}, info) => {
   await open(page, info.project.name);
   await page.keyboard.press('p');
-  // Unpowered from 80 m at -4 m/s: contact after about 7.8 s at about -16.6 m/s.
-  await expect(page.locator('#phase')).toContainText('Surface contact', { timeout: 15_000 });
-  await expect(page.getByTestId('altitude')).toHaveText('0.0 m');
-  const speed = await reading(page, 'vertical-speed');
-  expect(speed).toBeGreaterThan(-17);
-  expect(speed).toBeLessThan(-16.2);
-  await expect(page.getByRole('button', { name: 'Resume', exact: true })).toHaveCount(0);
-  await page.screenshot({ path: info.outputPath('contact.png') });
-  await page.keyboard.press('p'); // No effect after contact.
-  await expect(page.locator('#phase')).toContainText('Surface contact');
+  // Unpowered from 80 m at -4 m/s: first contact after about 7.8 s at about -16.6 m/s.
+  // Polls allow for software renderers running slower than real time.
+  await expect(page.getByTestId('altitude')).toHaveText('0.0 m', { timeout: 30_000 });
+  // At rest means still at rest 1.5 s later, not a zero-crossing of a bounce.
+  await expect
+    .poll(
+      async () => {
+        const before = [await reading(page, 'altitude'), await reading(page, 'vertical-speed')];
+        await page.waitForTimeout(1500);
+        return [...before, await reading(page, 'altitude'), await reading(page, 'vertical-speed')];
+      },
+      { timeout: 30_000 },
+    )
+    .toEqual([0, 0, 0, 0]);
+  await expect(page.locator('#phase')).toBeEmpty(); // Still flying: no verdict until 2.2.
+  await page.screenshot({ path: info.outputPath('impact.png') });
   await page.getByRole('button', { name: 'Restart', exact: true }).click();
   await expect(page.getByTestId('altitude')).toHaveText('80.0 m');
   await page.screenshot({ path: info.outputPath('start.png') });

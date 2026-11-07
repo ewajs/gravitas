@@ -20,6 +20,9 @@ await viewport.init();
 viewport.setVehiclePose(currentTickPose, previousTickPose);
 viewport.render(remainderFraction); // Blend in [0, 1]; the host schedules frames.
 
+// Presentation of contact: each foot's penetration, in foot order.
+viewport.setLegCompression([0.03, 0.03, 0.03, 0.03]);
+
 // After a discontinuity such as a restart:
 viewport.setVehiclePose(startPose);
 viewport.resetCamera(); // Snap behind the heading instead of easing across the jump.
@@ -64,7 +67,12 @@ the screen.
   camera holds its last heading. `resetCamera()` snaps to the default chase
   position.
 
-The scene is illustrative: a flat surface with a pad at the origin and seeded,
+`setLegCompression` takes four non-negative metres in foot order: left-front,
+left-back, right-front, right-back (front is body −Z). It raises each drawn foot
+by that amount and re-aims its struts, so feet stay on the ground while the body
+sinks. Drawing clamps at 0.6 m.
+
+The scene is illustrative: flat ground at y = 0 with a flush pad at the origin and seeded,
 deterministic rocks and crater decals (instanced). A blue ring and drop line mark
 the ground straight below the vehicle, using the flat y = 0 plane and the
 centre-of-mass height. It is not terrain data or contact geometry.

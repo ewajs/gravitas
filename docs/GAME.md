@@ -1,7 +1,7 @@
 # Game direction
 
-**Status:** first flight playable with chase camera and landing instruments (M1);
-no landing outcome yet. This
+**Status:** M1 released (v0.1.0). Physical touchdown (M2 step 2.1); landing
+verdicts are next. This
 document distinguishes shipped behavior from future direction.
 
 ## Current build: first descent
@@ -27,10 +27,11 @@ hover setting. Tilt, horizontal speed, and distance to the pad are also shown as
 numbers. Help/Ayuda lists the controls, explains the radar, and pauses the flight. Leaving the tab pauses too. The ES/EN selector switches language
 mid-flight without changing the flight (`?lang=en` selects English on load).
 
-When a foot reaches the surface, the flight stops and shows the touchdown
-speeds. This is a placeholder: there is no landing verdict, crash, bounce, or
-tip-over until M2's contact model. Desktop keyboard only; narrow layouts stay
-readable but have no touch controls.
+The ground is physical. Legs compress like shock absorbers, so a gentle
+touchdown settles onto four feet. A hard one bottoms the legs out and strikes the
+engine bell; a sideways or tilted one can slide or tip the lander over. The legs
+are drawn compressing. There is no landing verdict yet (step 2.2). Desktop
+keyboard only; narrow layouts stay readable but have no touch controls.
 
 ## Purpose
 

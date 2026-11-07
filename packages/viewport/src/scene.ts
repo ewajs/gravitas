@@ -1,8 +1,18 @@
 import * as THREE from 'three/webgpu';
 
-/** Off-pad terrain height; the pad's top is y = 0. */
-const SURFACE_Y = -0.17;
+/** Flat ground at y = 0, matching the game's physics surface; decals sit just above. */
+const SURFACE_Y = 0;
 const PAD_RADIUS = 3.8;
+/** Largest drawn leg compression, in metres; beyond it the hull is already touching. */
+const MAX_DRAWN_COMPRESSION = 0.6;
+const UP = new THREE.Vector3(0, 1, 0);
+
+/** A foot pad and its struts, redrawn as the leg compresses. */
+interface Leg {
+  readonly foot: THREE.Mesh;
+  readonly rest: THREE.Vector3;
+  readonly struts: readonly { mesh: THREE.Mesh; start: THREE.Vector3; length: number }[];
+}
 
 // Small deterministic PRNG (mulberry32) for repeatable scenery.
 function seeded(seed: number): () => number {
@@ -66,44 +76,59 @@ export function createScene(centerOfMassHeight: number) {
   );
   mesh(new THREE.SphereGeometry(0.055, 8, 6), white, artwork).position.set(0.35, 3, 0);
 
-  const strut = (start: THREE.Vector3, end: THREE.Vector3, radius: number) => {
+  // A strut spans from its body attachment to the foot; compression moves the foot end.
+  const placeStrut = (
+    strut: THREE.Mesh,
+    start: THREE.Vector3,
+    end: THREE.Vector3,
+    rest: number,
+  ) => {
     const direction = end.clone().sub(start);
-    const leg = mesh(
-      new THREE.CylinderGeometry(radius, radius, direction.length(), 8),
-      silver,
-      artwork,
-    );
-    leg.position.copy(start).add(end).multiplyScalar(0.5);
-    leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+    strut.position.copy(start).add(end).multiplyScalar(0.5);
+    strut.scale.y = direction.length() / rest;
+    strut.quaternion.setFromUnitVectors(UP, direction.normalize());
   };
+  const legs: Leg[] = [];
+  // Foot order: left-front, left-back, right-front, right-back (front is −Z).
   for (const x of [-1, 1]) {
     for (const z of [-1, 1]) {
-      const foot = new THREE.Vector3(x * 1.5, 0.04, z * 1.5);
-      mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.08, 8), graphite, artwork).position.copy(foot);
-      strut(new THREE.Vector3(x * 0.65, 1.4, z * 0.65), foot, 0.045);
-      strut(new THREE.Vector3(x * 0.72, 0.94, z * 0.72), foot, 0.025);
+      const rest = new THREE.Vector3(x * 1.5, 0.04, z * 1.5);
+      const foot = mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.08, 8), graphite, artwork);
+      foot.position.copy(rest);
+      const struts = (
+        [
+          [new THREE.Vector3(x * 0.65, 1.4, z * 0.65), 0.045],
+          [new THREE.Vector3(x * 0.72, 0.94, z * 0.72), 0.025],
+        ] as const
+      ).map(([start, radius]) => {
+        const length = rest.distanceTo(start);
+        const strut = mesh(new THREE.CylinderGeometry(radius, radius, length, 8), silver, artwork);
+        placeStrut(strut, start, rest, length);
+        return { mesh: strut, start, length };
+      });
+      legs.push({ foot, rest, struts });
     }
   }
+  const footEnd = new THREE.Vector3();
 
   // Large enough to stay under the vehicle throughout a local descent.
   const ground = mesh(new THREE.CircleGeometry(600, 96), material(0x50555a), scene);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = SURFACE_Y;
   ground.castShadow = false;
-  const pad = mesh(
-    new THREE.CylinderGeometry(PAD_RADIUS, PAD_RADIUS + 0.1, 0.16, 64),
-    material(0x252d35),
-    scene,
-  );
-  pad.position.y = -0.08;
+  // The pad is flush with the ground, as in the physics; only its markings are raised.
+  const pad = mesh(new THREE.CircleGeometry(PAD_RADIUS, 64), material(0x252d35), scene);
+  pad.rotation.x = -Math.PI / 2;
+  pad.position.y = SURFACE_Y + 0.008;
+  pad.castShadow = false;
   const ring = mesh(new THREE.RingGeometry(2.9, 3.15, 64), white, scene);
   ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.003;
+  ring.position.y = SURFACE_Y + 0.014;
   ring.castShadow = false;
   for (let i = 0; i < 8; i++) {
     const angle = (i * Math.PI) / 4;
     const mark = mesh(new THREE.BoxGeometry(0.12, 0.006, 0.35), white, scene);
-    mark.position.set(Math.sin(angle) * 3.45, 0.004, Math.cos(angle) * 3.45);
+    mark.position.set(Math.sin(angle) * 3.45, SURFACE_Y + 0.014, Math.cos(angle) * 3.45);
     mark.rotation.y = angle;
   }
   // Seeded scatter: identical on every run and backend, dense near the pad for motion cues.
@@ -198,14 +223,24 @@ export function createScene(centerOfMassHeight: number) {
   return {
     scene,
     vehicle,
+    /** Foot meshes in foot order; tests inspect them. Not part of any public API. */
+    feet: legs.map((leg) => leg.foot),
     /** Moves the below-vehicle marker; `altitude` is the feet's height above y = 0. */
     updateMarker(position: THREE.Vector3, altitude: number) {
-      const onPad = Math.hypot(position.x, position.z) < PAD_RADIUS;
-      const surface = onPad ? 0.006 : SURFACE_Y + 0.006;
+      const surface = SURFACE_Y + 0.02;
       marker.position.set(position.x, surface, position.z);
       drop.position.copy(position);
       drop.scale.y = Math.max(0.001, position.y - surface);
       drop.visible = altitude > 1;
+    },
+    /** Raises each foot by its compression (metres, foot order) and re-aims its struts. */
+    setLegCompression(compressions: readonly number[]) {
+      legs.forEach((leg, i) => {
+        const lift = Math.min(MAX_DRAWN_COMPRESSION, compressions[i] ?? 0);
+        footEnd.copy(leg.rest).addScaledVector(UP, lift);
+        leg.foot.position.copy(footEnd);
+        for (const strut of leg.struts) placeStrut(strut.mesh, strut.start, footEnd, strut.length);
+      });
     },
     dispose() {
       sun.shadow.dispose();

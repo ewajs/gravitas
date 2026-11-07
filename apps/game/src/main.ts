@@ -1,3 +1,4 @@
+import { contactFacts } from '@gravitas/engine';
 import type { Viewport } from '@gravitas/viewport';
 import {
   registerUi,
@@ -8,10 +9,10 @@ import {
   type LocaleRequest,
 } from '@gravitas/ui';
 import { KeyboardControls, type KeyCommand } from './controls';
-import { ATTITUDE, CENTER_OF_MASS_HEIGHT, ENVIRONMENT, LANDER } from './lander';
-import { START_STATE } from './scenario';
+import { ATTITUDE, CENTER_OF_MASS_HEIGHT, FEET, LANDER } from './lander';
+import { ENVIRONMENT, START_STATE } from './scenario';
 import { FlightSession } from './session';
-import { flightTelemetry, footClearance } from './telemetry';
+import { flightTelemetry } from './telemetry';
 import './style.css';
 
 /** Instruments refresh at 10 Hz; phase changes publish immediately. */
@@ -26,7 +27,6 @@ const session = new FlightSession({
   vehicle: LANDER,
   attitude: ATTITUDE,
   environment: ENVIRONMENT,
-  clearance: footClearance,
 });
 const keyboard = new KeyboardControls(window, keyCommand);
 let viewport: Viewport | undefined;
@@ -38,6 +38,11 @@ let destroyed = false;
 
 hud.heading = 'Gravitas';
 publish();
+
+// Presentation only: how far each foot is pressed into the surface, in artwork order.
+function legCompression(): number[] {
+  return contactFacts(session.state, FEET, ENVIRONMENT.surface!).map((fact) => fact.penetration);
+}
 
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
@@ -54,6 +59,7 @@ function draw(timestamp: number): void {
     const phase = session.phase;
     session.advance(elapsed, keyboard.sample());
     viewport?.setVehiclePose(session.state, session.previous);
+    viewport?.setLegCompression(legCompression());
     viewport?.render(session.alpha);
     const due = session.phase === 'flying' && timestamp - lastPublished >= TELEMETRY_INTERVAL_MS;
     if (due || session.phase !== phase) {
@@ -78,7 +84,7 @@ const sizeObserver = new ResizeObserver(resume);
 
 function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   if (action === 'toggle') {
-    const toggled = { ready: 'start', flying: 'pause', paused: 'resume', contact: undefined };
+    const toggled = { ready: 'start', flying: 'pause', paused: 'resume' };
     const next = toggled[session.phase] as FlightRequest['action'] | undefined;
     if (!next) return;
     action = next;

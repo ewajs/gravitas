@@ -5,7 +5,7 @@ title: Application integration
 # From a keypress to a drawn frame
 
 This walkthrough follows `apps/game/src/main.ts`, which connects engine, viewport,
-and UI into the first flyable descent. Contact is a placeholder halt until M2.
+and UI into a flyable descent with physical touchdown. Landing verdicts arrive in step 2.2.
 
 ## Ownership
 
@@ -28,10 +28,9 @@ DOM. It receives everything it needs:
 ```ts
 const session = new FlightSession({
   start: START_STATE, // scenario.ts: 80 m up, facing the pad, sinking and drifting toward it
-  vehicle: LANDER, // lander.ts: masses, thrust, inertia, torque, attitude thrusters
+  vehicle: LANDER, // lander.ts: masses, thrust, inertia, torque, thrusters, contact points
   attitude: ATTITUDE, // rate-assist tuning
-  environment: ENVIRONMENT, // lunar gravity
-  clearance: footClearance, // telemetry.ts: lowest foot above y = 0
+  environment: ENVIRONMENT, // scenario.ts: lunar gravity and flat ground at y = 0
 });
 ```
 
@@ -87,6 +86,7 @@ function draw(timestamp: number) {
   lastFrame = timestamp;
   session.advance(elapsed, keyboard.sample()); // Whole 60 Hz ticks, at most 5
   viewport.setVehiclePose(session.state, session.previous);
+  viewport.setLegCompression(legCompression()); // contactFacts penetration per foot
   viewport.render(session.alpha); // Blend by the accumulator remainder
   // Publish telemetry at 10 Hz while flying, and at once on phase changes.
   frame = requestAnimationFrame(draw);

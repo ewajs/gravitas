@@ -1,4 +1,11 @@
 import type { Quaternion, Vector3, VehiclePose } from './pose';
+import {
+  contactLoads,
+  validateContacts,
+  validateSurface,
+  type ContactPoint,
+  type Surface,
+} from './contact';
 import { bounded, positive, unitQuaternion, vector } from './validation';
 
 /** Physical state owned by the host; all vectors are independent immutable snapshots. */
@@ -32,12 +39,16 @@ export interface VehicleParameters {
   readonly attitudeLeverArm: Vector3;
   /** Attitude-thruster effective exhaust velocity in metres per second. */
   readonly attitudeExhaustVelocity: number;
+  /** Points that can touch a surface; omit for a vehicle that never meets the ground. */
+  readonly contacts?: readonly ContactPoint[];
 }
 
 /** Constant environment during a step; the host chooses gravity and scenario. */
 export interface FlightEnvironment {
   /** Uniform world acceleration in metres per second squared. */
   readonly gravity: Vector3;
+  /** Ground the vehicle's contact points can touch; omit for free flight. */
+  readonly surface?: Surface;
 }
 
 /** Actuator commands held constant during one step. Assistance computes torque separately. */
@@ -50,6 +61,9 @@ export interface FlightCommand {
 
 /** Largest supported integration step in seconds; hosts may use smaller steps for convergence. */
 export const MAX_FLIGHT_STEP = 1 / 60;
+
+/** Contact springs are stiff: with a surface, RK4 substeps never exceed this, in seconds. */
+export const CONTACT_SUBSTEP = MAX_FLIGHT_STEP / 4;
 
 const ZERO: Vector3 = { x: 0, y: 0, z: 0 };
 
@@ -70,6 +84,7 @@ export function validateVehicle(vehicle: VehicleParameters): void {
   if (x > y + z || y > x + z || z > x + y) {
     throw new RangeError('principal moments must satisfy the triangle inequalities');
   }
+  if (vehicle.contacts) validateContacts(vehicle.contacts);
 }
 
 function validateState(state: FlightState, capacity: number): void {
@@ -123,22 +138,41 @@ const IDLE: Actuation = { thrust: 0, torque: ZERO, massFlow: 0 };
 function derivative(
   s: FlightState,
   v: VehicleParameters,
-  gravity: Vector3,
+  environment: FlightEnvironment,
   a: Actuation,
 ): FlightState {
   const q = s.orientation;
   const w = s.angularVelocity;
   const i = v.inertia;
-  const torque = a.torque;
+  const gravity = environment.gravity;
+  const mass = v.dryMass + Math.max(0, s.fuelMass);
+  const contact =
+    environment.surface && v.contacts
+      ? contactLoads(s, v.contacts, environment.surface)
+      : { force: ZERO, torque: ZERO };
+  const torque = {
+    x: a.torque.x + contact.torque.x,
+    y: a.torque.y + contact.torque.y,
+    z: a.torque.z + contact.torque.z,
+  };
   // Intermediate RK stages need a unit rotation for thrust, but q-dot uses the raw stage q.
   const normSquared = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
-  const acceleration = a.thrust / (v.dryMass + Math.max(0, s.fuelMass));
+  const acceleration = a.thrust / mass;
   return {
     position: s.velocity,
     velocity: {
-      x: gravity.x + (acceleration * 2 * (q.x * q.y - q.z * q.w)) / normSquared,
-      y: gravity.y + acceleration * (1 - (2 * (q.x * q.x + q.z * q.z)) / normSquared),
-      z: gravity.z + (acceleration * 2 * (q.y * q.z + q.x * q.w)) / normSquared,
+      x:
+        gravity.x +
+        contact.force.x / mass +
+        (acceleration * 2 * (q.x * q.y - q.z * q.w)) / normSquared,
+      y:
+        gravity.y +
+        contact.force.y / mass +
+        acceleration * (1 - (2 * (q.x * q.x + q.z * q.z)) / normSquared),
+      z:
+        gravity.z +
+        contact.force.z / mass +
+        (acceleration * 2 * (q.y * q.z + q.x * q.w)) / normSquared,
     },
     // Euler's equation in principal body axes: I w-dot = torque - w cross (I w).
     angularVelocity: {
@@ -157,14 +191,14 @@ function derivative(
   };
 }
 
-function integrate(
+function rk4(
   s: FlightState,
   v: VehicleParameters,
-  gravity: Vector3,
+  environment: FlightEnvironment,
   actuation: Actuation,
   h: number,
 ): FlightState {
-  const d = (state: FlightState) => derivative(state, v, gravity, actuation);
+  const d = (state: FlightState) => derivative(state, v, environment, actuation);
   const k1 = d(s);
   const k2 = d(advance(s, k1, h / 2));
   const k3 = d(advance(s, k2, h / 2));
@@ -178,20 +212,35 @@ function integrate(
     z: q.z / length,
     w: q.w / length,
   };
+  return { ...result, orientation };
+}
+
+function integrate(
+  s: FlightState,
+  v: VehicleParameters,
+  environment: FlightEnvironment,
+  actuation: Actuation,
+  h: number,
+): FlightState {
+  // Equal substeps when contacts may act; free flight keeps a single step.
+  const substeps =
+    environment.surface && v.contacts?.length ? Math.ceil(h / CONTACT_SUBSTEP - 1e-9) : 1;
+  let next = s;
+  for (let n = 0; n < substeps; n++) next = rk4(next, v, environment, actuation, h / substeps);
   return {
-    ...result,
-    orientation,
+    ...next,
     // Mass flow is constant within an interval, so the exact update is linear.
     fuelMass: Math.max(0, s.fuelMass - actuation.massFlow * h),
   };
 }
 
 /**
- * Advances free flight with RK4; returns new state without mutating inputs.
+ * Advances flight with RK4; returns new state without mutating inputs.
  * Main engine and attitude thrusters draw from one tank. A step that empties it
  * splits into a powered interval and an unpowered coast, ending with exactly zero
- * fuel. Rejects invalid inputs or a timestep outside (0, MAX_FLIGHT_STEP].
- * No ground/contact rules.
+ * fuel. With an environment surface and vehicle contacts, spring-damper contact
+ * forces act at each point and the step is integrated in CONTACT_SUBSTEP pieces.
+ * Rejects invalid inputs or a timestep outside (0, MAX_FLIGHT_STEP].
  */
 export function stepFlight(
   state: FlightState,
@@ -205,6 +254,7 @@ export function stepFlight(
   validateVehicle(vehicle);
   validateState(state, vehicle.fuelCapacity);
   vector(environment.gravity, 'gravity');
+  if (environment.surface) validateSurface(environment.surface);
   bounded(command.throttle, 0, 1, 'throttle');
   for (const axis of ['x', 'y', 'z'] as const) {
     bounded(
@@ -223,16 +273,16 @@ export function stepFlight(
   const exhausted = powered.massFlow > 0 && state.fuelMass <= powered.massFlow * dt;
   if (!exhausted) {
     // With no demand, the "powered" interval has zero thrust, torque, and flow.
-    const next = integrate(state, vehicle, environment.gravity, powered, dt);
+    const next = integrate(state, vehicle, environment, powered, dt);
     validateState(next, vehicle.fuelCapacity);
     return next;
   }
   const burn = Math.min(dt, state.fuelMass / powered.massFlow);
   let next = state;
-  if (burn > 0) next = integrate(next, vehicle, environment.gravity, powered, burn);
+  if (burn > 0) next = integrate(next, vehicle, environment, powered, burn);
   // Division rounding can leave ~1e-18 kg; empty tanks are exactly empty.
   next = { ...next, fuelMass: 0 };
-  if (burn < dt) next = integrate(next, vehicle, environment.gravity, IDLE, dt - burn);
+  if (burn < dt) next = integrate(next, vehicle, environment, IDLE, dt - burn);
   validateState(next, vehicle.fuelCapacity);
   return next;
 }

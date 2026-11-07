@@ -7,14 +7,17 @@ import {
   type VehiclePose,
 } from '@gravitas/engine';
 import type { FlightTelemetry, RadarVector } from '@gravitas/ui';
-import { ENVIRONMENT, FOOT_CONTACTS, LANDER } from './lander';
-import { PAD_POSITION } from './scenario';
+import { FEET, LANDER } from './lander';
+import { ENVIRONMENT, PAD_POSITION } from './scenario';
 
-/** Height of the lowest foot above the flat surface plane (y = 0), in metres. */
+/**
+ * Height of the lowest unloaded foot above the flat surface plane (y = 0), in
+ * metres. Negative while legs are compressed against the ground.
+ */
 export function footClearance(pose: VehiclePose): number {
   let lowest = Infinity;
-  for (const foot of FOOT_CONTACTS) {
-    lowest = Math.min(lowest, pose.position.y + bodyToWorld(pose.orientation, foot).y);
+  for (const foot of FEET) {
+    lowest = Math.min(lowest, pose.position.y + bodyToWorld(pose.orientation, foot.position).y);
   }
   return lowest;
 }
@@ -42,7 +45,8 @@ export function flightTelemetry(state: FlightState, throttle: number): FlightTel
   const q = state.orientation;
   const mass = LANDER.dryMass + state.fuelMass;
   return {
-    altitude: footClearance(state),
+    // Compressed legs read as zero altitude, not as a negative height.
+    altitude: Math.max(0, footClearance(state)),
     verticalSpeed: state.velocity.y,
     horizontalSpeed: Math.hypot(state.velocity.x, state.velocity.z),
     padDistance: Math.hypot(state.position.x - PAD_POSITION.x, state.position.z - PAD_POSITION.z),

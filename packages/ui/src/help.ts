@@ -2,12 +2,19 @@ import { html, nothing, type TemplateResult } from 'lit';
 import { msg } from '@lit/localize';
 import { icons } from './icons';
 
-/** "How to fly", shown before the first start: the essential keys and the goal. */
-export function quickCard(): TemplateResult {
+/**
+ * "How to fly", shown before the first start: the host's mark and name (the
+ * `mark-large` slot and `heading`), the essential keys, and the goal.
+ */
+export function quickCard(heading: string): TemplateResult {
   const row = (keys: string, action: string) =>
     html`<dt>${keys.split(' ').map((key) => html`<kbd>${key}</kbd> `)}</dt>
       <dd>${action}</dd>`;
   return html`<aside class="card quick" aria-labelledby="quick-title">
+    <div class="lockup" aria-hidden="true">
+      <slot name="mark-large"></slot>
+      <span class="wordmark">${heading}</span>
+    </div>
     <h2 id="quick-title">${msg('Cómo volar', { id: 'quick-title' })}</h2>
     <dl class="quick-keys">
       ${row('W A S D', msg('Inclinar el módulo', { id: 'quick-tilt' }))}

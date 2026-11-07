@@ -40,7 +40,8 @@ to the next step unless the owner authorizes otherwise.
 
 ## M1 — First flight
 
-The owner approved combining the specification and engine implementation in 1.1.
+**Accepted by the owner on 2026-11-06; released as v0.1.0.** The owner approved
+combining the specification and engine implementation in 1.1.
 
 - [x] **1.1 Flight model and engine:** define vehicle/controls, torque-driven rate
       assistance, physical assumptions, and independent reference cases; implement
@@ -63,8 +64,8 @@ The owner approved combining the specification and engine implementation in 1.1.
       cluster with fuel/throttle gauges and hover mark, deterministic surface depth
       cues, opening facing the pad. **Verify:** chase rig and radar geometry unit
       tests; browser radar/heading, narrow layouts in both locales, both backends;
-      software-renderer frame rate recorded. Local checks passed on 2026-11-06; owner
-      visual review closes M1. See [instrument verification](verification/instruments.md).
+      software-renderer frame rate recorded. Local checks passed on 2026-11-06; the owner
+      accepted the visuals, closing M1. See [instrument verification](verification/instruments.md).
 
 **Acceptance:** fly one vehicle with readable instruments. Pause/resume and render
 rate changes preserve intended physics. Unit references and browser controls cover
@@ -97,5 +98,32 @@ provenance when assets arrive.
 
 ## Releases
 
-No tagged software releases yet. Step 0.1 established the charter; step 0.2 adds
-workspaces, a title shell, import-boundary checks, CI, and MIT licensing.
+### v0.1.0 — First flight (2026-11-06)
+
+The first playable build: one lander flown with the keyboard from 80 m above the
+pad, with no landing verdict yet.
+
+- **Flight model (1.1):** pure RK4 rigid-body dynamics with gravity, body-axis
+  thrust, and fuel/mass loss. Rate-command attitude assistance draws from the same
+  tank as the main engine. Poses locate the centre of mass. See
+  [the flight model](FLIGHT.md) and ADR 0008.
+- **Runtime (1.2):** app-owned 60 Hz fixed-step session with bounded catch-up and
+  discarded-time accounting, keyboard controls scoped away from menus,
+  pause/resume/restart, a hidden-tab pause, interpolated rendering, and a
+  placeholder ground halt. See ADR 0009.
+- **Camera and instruments (1.3):** a heading-following chase camera and a
+  heading-up landing radar sharing engine's `headingAngle`. Altitude and vertical
+  speed are prominent; fuel/throttle gauges carry a hover mark; surface depth cues
+  added. See ADR 0010.
+- Bilingual es-AR/English throughout, switchable mid-flight. WebGPU with WebGL 2
+  fallback. Developer API docs are published with the game.
+
+Known limits: touchdown stops the flight without a verdict, bounce, or tip-over
+(M2 contact). Keyboard only, with no touch controls. No human-measured performance
+budgets (M3); the software-rendered test project runs at about 15 fps. Verified
+locally on an Apple M1 Pro: see the [runtime](verification/runtime.md) and
+[instrument](verification/instruments.md) records.
+
+Before v0.1.0: step 0.1 established the charter; 0.2 added workspaces, checks, CI,
+and MIT licensing; 0.3–0.5 added the viewport, Pages delivery, the bilingual UI
+shell, and developer docs. None of these were tagged.

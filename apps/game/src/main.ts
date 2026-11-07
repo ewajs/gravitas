@@ -13,7 +13,8 @@ import {
 import { gravitasTheme } from '@gravitas/ui/themes';
 import { FlightAudio } from './audio';
 import { DiagnosticsOverlay } from './diagnostics';
-import { KeyboardControls, type KeyCommand } from './controls';
+import { KeyboardControls } from './controls';
+import { PilotInputs, type InputCommand } from './input';
 import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import { landingReport } from './report';
 import { ENVIRONMENT, FIRST_DESCENT } from './scenario';
@@ -34,7 +35,8 @@ const host = document.querySelector<HTMLDivElement>('#viewport')!;
 const hud = document.querySelector('gravitas-flight-hud')!;
 const parameters = new URLSearchParams(location.search);
 const session = new FlightSession(FIRST_DESCENT);
-const keyboard = new KeyboardControls(window, keyCommand);
+// Every input source reports commands to one handler; held input merges per frame.
+const inputs = new PilotInputs([new KeyboardControls(window, inputCommand)]);
 const storage = browserStorage();
 let settings: Settings = loadSettings(storage);
 // Context state changes asynchronously; mirror it for observability (and tests).
@@ -121,7 +123,7 @@ function draw(timestamp: number): void {
   try {
     const workStart = diagnostics ? performance.now() : 0;
     const phase = session.phase;
-    session.advance(elapsed, keyboard.sample());
+    session.advance(elapsed, inputs.sample());
     viewport?.setVehiclePose(session.state, session.previous);
     viewport?.setLegCompression(legCompression());
     viewport?.setActuators(session.actuation);
@@ -186,10 +188,10 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   } else if (action === 'resume') session.resume();
   else if (action === 'pause') {
     session.pause();
-    keyboard.clear();
+    inputs.clear();
   } else if (action === 'restart') {
     session.restart();
-    keyboard.clear();
+    inputs.clear();
     // The vehicle teleports back to the opening; do not ease the camera across it.
     viewport?.setVehiclePose(session.state);
     viewport?.resetCamera();
@@ -200,7 +202,7 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   publish();
 }
 
-function keyCommand(command: KeyCommand): void {
+function inputCommand(command: InputCommand): void {
   if (stopped) return;
   if (command === 'toggle-mute') setMuted(!settings.muted);
   else flightAction(command === 'toggle-pause' ? 'toggle' : 'restart');
@@ -226,7 +228,7 @@ function flightRequested(event: Event): void {
 
 // Losing focus never leaves a key "held": the matching keyup may never arrive.
 function windowBlurred(): void {
-  keyboard.clear();
+  inputs.clear();
 }
 
 function stopRendering(): void {
@@ -235,7 +237,7 @@ function stopRendering(): void {
   if (frame !== undefined) cancelAnimationFrame(frame);
   frame = undefined;
   session.pause();
-  keyboard.dispose();
+  inputs.dispose();
   audio.dispose();
   diagnostics?.dispose();
   window.removeEventListener('keydown', unlockAudio, true);

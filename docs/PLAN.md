@@ -120,8 +120,13 @@ playtest come first:
       dust thresholds), actuator validation, browser plume appears/leaves,
       reduced-motion frames identical, both backends. Local checks passed on
       2026-11-07; see [effects verification](verification/effects.md).
-- [ ] **3.2 Audio and settings:** synthesized engine/thruster sound, mute, local
-      settings persisted at meaningful boundaries.
+- [x] **3.2 Audio and settings:** synthesized Web Audio (engine rumble and tone,
+      thruster hiss, touchdown thud, verdict cues) unlocked on the first gesture and
+      suspended unless flying; M and a Mute toggle; validated `localStorage` settings
+      (language, mute, start card seen) saved only on change. **Verify:** level
+      mapping and settings validation unit tests; browser persistence across visits,
+      `?lang=` precedence, gesture unlock, pause/mute states, both backends. Local
+      checks passed on 2026-11-07; see [audio verification](verification/audio.md).
 - [ ] **3.3 Diagnostics (stretch):** an explicit `?debug` overlay (frame time,
       discarded time, ticks) and a repeatable frame-rate measurement.
 - [ ] **3.4 Learn (stretch):** a Learn section in the manual explaining how

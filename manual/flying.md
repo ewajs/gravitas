@@ -12,6 +12,7 @@ Las teclas son posiciones físicas del teclado (se muestran en QWERTY).
 | **R / F** | Subir / bajar el empuje (mantené)        |
 | **Z / X** | Empuje máximo / cortar                   |
 | **P**     | Comenzar, pausar o reanudar              |
+| **M**     | Silenciar o activar el sonido            |
 | **Enter** | Reiniciar                                |
 
 Arrastrá la escena para mirar alrededor (la cámara vuelve sola detrás del
@@ -41,7 +42,20 @@ La cámara sigue al módulo desde atrás y gira con él, así **W siempre inclin
 hacia arriba de la pantalla** y **A hacia la izquierda**. Mira más hacia abajo
 cuando estás alto, para que veas la plataforma, y se aplana cerca del suelo.
 
+## Sonido
+
+El motor ruge según el empuje, los propulsores de actitud sisean al girar, las
+patas golpean al tocar y un tono breve anuncia el resultado. Todo el sonido se
+sintetiza en el navegador. **M** o el botón **Silenciar** lo apagan, y el juego
+recuerda esa elección.
+
 ## Pausa
 
 **P** pausa y reanuda. El juego también se pausa si abrís la ayuda o cambiás de
 pestaña, y queda en pausa hasta que vuelvas a pulsar **P**.
+
+## Preferencias
+
+El juego recuerda en este navegador tu idioma, si silenciaste el sonido y que ya
+leíste la tarjeta **Cómo volar** (después de tu primer vuelo deja de aparecer; la
+Ayuda siempre tiene los controles).

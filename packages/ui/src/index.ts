@@ -10,4 +10,5 @@ export {
   type LandingReport,
   type RadarVector,
   type LocaleRequest,
+  type SoundRequest,
 } from './flight-hud';

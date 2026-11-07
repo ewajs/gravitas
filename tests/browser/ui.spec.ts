@@ -105,6 +105,8 @@ test('keyboard help traps focus, restores it on Escape, and both locales fit nar
   await page.keyboard.press('Tab');
   await expect(page.getByRole('combobox', { name: 'Idioma' })).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Silenciar', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   const help = page.getByRole('button', { name: 'Ayuda', exact: true });
   await expect(help).toBeFocused();
   await page.keyboard.press('Enter');

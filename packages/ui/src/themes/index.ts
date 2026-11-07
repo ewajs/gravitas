@@ -1,7 +1,8 @@
 /**
  * Typed colour themes as plain data, and the CSS custom properties they generate.
  * Pure TypeScript with no Lit or DOM dependency, so pages that do not load the HUD
- * (the manual, build tooling) can use the same values.
+ * (the manual, build tooling) can use the same values. It imports nothing, so
+ * Node can load it as it is.
  * @module
  */
 
@@ -164,4 +165,51 @@ export function themeDeclarations(theme: Theme): string {
 /** A complete CSS rule declaring the theme's custom properties on `selector`. */
 export function themeCss(theme: Theme, selector = ':root'): string {
   return `${selector} {\n${themeDeclarations(theme)}\n}\n`;
+}
+
+// Colour arithmetic for checking themes: WCAG 2 contrast and sRGB compositing.
+// Kept in this file: Node loads it directly (build tooling), and Node needs no
+// relative imports to resolve.
+
+type Rgba = readonly [number, number, number, number];
+
+function parse(hex: string): Rgba {
+  const match = /^#([0-9a-f]{6})([0-9a-f]{2})?$/i.exec(hex);
+  if (!match) throw new RangeError(`Not a #rrggbb or #rrggbbaa colour: ${hex}`);
+  const value = parseInt(match[1]!, 16);
+  const alpha = match[2] ? parseInt(match[2], 16) / 255 : 1;
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255, alpha];
+}
+
+const hex = (channels: readonly number[]) =>
+  `#${channels.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+
+/**
+ * `top` painted over `bottom` (source-over in sRGB, as browsers blend translucent
+ * fills), as an opaque `#rrggbb`. `bottom`'s own alpha is ignored.
+ */
+export function composite(top: string, bottom: string): string {
+  const [r, g, b, a] = parse(top);
+  const under = parse(bottom);
+  return hex([r * a + under[0] * (1 - a), g * a + under[1] * (1 - a), b * a + under[2] * (1 - a)]);
+}
+
+// WCAG 2 relative luminance.
+function luminance(color: string): number {
+  const [r, g, b] = parse(color);
+  const channel = (c: number) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+}
+
+/**
+ * WCAG 2 contrast ratio, from 1 to 21, between two colours. A translucent
+ * foreground is composited over the background first.
+ */
+export function contrastRatio(foreground: string, background: string): number {
+  const back = composite(background, '#000000');
+  const [hi, lo] = [luminance(composite(foreground, back)), luminance(back)].sort((a, b) => b - a);
+  return (hi! + 0.05) / (lo! + 0.05);
 }

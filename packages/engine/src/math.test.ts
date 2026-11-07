@@ -11,12 +11,13 @@ import {
   rotationAbout,
   toDegrees,
   toRadians,
-  type Vector3,
 } from './index';
 
-function expectVector(actual: Vector3, expected: Vector3) {
-  for (const axis of ['x', 'y', 'z'] as const) expect(actual[axis]).toBeCloseTo(expected[axis], 12);
-}
+const near = (x: number, y: number, z: number) => ({
+  x: expect.closeTo(x, 12),
+  y: expect.closeTo(y, 12),
+  z: expect.closeTo(z, 12),
+});
 
 describe('shared math conventions', () => {
   it('crosses right-handed vectors into an orthogonal result', () => {
@@ -33,8 +34,8 @@ describe('shared math conventions', () => {
     const quarter = rotationAbout('z', Math.PI / 2);
     // 90° about +Z carries +X to +Y and +Y to −X.
     const turned = bodyToWorld(quarter, { x: 1, y: 2, z: 3 });
-    expectVector(turned, { x: -2, y: 1, z: 3 });
-    expectVector(bodyToWorld(conjugate(quarter), turned), { x: 1, y: 2, z: 3 });
+    expect(turned).toEqual(near(-2, 1, 3));
+    expect(bodyToWorld(conjugate(quarter), turned)).toEqual(near(1, 2, 3));
   });
 
   it('restores unit length without changing the rotation', () => {

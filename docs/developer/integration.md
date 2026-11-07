@@ -87,9 +87,15 @@ const viewport = new Viewport({
   label: viewportMessages().scene,
   backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
 });
+viewport.setAccents(gravitasTheme.scene); // Sky, pad ring, and marker match the HUD.
 viewport.setVehiclePose(session.state);
 await viewport.init();
 ```
+
+The theme comes from `@gravitas/ui/themes`, plain data without Lit. The HUD's
+tokens are generated from the same object, and the game's Vite config writes its
+custom properties and `theme-color` into `index.html`, so the page, the HUD, and
+the scene agree from the first paint.
 
 `init()` places the chase camera behind the opening heading, then awaits renderer
 initialization and shader compilation before attaching the canvas. The `backend` getter reports the initialized backend. After success,

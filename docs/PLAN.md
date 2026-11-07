@@ -163,10 +163,29 @@ pinch zoom and double-tap zoom are blocked.
       accessibility tree, CSS, and screenshots identical in 144 states; manual pages
       identical; both browser suites unchanged. Local checks passed on 2026-11-07;
       see [housekeeping verification](verification/housekeeping.md).
-- [ ] **4.2 Theme system and identity:** selectable, typed themes that generate CSS
-      variables for the HUD and the manual, plus scene accent colours; a logo and
-      icon set; a self-hosted typeface. A clean, professional look with subtle,
-      responsive animation; the direction leans sci-fi and is the owner's choice.
+- [~] **4.2 Theme system and identity:** selectable, typed themes that generate CSS
+  variables for the HUD and the manual, plus scene accent colours; a logo and
+  icon set; a self-hosted typeface. A clean, professional look with subtle,
+  responsive animation. Owner decisions on 2026-11-07, from a design canvas:
+  direction "Glass" (frosted translucent panels) with a deeper cyan accent
+  `#4CC3E0`; Space Grotesk and Inter, self-hosted; the "safe sink" scale under
+  vertical speed from direction "Instrument", as a hint; a solid-panel fallback
+  for reduced transparency; one theme for now, no switcher; the "Kepler" mark.
+  Three stacked PRs:
+  - [x] **4.2a Theme system:** a typed theme of colour roles, type, shape, and scene
+        accents in `@gravitas/ui/themes` (pure TypeScript, no Lit), generating the
+        HUD's and the page's CSS custom properties; viewport `setAccents()` for the
+        sky, pad ring, and marker; every inventoried interface colour moved into the
+        theme at its current value. **Verify:** WCAG contrast unit test for every
+        theme; HUD DOM, accessibility tree, computed styles, and screenshots
+        identical to the previous build in 144 states, plus the 3D scene, page
+        styles, debug overlay, and all 24 manual pages; both browser suites.
+        See [theme verification](verification/themes.md).
+  - [ ] **4.2b Glass restyle:** the chosen look: glass panels, icon buttons, the
+        results card, motion rules, fonts, the safe-sink scale, and a "Reduce
+        transparency" setting.
+  - [ ] **4.2c Identity:** the mark and wordmark, favicons, app and social images,
+        and the manual branded from the theme.
 - [ ] **4.3 Input layer, touch, and gamepad:** one input abstraction. On touch, a
       left-thumb absolute throttle lever with a hover detent, a right-thumb virtual
       stick for proportional pitch and roll rates, yaw buttons, and pause.

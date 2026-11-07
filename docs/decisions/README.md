@@ -19,3 +19,4 @@ does not imply implemented code.
 | [0011](0011-contact-model.md)                | Own penalty contact behind a surface seam; no Rapier yet       | Implemented                         |
 | [0012](0012-landing-outcomes.md)             | Touchdown judging as a pure reducer with game-owned limits     | Implemented                         |
 | [0013](0013-learn-section.md)                | A Learn section that runs the real engine                      | Implemented; content awaits review  |
+| [0014](0014-theme-system.md)                 | Typed themes that generate CSS variables and scene accents     | Implemented                         |

@@ -24,6 +24,9 @@ export default [
       'boundaries/elements': [
         { type: 'engine', pattern: 'packages/engine' },
         { type: 'viewport', pattern: 'packages/viewport' },
+        // UI's theme data: its own element so that it can import nothing (no Lit),
+        // keeping `@gravitas/ui/themes` usable by pages and tools without the HUD.
+        { type: 'ui-themes', pattern: 'packages/ui/src/themes' },
         { type: 'ui', pattern: 'packages/ui' },
         { type: 'game', pattern: 'apps/game' },
       ],
@@ -71,6 +74,11 @@ export default [
               },
             },
             {
+              // The HUD's tokens are generated from the theme data.
+              from: { element: { type: 'ui' } },
+              allow: { to: { element: { type: 'ui-themes' } } },
+            },
+            {
               from: { element: { type: 'game' } },
               allow: {
                 to: {
@@ -80,6 +88,13 @@ export default [
                   },
                 },
                 dependency: { source: '@gravitas/*' },
+              },
+            },
+            {
+              from: { element: { type: 'game' } },
+              allow: {
+                to: { element: { type: 'ui-themes', fileInternalPath: 'index.ts' } },
+                dependency: { source: '@gravitas/ui/themes' },
               },
             },
             {

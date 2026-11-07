@@ -109,12 +109,36 @@ explicit message IDs; `src/locales/en.ts` contains the matching English translat
 a render when a locale becomes ready. `viewportMessages()` provides loading,
 failure, scene-label, subtitle, and key-hint text to hosts after awaiting `setLocale()`.
 
+## Themes
+
+`@gravitas/ui/themes` is a second, narrower entry point: typed themes as plain
+data, with no Lit or DOM import, so pages and build tools can use the tokens
+without loading the HUD.
+
+```ts
+import { gravitasTheme, themeCss, themeProperties } from '@gravitas/ui/themes';
+
+themeCss(gravitasTheme, ':root'); // ':root { --gravitas-text: …; … }'
+themeProperties(gravitasTheme)['--gravitas-accent']; // One property's value
+viewport.setAccents(gravitasTheme.scene); // Sky, pad ring, marker (host code)
+```
+
+A `Theme` names colours by role (`surface`, `panel`, `panelSolid`, `line`, `text`,
+`muted`, `accent`, `accentInk`, `focus`, `good`, `warn`, `bad`, `well`,
+`backdrop`), plus `fonts`, a panel `radius`, `colorScheme`, and `scene` accents
+for a 3D view. `themes` lists every theme (one for now). A unit test checks each
+theme's contrast: text and muted text at 4.5:1 on the page and on panels
+composited over it, accent, focus, and status colours at 3:1.
+
 ## Styling and accessibility
 
-Override `--gravitas-panel`, `--gravitas-text`, `--gravitas-muted`, `--gravitas-line`,
-`--gravitas-accent`, `--gravitas-focus`, `--gravitas-good`, `--gravitas-bad`, and
-`--gravitas-radius` on the HUD element.
-Defaults live in `src/tokens.ts`. HUD panels do not intercept scene gestures;
+The HUD's tokens are the house theme's custom properties, generated in
+`src/tokens.ts`. Override any of them on the HUD element: `--gravitas-surface`,
+`--gravitas-panel`, `--gravitas-panel-solid`, `--gravitas-line`, `--gravitas-text`,
+`--gravitas-muted`, `--gravitas-accent`, `--gravitas-accent-ink`,
+`--gravitas-focus`, `--gravitas-good`, `--gravitas-warn`, `--gravitas-bad`,
+`--gravitas-well`, `--gravitas-backdrop`, `--gravitas-font-body`, and
+`--gravitas-radius`. HUD panels do not intercept scene gestures;
 interactive controls do. The phase message is a polite live region below the
 header. The help dialog makes the background inert and supports Escape and focus
 return. Controls have 44px minimum height and visible focus. Narrow layouts stack

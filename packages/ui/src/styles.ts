@@ -85,7 +85,7 @@ export const hudStyles = css`
     stroke: var(--gravitas-line);
   }
   .radar .face {
-    fill: #0b1219;
+    fill: var(--gravitas-well);
     stroke: var(--gravitas-muted);
   }
   .radar .forward {
@@ -153,7 +153,7 @@ export const hudStyles = css`
     block-size: 8px;
     min-inline-size: 120px;
     border-radius: 4px;
-    background: #0b1219;
+    background: var(--gravitas-well);
     border: 1px solid var(--gravitas-line);
   }
   .fill {
@@ -348,7 +348,7 @@ export const hudStyles = css`
   dialog {
     pointer-events: auto;
     color: inherit;
-    background: #111923;
+    background: var(--gravitas-panel-solid);
     border: 1px solid var(--gravitas-line);
     border-radius: var(--gravitas-radius);
     width: min(480px, calc(100% - 32px));
@@ -356,7 +356,7 @@ export const hudStyles = css`
     padding: 24px;
   }
   dialog::backdrop {
-    background: #020609b3;
+    background: var(--gravitas-backdrop);
   }
   .dialog-heading {
     display: flex;

@@ -26,6 +26,16 @@ describe('viewport arguments', () => {
     void viewport.dispose();
   });
 
+  it('accepts only #rrggbb scene accents', () => {
+    const viewport = new Viewport(options);
+    const accents = { sky: '#04060b', pad: '#4CC3E0', marker: '#eaf2fa' };
+    expect(() => viewport.setAccents(accents)).not.toThrow();
+    for (const bad of ['red', '#fff', '#04060b80', 'rgb(0, 0, 0)', '']) {
+      expect(() => viewport.setAccents({ ...accents, pad: bad })).toThrow(RangeError);
+    }
+    void viewport.dispose();
+  });
+
   it('rejects a render blend outside [0, 1] before drawing', () => {
     const viewport = new Viewport(options);
     for (const alpha of [-0.1, 1.1, NaN]) expect(() => viewport.render(alpha)).toThrow(RangeError);

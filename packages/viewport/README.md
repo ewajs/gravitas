@@ -71,6 +71,16 @@ the screen.
   camera holds its last heading. `resetCamera()` snaps to the default chase
   position.
 
+## Scene accents
+
+`setAccents({ sky, pad, marker })` colours the scene's non-physical marks: the
+background behind the scene, the pad ring and markings, and the ring and drop line
+below the vehicle. Each is a CSS `#rrggbb` colour; anything else throws
+`RangeError`. Hosts typically pass their interface theme's accents (the game passes
+`@gravitas/ui/themes`'s `gravitasTheme.scene`), so viewport never imports UI.
+Physical materials (regolith, rock, foil, flame, dust, sunlight) keep their own
+colours. Callable before `init()`; changes show on the next frame.
+
 ## Effects
 
 `setActuators({ throttle, attitude })` shows what the vehicle's actuators did:

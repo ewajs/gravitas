@@ -4,7 +4,7 @@ import type { VehiclePose } from '@gravitas/engine';
 import { CHASE, ChaseRig } from './chase';
 import { NO_ACTUATORS, type Actuators } from './effects';
 import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
-import { createScene } from './scene';
+import { createScene, type SceneAccents } from './scene';
 
 /** Backend request. Auto permits Three.js's built-in WebGL 2 fallback. */
 export type BackendRequest = 'auto' | 'webgl2';
@@ -144,6 +144,21 @@ export class Viewport {
     if (!this.#rig) return;
     blendPose(this.#current, this.#current, 1, this.#art.vehicle);
     this.#rig.snap(this.#art.vehicle, this.#altitude());
+  }
+
+  /**
+   * Colours the scene's non-physical marks (sky, pad ring, below-vehicle marker),
+   * for example from the host's interface theme. Each is a CSS hex colour,
+   * `#rrggbb`. Physical materials such as regolith and foil keep their colours.
+   * Takes effect on the next frame; callable before init().
+   */
+  setAccents(accents: SceneAccents): void {
+    this.#assertNotDisposed();
+    const values = [accents.sky, accents.pad, accents.marker];
+    if (!values.every((value) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value))) {
+      throw new RangeError('Scene accents must be #rrggbb colours');
+    }
+    this.#art.setAccents({ sky: accents.sky, pad: accents.pad, marker: accents.marker });
   }
 
   /** Updates the accessible canvas description without resetting camera or GPU resources. */

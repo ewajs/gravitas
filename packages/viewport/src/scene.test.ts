@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
-import { Box3 } from 'three/webgpu';
-import { createScene } from './scene';
+import { Box3, Color, type Mesh, type MeshStandardMaterial } from 'three/webgpu';
+import { createScene, DEFAULT_ACCENTS } from './scene';
 
 it('places level feet on the pad while transforms use the supplied centre of mass', () => {
   const art = createScene(1.5);
@@ -39,6 +39,23 @@ it('draws compressed legs: feet stay on the surface and struts follow them', () 
     // 0.6 m: each foot rises by its stroke, up to that limit (rest height 0.04 m).
     art.setLegCompression([2, 0.6, 0.5, 0]);
     expect(art.feet.map((foot) => +foot.position.y.toFixed(9))).toEqual([0.64, 0.64, 0.54, 0.04]);
+  } finally {
+    art.dispose();
+  }
+});
+
+it('recolours the sky and pad, not the vehicle that shared the pad paint', () => {
+  const art = createScene(1.5);
+  try {
+    const hull = () =>
+      art.artwork.children
+        .map((child) => ((child as Mesh).material as MeshStandardMaterial).color.getHexString())
+        .join();
+    const before = hull();
+    expect((art.scene.background as Color).equals(new Color(DEFAULT_ACCENTS.sky))).toBe(true);
+    art.setAccents({ sky: '#04060b', pad: '#4cc3e0', marker: '#eaf2fa' });
+    expect((art.scene.background as Color).equals(new Color('#04060b'))).toBe(true);
+    expect(hull()).toBe(before);
   } finally {
     art.dispose();
   }

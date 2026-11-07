@@ -8,6 +8,22 @@ const PAD_RADIUS = 3.8;
 const MAX_DRAWN_COMPRESSION = 0.6;
 const UP = new THREE.Vector3(0, 1, 0);
 
+/**
+ * CSS hex colours (`#rrggbb`) for the scene's non-physical marks, which a host
+ * matches to its interface theme. Physical materials keep their own colours.
+ */
+export interface SceneAccents {
+  /** Background behind the scene (space). */
+  readonly sky: string;
+  /** Landing pad ring and markings. */
+  readonly pad: string;
+  /** Ring and drop line marking the ground below the vehicle. */
+  readonly marker: string;
+}
+
+/** Accents drawn until a host supplies its own. */
+export const DEFAULT_ACCENTS: SceneAccents = { sky: '#080c14', pad: '#e5e7e5', marker: '#9fd4ff' };
+
 /** A foot pad and its struts, redrawn as the leg compresses. */
 interface Leg {
   readonly foot: THREE.Mesh;
@@ -30,10 +46,11 @@ function seeded(seed: number): () => number {
 /** Builds illustrative metre-scale artwork, not a physical vehicle specification. */
 export function createScene(centerOfMassHeight: number) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x080c14);
+  const sky = new THREE.Color(DEFAULT_ACCENTS.sky);
+  scene.background = sky;
   const materials: THREE.Material[] = [];
   const geometries: THREE.BufferGeometry[] = [];
-  const material = (color: number, metalness = 0, roughness = 0.8) => {
+  const material = (color: THREE.ColorRepresentation, metalness = 0, roughness = 0.8) => {
     const result = new THREE.MeshStandardNodeMaterial({ color, metalness, roughness });
     materials.push(result);
     return result;
@@ -122,13 +139,15 @@ export function createScene(centerOfMassHeight: number) {
   pad.rotation.x = -Math.PI / 2;
   pad.position.y = SURFACE_Y + 0.008;
   pad.castShadow = false;
-  const ring = mesh(new THREE.RingGeometry(2.9, 3.15, 64), white, scene);
+  // Painted like the ascent stage by default, but its own material so a host can recolour it.
+  const padPaint = material(DEFAULT_ACCENTS.pad, 0.3, 0.4);
+  const ring = mesh(new THREE.RingGeometry(2.9, 3.15, 64), padPaint, scene);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = SURFACE_Y + 0.014;
   ring.castShadow = false;
   for (let i = 0; i < 8; i++) {
     const angle = (i * Math.PI) / 4;
-    const mark = mesh(new THREE.BoxGeometry(0.12, 0.006, 0.35), white, scene);
+    const mark = mesh(new THREE.BoxGeometry(0.12, 0.006, 0.35), padPaint, scene);
     mark.position.set(Math.sin(angle) * 3.45, SURFACE_Y + 0.014, Math.cos(angle) * 3.45);
     mark.rotation.y = angle;
   }
@@ -188,9 +207,9 @@ export function createScene(centerOfMassHeight: number) {
   flat(new THREE.RingGeometry(0.86, 1, 40), 0x6c7177, 0.03);
 
   // Marker straight below the vehicle: reads height and drift where shadows cannot reach.
-  // Blue, so it never reads as the white pad ring.
+  // Its own accent, so it never reads as the pad ring.
   const markerMaterial = new THREE.MeshBasicNodeMaterial({
-    color: 0x9fd4ff,
+    color: DEFAULT_ACCENTS.marker,
     transparent: true,
     opacity: 0.6,
     depthWrite: false,
@@ -200,7 +219,7 @@ export function createScene(centerOfMassHeight: number) {
   marker.rotation.x = -Math.PI / 2;
   marker.castShadow = marker.receiveShadow = false;
   const dropMaterial = new THREE.LineBasicNodeMaterial({
-    color: 0x9fd4ff,
+    color: DEFAULT_ACCENTS.marker,
     transparent: true,
     opacity: 0.3,
   });
@@ -238,6 +257,13 @@ export function createScene(centerOfMassHeight: number) {
       drop.position.copy(position);
       drop.scale.y = Math.max(0.001, position.y - surface);
       drop.visible = altitude > 1;
+    },
+    /** Recolours the non-physical marks; colours are validated by the caller. */
+    setAccents(accents: SceneAccents) {
+      sky.set(accents.sky);
+      padPaint.color.set(accents.pad);
+      markerMaterial.color.set(accents.marker);
+      dropMaterial.color.set(accents.marker);
     },
     /** Raises each foot by its compression (metres, foot order) and re-aims its struts. */
     setLegCompression(compressions: readonly number[]) {

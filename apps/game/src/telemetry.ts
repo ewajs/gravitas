@@ -9,6 +9,7 @@ import {
 } from '@gravitas/engine';
 import type { FlightTelemetry, RadarVector } from '@gravitas/ui';
 import { FEET, LANDER } from './lander';
+import { safeSinkRate } from './rules';
 import { ENVIRONMENT, PAD_POSITION, padDistance } from './scenario';
 
 /**
@@ -39,9 +40,11 @@ export function headingFrame(q: Quaternion, v: Vector3): RadarVector {
 export function flightTelemetry(state: FlightState, throttle: number): FlightTelemetry {
   const q = state.orientation;
   const mass = LANDER.dryMass + state.fuelMass;
+  // Compressed legs read as zero altitude, not as a negative height.
+  const altitude = Math.max(0, footClearance(state));
   return {
-    // Compressed legs read as zero altitude, not as a negative height.
-    altitude: Math.max(0, footClearance(state)),
+    altitude,
+    safeSink: safeSinkRate(altitude),
     verticalSpeed: state.velocity.y,
     horizontalSpeed: Math.hypot(state.velocity.x, state.velocity.z),
     padDistance: padDistance(state.position),

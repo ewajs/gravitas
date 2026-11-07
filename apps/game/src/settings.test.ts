@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './settings';
+import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from './settings';
 
 const memory = () => {
   const items = new Map<string, string>();
@@ -12,8 +12,28 @@ const memory = () => {
 
 it('round-trips settings', () => {
   const storage = memory();
-  saveSettings(storage, { locale: 'en', muted: true, controlsSeen: true });
-  expect(loadSettings(storage)).toEqual({ locale: 'en', muted: true, controlsSeen: true });
+  const settings: Settings = {
+    locale: 'en',
+    muted: true,
+    controlsSeen: true,
+    reduceTransparency: true,
+  };
+  saveSettings(storage, settings);
+  expect(loadSettings(storage)).toEqual(settings);
+});
+
+it('loads settings saved before reduced transparency existed', () => {
+  const storage = memory();
+  storage.items.set(
+    'gravitas.settings.v1',
+    JSON.stringify({ locale: 'en', muted: true, controlsSeen: true }),
+  );
+  expect(loadSettings(storage)).toEqual({
+    locale: 'en',
+    muted: true,
+    controlsSeen: true,
+    reduceTransparency: false,
+  });
 });
 
 it('falls back field by field on corrupt or foreign data', () => {
@@ -27,7 +47,12 @@ it('falls back field by field on corrupt or foreign data', () => {
     'gravitas.settings.v1',
     JSON.stringify({ locale: 'fr', muted: 'yes', controlsSeen: true }),
   );
-  expect(loadSettings(storage)).toEqual({ locale: undefined, muted: false, controlsSeen: true });
+  expect(loadSettings(storage)).toEqual({
+    locale: undefined,
+    muted: false,
+    controlsSeen: true,
+    reduceTransparency: false,
+  });
 });
 
 it('never throws when storage is missing or failing', () => {

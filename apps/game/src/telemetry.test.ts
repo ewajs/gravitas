@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { rotationAbout, type FlightState } from '@gravitas/engine';
+import { LANDING_LIMITS, safeSinkRate } from './rules';
 import { flightTelemetry, footClearance, headingFrame } from './telemetry';
 import { START_ALTITUDE, START_STATE } from './scenario';
 
@@ -44,6 +45,7 @@ describe('flight telemetry', () => {
       tilt: 0,
       fuel: 0.5,
       throttle: 0.25,
+      safeSink: START_ALTITUDE / 8,
     });
     expect(t.hoverThrottle).toBeCloseTo((1350 * 1.62) / 4500, 12);
     expect(near(t.pad)).toEqual([0, 30]);
@@ -63,5 +65,23 @@ describe('flight telemetry', () => {
       0,
     ).lean;
     expect(near(leftward)).toEqual(near({ x: -Math.sin(0.3), y: 0 }));
+  });
+});
+
+describe('safe sink hint', () => {
+  it('allows an eighth of the altitude per second, never below the touchdown limit', () => {
+    expect(safeSinkRate(80)).toBe(10);
+    expect(safeSinkRate(40)).toBe(5);
+    expect(safeSinkRate(16)).toBe(LANDING_LIMITS.maxVerticalSpeed);
+    expect(safeSinkRate(0)).toBe(LANDING_LIMITS.maxVerticalSpeed);
+  });
+
+  it('can be stopped well within the height left at full thrust', () => {
+    // Net deceleration at full thrust with a full tank, upright: T/m − g.
+    const deceleration = 4500 / (1200 + 300) - 1.62;
+    for (const altitude of [16, 40, 80]) {
+      const speed = safeSinkRate(altitude);
+      expect(speed ** 2 / (2 * deceleration)).toBeLessThan(altitude / 2);
+    }
   });
 });

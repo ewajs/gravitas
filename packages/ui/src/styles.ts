@@ -299,6 +299,11 @@ export const hudStyles = css`
   .quick-keys dt {
     letter-spacing: 0;
     text-transform: none;
+    white-space: nowrap;
+  }
+  kbd .icon {
+    display: inline-block;
+    vertical-align: -2px;
   }
   .quick-keys dd {
     margin: 0;
@@ -804,6 +809,15 @@ export const hudStyles = css`
     font-size: 14px;
     color: var(--gravitas-text);
     cursor: pointer;
+  }
+  .setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--gravitas-text);
   }
   .toggle input {
     inline-size: 20px;

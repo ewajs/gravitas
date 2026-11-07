@@ -8,6 +8,7 @@ import { type Locale, viewportMessages } from './localization';
 import { reportCard, verdictTitle } from './report-card';
 import { hudStyles } from './styles';
 import { uiTokens } from './tokens';
+import { TouchControls } from './touch-controls';
 import type {
   AppearanceRequest,
   FlightPhase,
@@ -17,6 +18,7 @@ import type {
   LandingReport,
   LocaleRequest,
   SoundRequest,
+  TouchControlsMode,
 } from './types';
 
 /** Optional flight HUD. Receives presentation snapshots; owns no renderer or simulation. */
@@ -29,6 +31,13 @@ export class FlightHud extends LitElement {
   @property() phase: FlightPhase = 'ready';
   /** The device the player is using; the start card, Help, and hints describe its controls. */
   @property() inputDevice: InputDevice = 'keyboard';
+  /** The player's touch-controls setting, shown and changed in Help's Display section. */
+  @property() touchControlsMode: TouchControlsMode = 'auto';
+  /**
+   * Whether the host is showing on-screen touch controls; the HUD keeps their
+   * thumb zones clear.
+   */
+  @property({ type: Boolean, reflect: true, attribute: 'touch-controls' }) touchControls = false;
   /** Whether sound is muted; the Mute button shows it as pressed. */
   @property({ type: Boolean }) muted = false;
   /** Show the "How to fly" card while ready; hosts hide it once the player has read it. */
@@ -97,10 +106,10 @@ export class FlightHud extends LitElement {
     );
   }
 
-  private requestAppearance(reduceTransparency: boolean) {
+  private requestAppearance(detail: AppearanceRequest) {
     this.dispatchEvent(
       new CustomEvent<AppearanceRequest>('appearance-request', {
-        detail: { reduceTransparency },
+        detail,
         bubbles: true,
         composed: true,
       }),
@@ -125,16 +134,20 @@ export class FlightHud extends LitElement {
   }
 
   private phaseMessage() {
-    const pad = this.inputDevice === 'gamepad';
+    const device = this.inputDevice;
     switch (this.phase) {
       case 'ready':
-        return pad
-          ? msg('Listo para descender. Pulsá A o Comenzar.', { id: 'phase-ready-pad' })
-          : msg('Listo para descender. Pulsá P o Comenzar.', { id: 'phase-ready' });
+        return device === 'touch'
+          ? msg('Listo para descender. Tocá Comenzar.', { id: 'phase-ready-touch' })
+          : device === 'gamepad'
+            ? msg('Listo para descender. Pulsá A o Comenzar.', { id: 'phase-ready-pad' })
+            : msg('Listo para descender. Pulsá P o Comenzar.', { id: 'phase-ready' });
       case 'paused':
-        return pad
-          ? msg('En pausa. Pulsá A o Reanudar.', { id: 'phase-paused-pad' })
-          : msg('En pausa. Pulsá P o Reanudar.', { id: 'phase-paused' });
+        return device === 'touch'
+          ? msg('En pausa. Tocá Reanudar.', { id: 'phase-paused-touch' })
+          : device === 'gamepad'
+            ? msg('En pausa. Pulsá A o Reanudar.', { id: 'phase-paused-pad' })
+            : msg('En pausa. Pulsá P o Reanudar.', { id: 'phase-paused' });
       case 'complete':
         // The live region announces the verdict; the card shows it, so it is hidden here.
         return this.report ? verdictTitle(this.report.verdict) : '';
@@ -241,9 +254,11 @@ export class FlightHud extends LitElement {
                           @click=${() => this.request('start')}
                           aria-keyshortcuts="P"
                         >
-                          ${msg('Comenzar', { id: 'start' })}<kbd aria-hidden="true"
-                            >${confirmKey(this.inputDevice)}</kbd
-                          >
+                          ${msg('Comenzar', { id: 'start' })}${
+                            this.inputDevice === 'touch'
+                              ? nothing
+                              : html`<kbd aria-hidden="true">${confirmKey(this.inputDevice)}</kbd>`
+                          }
                         </button>
                       </div>`
                     : nothing
@@ -259,7 +274,7 @@ export class FlightHud extends LitElement {
                     </section>`
                   : nothing
               }
-              <p id="controls">
+              <p id="controls" ?hidden=${this.inputDevice === 'touch'}>
                 ${
                   this.inputDevice === 'gamepad'
                     ? msg('Stick derecho: inclinar · LB/RB: girar · RT/LT: empuje · Start: pausa', {
@@ -271,7 +286,7 @@ export class FlightHud extends LitElement {
               ${
                 this.phase === 'complete' && this.report
                   ? html`<div class="results">
-                      ${reportCard(this.report, this.locale, this.manualHref, this.inputDevice === 'gamepad' ? 'A' : 'Enter', () => this.request('restart'))}
+                      ${reportCard(this.report, this.locale, this.manualHref, { keyboard: 'Enter', gamepad: 'A', touch: '' }[this.inputDevice], () => this.request('restart'))}
                     </div>`
                   : nothing
               }`
@@ -279,23 +294,29 @@ export class FlightHud extends LitElement {
       }
       ${helpDialog(
         this.manualHref,
-        this.reduceTransparency,
+        { reduceTransparency: this.reduceTransparency, touchControls: this.touchControlsMode },
         this.inputDevice,
         () => this.closeHelp(),
-        (reduce) => this.requestAppearance(reduce),
+        (request) => this.requestAppearance(request),
       )}
     `;
   }
 }
 
-/** Registers the optional component once; safe for repeated application mounts. */
+/**
+ * Registers the optional components (`gravitas-flight-hud` and
+ * `gravitas-touch-controls`) once; safe for repeated application mounts.
+ */
 export function registerUi(): void {
   if (!customElements.get('gravitas-flight-hud'))
     customElements.define('gravitas-flight-hud', FlightHud);
+  if (!customElements.get('gravitas-touch-controls'))
+    customElements.define('gravitas-touch-controls', TouchControls);
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     'gravitas-flight-hud': FlightHud;
+    'gravitas-touch-controls': TouchControls;
   }
 }

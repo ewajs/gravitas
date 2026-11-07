@@ -18,6 +18,28 @@ Keys are physical keyboard positions (shown here for QWERTY).
 Drag the scene to look around (the camera returns behind the lander on its own)
 and scroll to zoom.
 
+### On a touch screen
+
+On a phone or tablet, the controls appear on screen during a flight:
+
+- **Left thumb: the throttle lever.** Put your thumb anywhere on the left zone and
+  slide it up or down: the lever moves from where it was, never jumping to your
+  finger, and stays where you let go. It shows the actual throttle even when the
+  keyboard or a gamepad changes it. Near the throttle that holds the lander in a
+  hover it has a **detent**: the lever catches there, the mark lights up, and on
+  Android the phone gives a short buzz (Safari on iPhone cannot vibrate). The
+  detent follows the fuel: the lighter the lander, the lower it sits.
+- **Right thumb: tilt.** Touch anywhere on the right zone and the stick appears
+  under your thumb; drag it to pitch and roll, gently near the centre and fully at
+  the rim. Let go and it re-centres.
+- **⟲ ⟳ buttons** (above the right zone): hold to turn.
+- **Pause:** the pause button at the top.
+
+You can use both thumbs at once. Drag outside the controls to look around and
+pinch to zoom the camera. In **Help → Display → Touch controls** choose
+**Automatic** (they appear when you touch the screen and hide when you use the
+keyboard or a gamepad), **Always**, or **Never**.
+
 ### With a gamepad
 
 A gamepad with the standard layout (Xbox, PlayStation, and most USB or Bluetooth
@@ -41,7 +63,8 @@ pad disconnects mid-flight, the game pauses.
 
 **R** and **F** move a lever: while held, throttle rises or falls by half its range
 per second and stays where you let go. **Z** jumps to full and **X** cuts it at once.
-A gamepad's triggers move it the same way, slower the lighter you press.
+A gamepad's triggers move it the same way, slower the lighter you press. On a
+touch screen the lever goes straight where you slide it.
 
 The engine pushes along the lander's axis. Upright, it slows your fall; leaning,
 part of the thrust moves you sideways.
@@ -77,7 +100,7 @@ and stays paused until you press **P** again.
 ## Preferences
 
 The game remembers in this browser your language, whether you muted sound,
-whether you asked to **Reduce transparency**, and that you have read the **How to
+whether you asked to **Reduce transparency**, when to show **Touch controls**, and that you have read the **How to
 fly** card (after your first flight it stops appearing; Help always lists the
 controls).
 

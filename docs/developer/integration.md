@@ -52,6 +52,7 @@ const hud = document.querySelector('gravitas-flight-hud')!;
 const inputs = new PilotInputs([
   new KeyboardControls(window, inputCommand),
   new GamepadControls(navigator, window, inputCommand, gamepadConnection),
+  new TouchControlsSource(document.querySelector('gravitas-touch-controls')!),
 ]);
 hud.addEventListener('flight-request', flightRequested);
 window.addEventListener('blur', () => inputs.clear());
@@ -102,9 +103,22 @@ source reports whether its latest sample was deliberate input; the app sets the
 HUD's `inputDevice` when that device changes, never per frame. While Help is open
 (`hud.helpOpen`) the pad's buttons are ignored, and a lost pad pauses the flight.
 
+Touch is split across the boundary. UI's `<gravitas-touch-controls>` (in
+`index.html`, after the HUD) draws the lever, stick, and yaw buttons in the theme,
+owns their pointers (several at once, with pointer capture), and emits
+`lever-input`, `stick-input`, and `yaw-input` with plain values. It releases
+everything on lift, `pointercancel`, window blur, a hidden page, or `disabled`.
+`TouchControlsSource` (`touch.ts`) listens to those events, validates them, and
+maps them: the stick through `stickResponse` with an 8% dead zone, the lever as a
+one-shot `throttleSet`. The app passes the element `session.throttle` and the
+hover throttle at the telemetry rate, so the lever shows the throttle actually
+applied, and `syncTouchControls()` shows it while flying or paused when the
+setting is Always, or Automatic and touch is the device in use (the first touch
+anywhere switches to it; keys or a pad switch away).
+
 ## Sound and settings
 
-`settings.ts` loads language, mute, "start card seen", and "reduce transparency"
+`settings.ts` loads language, mute, "start card seen", "reduce transparency", and "touch controls"
 from `localStorage`,
 validating each field as external data. It never throws, and saves only when a
 setting changes. An explicit `?lang=` still wins over the saved language.

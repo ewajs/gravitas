@@ -13,7 +13,7 @@ flight HUD. These guides cover the code that exists today.
 | --------------------------------------------- | ------------------------------------------------------ |
 | [Engine](../../packages/engine/README.md)     | Shared pose and math, flight dynamics, rate assistance |
 | [Viewport](../../packages/viewport/README.md) | Three.js scene, interpolation, chase camera, lifecycle |
-| [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, help dialog, and localization |
+| [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, touch controls, help, locales |
 
 The application in `apps/game` owns branding, the lander and scenario, the flight
 session and input sources, locale loading, and browser scheduling. Libraries never import app code; viewport and UI are

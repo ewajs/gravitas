@@ -1,7 +1,7 @@
 # 0016. One input layer: sources merged into one pilot input per frame
 
-- Status: Implemented in 4.3a (input layer, keyboard source) and 4.3b (gamepad
-  source). Touch (4.3c) is a planned source of the same layer.
+- Status: Implemented in 4.3a (input layer, keyboard source), 4.3b (gamepad
+  source), and 4.3c (touch source).
 - Date: 2026-11-07
 
 ## Context
@@ -75,6 +75,16 @@ With the keyboard as the only source, the merged input equals the keyboard's.
 - The gamepad's A is a new `confirm` command (start, resume, or try again), and
   its Start toggles pause like P. Only standard-mapping pads are read, so button
   positions are known; Xbox names are shown.
+- Touch is split at the package boundary: UI's `TouchControls` element draws the
+  controls, owns pointers, and emits plain values (lever 0–1, stick x/y, yaw);
+  the game's `TouchControlsSource` maps them (an 8% stick dead zone, the lever as
+  a one-shot setting). The element shows the lever the session actually applied,
+  so a keyboard or gamepad change is visible on it. It is exported from
+  `@gravitas/ui` itself: the game is its only consumer and already imports that
+  entry point, so a narrower entry point would buy nothing.
+- The device in use is the last source with deliberate input, or the first touch
+  anywhere; a phone or tablet starts on touch. In Automatic mode the touch
+  controls follow it.
 - Revisit if a device needs per-tick rather than per-frame sampling (none does:
   browsers deliver input between animation frames), or if replays need recorded
   input, which would record the merged `PilotInput` per tick.

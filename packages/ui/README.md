@@ -114,13 +114,53 @@ and `aria-keyshortcuts`. Opening Help while
 `phase` is `flying` emits a `pause` request first. The host applies requests to its
 session and sets `phase`. Flight controls (keyboard, gamepad) belong to the host.
 
+## Touch controls
+
+`<gravitas-touch-controls>` (`TouchControls`, registered by `registerUi()`) is a
+second, optional element: on-screen flight controls in the theme, for touch
+screens. Place it over the scene after the HUD; it fills its positioned parent and
+lets touches outside its zones through to the scene.
+
+```ts
+const controls = document.createElement('gravitas-touch-controls');
+controls.throttle = 0.45; // The lever position the host applied, 0–1
+controls.hoverThrottle = 0.52; // Where the detent sits (above 1: no detent)
+controls.disabled = phase !== 'flying'; // Inert and dimmed, e.g. while paused
+controls.addEventListener('lever-input', (e) => e.detail.value); // 0–1
+controls.addEventListener('stick-input', (e) => e.detail); // { x, y }, right/up, within the unit circle
+controls.addEventListener('yaw-input', (e) => e.detail.direction); // −1 left, 0, +1 right
+```
+
+- **Lever (left zone):** non-centering. A drag moves it relative to where it was,
+  from wherever the thumb lands on the zone, so it never jumps to the finger.
+  Within 3.5% of `hoverThrottle` it snaps to it: the detent mark lights, ticks
+  (160 ms), and calls `navigator.vibrate(8)` where that exists. While untouched it
+  shows `throttle`, easing in 200 ms, so changes from other devices show. It is a
+  `role="slider"` named Throttle, also operable with arrow keys.
+- **Stick (right zone):** appears where the thumb lands (kept inside the zone),
+  reports its raw deflection up to a 56 px radius, and reports zero on release.
+  Dead zone and response curve are the host's.
+- **Yaw buttons:** two 48 px buttons above the stick zone, held to turn (Space or
+  Enter hold them from the keyboard). They never sit over the host's header row
+  (the top 56 px plus the safe area), and the zones start below them.
+- A mouse steers only with its main button; drawn parts never take a touch, so the
+  zone stays the event target while parts are redrawn.
+- Multi-touch with pointer capture; lift, `pointercancel`, window blur, a hidden
+  page, `disabled`, or `release()` release everything and report neutral values.
+- Motion: controls respond in 130 ms, levels ease in 200 ms, the element fades
+  in; `prefers-reduced-motion` keeps only the colour change of the detent.
+
+The element decides nothing about the flight; the game maps its values to pilot
+input. Hide it with the `hidden` attribute.
+
 ## Input device
 
-`hud.inputDevice` (`'keyboard'` by default, or `'gamepad'`) names the device the
-host judges the player to be using. The "How to fly" card, Help's control list,
+`hud.inputDevice` (`'keyboard'` by default, `'gamepad'`, or `'touch'`) names the
+device the host judges the player to be using. The "How to fly" card, Help's control list,
 the phase messages, the key-hint line, and the keycaps on Start and Try again
 describe that device: W A S D and P for the keyboard; the right stick, LB/RB,
-RT/LT, A, and Start (standard-mapping, Xbox-style names) for a gamepad. The HUD
+RT/LT, A, and Start (standard-mapping, Xbox-style names) for a gamepad; the
+thumb controls, yaw buttons, and pause button for touch (no keycaps). The HUD
 only presents; the host maps the devices. `hud.helpOpen` reports whether Help is
 open, so a host can ignore gamepad buttons, which do not move focus, meanwhile.
 
@@ -133,12 +173,15 @@ the previous locale. The selector stays focusable but ignores additional request
 while pending. See the complete lifecycle in
 [the app](https://github.com/ewajs/gravitas/blob/main/apps/game/src/main.ts).
 
-## Display setting
+## Display settings
 
 `hud.reduceTransparency` (reflected as the `reduce-transparency` attribute) swaps
 the translucent, blurred panels for solid ones. Help's Display section has a
-"Reduce transparency" checkbox that emits `CustomEvent<AppearanceRequest>` named
-`appearance-request`; the host applies, persists, and sets the property. The
+"Reduce transparency" checkbox and a "Touch controls" selector (Automatic, Always,
+Never; `hud.touchControlsMode`). Each emits `CustomEvent<AppearanceRequest>` named
+`appearance-request` carrying only the changed setting; the host applies,
+persists, and sets the property. `hud.touchControls` (the `touch-controls`
+attribute) tells the HUD the host is showing the touch controls. The
 system's `prefers-reduced-transparency: reduce` has the same effect regardless.
 
 ## Localization

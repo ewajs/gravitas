@@ -61,13 +61,16 @@ function updateSettings(changes: Partial<Settings>): void {
 }
 
 // Sound follows the flight: running while flying (or a crash plays out), else suspended.
+// A hidden tab is always silent, including while a crash plays out after a verdict.
 function syncAudio(): void {
-  audio.setActive(session.phase === 'flying' || session.phase === 'complete');
+  if (stopped) return;
+  audio.setActive(!document.hidden && (session.phase === 'flying' || session.phase === 'complete'));
   host.dataset.audio = audio.state;
 }
 
 // Browsers allow audio only after a gesture; the first key or click unlocks it.
 function unlockAudio(): void {
+  if (stopped) return;
   audio.unlock();
   syncAudio();
   window.removeEventListener('keydown', unlockAudio, true);
@@ -75,7 +78,8 @@ function unlockAudio(): void {
 }
 
 function setMuted(muted: boolean): void {
-  audio.setMuted(muted);
+  // After a graphics failure the preference still saves; there is no audio to change.
+  if (!stopped) audio.setMuted(muted);
   hud.muted = muted;
   updateSettings({ muted });
   syncAudio();
@@ -204,6 +208,8 @@ function stopRendering(): void {
   session.pause();
   keyboard.dispose();
   audio.dispose();
+  window.removeEventListener('keydown', unlockAudio, true);
+  window.removeEventListener('pointerdown', unlockAudio, true);
   delete host.dataset.audio;
   sizeObserver.disconnect();
   document.removeEventListener('visibilitychange', visibilityChanged);
@@ -236,7 +242,10 @@ function visibilityChanged(): void {
     frame = undefined;
     // A hidden tab pauses the flight; the player resumes deliberately.
     flightAction('pause');
-  } else resume();
+  } else {
+    resume();
+    syncAudio();
+  }
 }
 
 function pageHidden(event: PageTransitionEvent): void {

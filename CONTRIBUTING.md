@@ -79,7 +79,9 @@ with `import type`; engine cannot depend on other workspaces or runtime packages
 See [ADR 0004](docs/decisions/0004-workspace-tooling.md) for tooling decisions.
 
 The player manual lives in `manual/` (Spanish at the root, English in `en/`, same
-page names). VitePress fails the build on dead links, so CI's build checks them.
+page names). Its Learn section's explorers run the real engine through
+`manual/.vitepress/learn/models.ts`, unit-tested with the rest (`npm test`); keep
+their numbers and the chapter prose in step with game tuning. VitePress fails the build on dead links, so CI's build checks them.
 Keep landing limits in the manual, Help text, and `apps/game/src/rules.ts` in step.
 Browser suites run locally
 when UI, rendering, lifecycle, or delivery changes need them; record the results

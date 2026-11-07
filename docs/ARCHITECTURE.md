@@ -130,7 +130,9 @@ combines the game and docs in one Pages artifact, with docs under `/gravitas/doc
 See [the developer guides](developer/README.md). The bilingual VitePress player
 manual (`manual/`) builds into `/gravitas/manual/` (Spanish) and
 `/gravitas/manual/en/` in the same artifact; Help links to it in the current
-language. Main deployments publish all three.
+language. Its Learn section imports `@gravitas/engine` and the game's lander values
+so explorers run the real simulation ([ADR 0013](decisions/0013-learn-section.md)).
+Main deployments publish all three.
 
 ## Current integration: one flight
 

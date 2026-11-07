@@ -1,6 +1,7 @@
 # 0007. Inspection UI and the shared pose contract
 
-- Status: Implemented in 0.4; visuals await owner review.
+- Status: Implemented in 0.4. The inspection HUD became `FlightHud` in 1.2
+  ([ADR 0009](0009-flight-runtime.md)); the shared pose and locale flow stand.
 - Date: 2026-11-06
 
 ## Decision

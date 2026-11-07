@@ -50,8 +50,16 @@ The owner approved combining the specification and engine implementation in 1.1.
       viewport origin change. Attitude control draws from the shared tank at the
       owner's request. Local checks passed on 2026-11-06; see the
       [flight model](FLIGHT.md) and [verification](verification/flight.md).
-- [ ] **1.2 Flight runtime:** wire fixed-step runtime, input, interpolation, pause,
-      restart.
+- [x] **1.2 Flight runtime:** fixed-step runtime with bounded catch-up, keyboard
+      input, interpolation, pause/resume/restart, a fixed opening, a placeholder
+      ground halt until M2 contact, a following orbit camera, and plain flight
+      readouts. **Verify:** identical physics at 30/144 Hz frame rates, overload
+      accounting, landability; browser flight, focus loss, hidden tab, form/help
+      scoping, both locales mid-flight, both backends. Owner approved splitting the
+      former 1.2 into 1.2 and 1.3. Local checks passed on 2026-11-06; see
+      [runtime verification](verification/runtime.md).
+- [ ] **1.3 Chase camera and instruments:** chase camera, attitude indicator,
+      designed instrument layout; owner visual review closes M1.
 
 **Acceptance:** fly one vehicle with readable instruments. Pause/resume and render
 rate changes preserve intended physics. Unit references and browser controls cover

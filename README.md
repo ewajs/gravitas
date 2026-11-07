@@ -4,12 +4,12 @@ A spaceflight game for the web, built alongside reusable simulation, Three.js
 viewport, and Lit UI libraries. Ambitious in direction; small, reviewable steps
 in delivery.
 
-**Status:** procedural 3D inspection scene with a stationary lander, pad, and bilingual HUD.
-Engine flight dynamics are implemented and tested, but not yet playable; no gameplay yet.
-The first playable target is a short lunar landing challenge; orbital flight and
+**Status:** a flyable first descent: keyboard flight with a bilingual HUD,
+fixed-step physics, pause and restart. Touchdown stops the flight without a landing
+verdict until M2. The first playable target is a short lunar landing challenge; orbital flight and
 construction are later possibilities.
 
-[Open the live inspection scene](https://ewajs.github.io/gravitas/).
+[Open the live build](https://ewajs.github.io/gravitas/).
 
 ## Workspaces
 
@@ -22,8 +22,9 @@ construction are later possibilities.
 
 TypeScript strict, npm workspaces, Vite, Node 24 LTS. The viewport uses Three.js
 WebGPURenderer with WebGL 2 fallback; its lifecycle/pose API is independent of
-dynamics. Engine defines the shared pose contract. The Lit HUD shows pad offset
-and tilt, with live es-AR/English switching and keyboard-accessible help.
+dynamics. Engine defines the shared pose contract and flight dynamics. The Lit
+flight HUD shows altitude, speeds, tilt, fuel, and throttle, with live
+es-AR/English switching and keyboard-accessible help.
 CI runs fast checks and builds the app and developer docs; browser suites
 run locally when relevant. GitHub Pages serves that build after successful main checks.
 See [delivery verification](docs/verification/delivery.md) for its current status.
@@ -36,9 +37,10 @@ npm ci
 npm run dev
 ```
 
-Open the URL Vite prints. Drag to orbit, scroll to zoom, or focus the canvas and
-use arrow keys to pan. Use the ES/EN selector to change language without resetting
-the camera, and open Help/Ayuda for controls and readout definitions. Add
+Open the URL Vite prints and press P to start the descent. W/S/A/D/Q/E rotate,
+R/F move the throttle lever, Z/X set full or cut, P pauses, and Enter restarts.
+Drag to orbit and scroll to zoom. Use the ES/EN selector to change language
+mid-flight, and open Help/Ayuda for all controls. Add
 `?lang=en` for English or `?backend=webgl2` to explicitly
 request WebGL 2. With no backend override, Three.js selects the available backend.
 `npm run check` runs format/lint/type checks and the test runner; `npm run build`
@@ -64,11 +66,11 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 - [Agent instructions](AGENTS.md): shared rules for Claude and Codex.
 - [Developer docs](docs/developer/README.md): library guides, API build, and integration walkthrough.
 - [Engine library](packages/engine/README.md): pose/state contract and flight dynamics.
-- [Viewport library](packages/viewport/README.md): pose/lifecycle contract and ownership.
-- [UI/localization](packages/ui/README.md): inspection HUD, help, and live language switching.
+- [Viewport library](packages/viewport/README.md): pose, interpolation, camera, and lifecycle.
+- [UI/localization](packages/ui/README.md): flight HUD, help, and live language switching.
 
 The generated package references deploy alongside the game at `/gravitas/docs/`
-after this step merges; live publication is pending. The separate bilingual player
+from the same main artifact. The separate bilingual player
 manual is planned for M2. Names under `@gravitas/*` are internal workspace
 identifiers; npm publication is deferred.
 

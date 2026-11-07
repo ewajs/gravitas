@@ -1,33 +1,41 @@
 import { test, expect } from './test';
-import type { InspectionHud } from '@gravitas/ui';
+import type { FlightHud } from '@gravitas/ui';
 
 function appUrl(project: string) {
   return `http://127.0.0.1:4173/gravitas/?backend=${project === 'webgl2' ? 'webgl2' : 'auto'}`;
 }
 
-test('locale switching preserves the canvas, camera, and pose while translating all visible UI', async ({
+test('locale switching preserves the canvas, camera, and readouts while translating all visible UI', async ({
   page,
 }, info) => {
   await page.goto(appUrl(info.project.name));
   const host = page.locator('#viewport');
-  const hud = page.locator('gravitas-inspection-hud');
+  const hud = page.locator('gravitas-flight-hud');
   await expect(host).toHaveAttribute('data-backend', info.project.name);
-  // Exercise real nonzero presentation data, without introducing a simulation fixture into the app.
-  await hud.evaluate((element: InspectionHud) => {
-    element.pose = {
-      position: { x: 3, y: 40, z: 4 },
-      orientation: { x: 0.5, y: 0, z: 0, w: Math.sqrt(3) / 2 },
+  // The session waits in its ready phase, so the app does not overwrite this snapshot.
+  await hud.evaluate((element: FlightHud) => {
+    element.telemetry = {
+      altitude: 1234.5,
+      verticalSpeed: -3.25,
+      horizontalSpeed: 0,
+      padDistance: 5,
+      tilt: Math.PI / 3,
+      fuel: 0.54,
+      throttle: 1,
     };
   });
-  await expect(page.getByTestId('offset')).toHaveText('5,0 m');
-  await expect(page.getByTestId('tilt')).toHaveText('60,0°');
+  await expect(page.getByTestId('altitude')).toHaveText('1.234,5 m');
+  await expect(page.getByTestId('vertical-speed')).toHaveText('-3,3 m/s');
+  await expect(page.getByTestId('tilt')).toHaveText('60°');
+  await expect(page.getByTestId('fuel')).toHaveText('54%');
   await page.mouse.move(450, 300);
   await page.mouse.down();
   await page.mouse.move(520, 340, { steps: 8 });
   await page.mouse.up();
   const canvas = await page.locator('canvas').elementHandle();
-  // Sample an unobscured central scene region; UI text changes must not reset its camera.
-  const scene = { x: 300, y: 180, width: 400, height: 330 };
+  // Sample scene below the centred phase message and above the bottom panels, which
+  // legitimately change language; UI text changes must not reset the camera.
+  const scene = { x: 100, y: 390, width: 800, height: 150 };
   const before = await page.screenshot({ clip: scene });
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -50,13 +58,16 @@ test('locale switching preserves the canvas, camera, and pose while translating 
   await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue('en');
   await expect(page.getByRole('combobox', { name: 'Language' })).toBeFocused();
   await expect(page.getByRole('button', { name: 'Help', exact: true })).toBeVisible();
-  await expect(page.locator('#subtitle')).toHaveText('Inspection view');
-  await expect(page.locator('#controls')).toContainText('Drag to orbit');
-  await expect(page.getByTestId('offset')).toHaveText('5.0 m');
-  await expect(page.getByTestId('tilt')).toHaveText('60.0°');
+  await expect(page.locator('#subtitle')).toHaveText('Lunar descent');
+  await expect(page.locator('#controls')).toContainText('W/S pitch');
+  await expect(page.locator('#phase')).toHaveText('Ready to descend. Press P or Start.');
+  await expect(page.getByTestId('altitude')).toHaveText('1,234.5 m');
+  await expect(page.getByTestId('vertical-speed')).toHaveText('-3.3 m/s');
+  await expect(page.getByTestId('tilt')).toHaveText('60°');
+  await expect(page.getByTestId('fuel')).toHaveText('54%');
   await expect(page.locator('canvas')).toHaveAttribute(
     'aria-label',
-    'A lunar lander on a landing pad.',
+    'A lunar lander and its landing pad.',
   );
   expect(await canvas!.evaluate((element) => element === document.querySelector('canvas'))).toBe(
     true,
@@ -68,11 +79,11 @@ test('locale switching preserves the canvas, camera, and pose while translating 
   expect(new URL(page.url()).searchParams.get('lang')).toBe('en');
   await page.getByRole('combobox', { name: 'Language' }).selectOption('es-AR');
   await expect(page.locator('html')).toHaveAttribute('lang', 'es-AR');
-  await expect(page.getByTestId('offset')).toHaveText('5,0 m');
+  await expect(page.getByTestId('altitude')).toHaveText('1.234,5 m');
   await expect(page.getByRole('button', { name: 'Ayuda', exact: true })).toBeVisible();
   await expect(page.locator('canvas')).toHaveAttribute(
     'aria-label',
-    'Un módulo lunar sobre una plataforma de aterrizaje.',
+    'Un módulo lunar y su plataforma de aterrizaje.',
   );
 });
 
@@ -89,7 +100,7 @@ test('keyboard help traps focus, restores it on Escape, and both locales fit nar
   const help = page.getByRole('button', { name: 'Ayuda', exact: true });
   await expect(help).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('dialog', { name: 'Explorá la escena' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Controles de vuelo' })).toBeVisible();
   const close = page.getByRole('button', { name: 'Cerrar', exact: true });
   await expect(close).toBeFocused();
   await page.keyboard.press('Shift+Tab');
@@ -104,13 +115,15 @@ test('keyboard help traps focus, restores it on Escape, and both locales fit nar
   for (const locale of ['es-AR', 'en']) {
     await page.getByRole('combobox').selectOption(locale);
     await expect(page.locator('html')).toHaveAttribute('lang', locale);
-    await expect(page.getByTestId('offset')).toBeVisible();
+    await expect(page.getByTestId('altitude')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
     // Clipped overlays do not affect document scrollWidth; check their actual boxes too.
-    for (const selector of ['header', 'nav', '.instruments', '#controls']) {
-      const bounds = await page.locator('gravitas-inspection-hud').locator(selector).boundingBox();
+    // Narrow screens show Help instead of the keyboard hint line.
+    await expect(page.locator('#controls')).toBeHidden();
+    for (const selector of ['header', 'nav', '.instruments', '.actions', '#phase']) {
+      const bounds = await page.locator('gravitas-flight-hud').locator(selector).boundingBox();
       expect(bounds!.x).toBeGreaterThanOrEqual(0);
       expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(375);
       expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(667);
@@ -151,7 +164,7 @@ test('language can change while the renderer is loading', async ({ page }, info)
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
   await expect(page.locator('canvas')).toHaveAttribute(
     'aria-label',
-    'A lunar lander on a landing pad.',
+    'A lunar lander and its landing pad.',
   );
 });
 

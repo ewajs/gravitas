@@ -1,3 +1,10 @@
-/** Optional Lit inspection UI and localization. @module */
+/** Optional Lit flight HUD and localization. @module */
 export { setLocale, viewportMessages, type Locale } from './localization';
-export { InspectionHud, registerUi, type LocaleRequest } from './inspection-hud';
+export {
+  FlightHud,
+  registerUi,
+  type FlightPhase,
+  type FlightRequest,
+  type FlightTelemetry,
+  type LocaleRequest,
+} from './flight-hud';

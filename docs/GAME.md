@@ -1,19 +1,27 @@
 # Game direction
 
-**Status:** design target; no gameplay is implemented. This document will
-distinguish shipped rules from future direction as the game develops.
+**Status:** first flight playable (M1 step 1.2); no landing outcome yet. This
+document distinguishes shipped behavior from future direction.
 
-## Current build: inspection scene
+## Current build: first descent
 
-The current build shows an illustrative stationary lunar lander and landing pad.
-Drag to orbit, scroll to zoom, or focus the canvas and use arrow keys to pan.
-The ES/EN selector switches language without resetting the scene or camera
-(`?lang=en` also selects English on load). The HUD shows horizontal offset from
-the pad and tilt from upright, calculated from the stationary artwork pose.
-Help/Ayuda explains the camera controls and readouts, with keyboard focus and Escape
-to close. Loading and failure messages also follow the selected language.
-There is no flight, fuel, scoring, or landing outcome yet. Rendering/backend verification is reported
-separately from future physical correctness.
+The lander starts 80 m up, 30 m from the pad, sinking and drifting toward it. It
+waits until the player presses P or Start. Then the player flies with the
+keyboard: W/S pitch, A/D roll, Q/E yaw, R/F raise or lower the throttle lever,
+Z/X set full or cut, P pauses, Enter restarts. Rotation keys request a turn rate;
+releasing them stops rotation but does not level the lander. Rotation burns
+fuel from the same tank as the engine.
+
+Readouts show altitude above the lowest foot, vertical and horizontal speed,
+distance to the pad, tilt, fuel, and throttle. The camera follows the lander;
+drag to orbit and scroll to zoom. Help/Ayuda lists the controls and pauses the
+flight. Leaving the tab pauses too. The ES/EN selector switches language
+mid-flight without changing the flight (`?lang=en` selects English on load).
+
+When a foot reaches the surface, the flight stops and shows the touchdown
+speeds. This is a placeholder: there is no landing verdict, crash, bounce, or
+tip-over until M2's contact model. Desktop keyboard only; narrow layouts stay
+readable but have no touch controls.
 
 ## Purpose
 

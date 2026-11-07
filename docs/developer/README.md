@@ -1,6 +1,6 @@
-Gravitas currently renders a stationary lander and pad with a bilingual inspection
-HUD. Engine flight dynamics are implemented and tested, but the game does not run
-them until the M1 flight runtime. These guides cover the code that exists today.
+Gravitas currently runs a flyable first descent: engine dynamics on a fixed-step
+app session, keyboard input, an interpolated Three.js view, and a bilingual Lit
+flight HUD. These guides cover the code that exists today.
 
 ## Start here
 
@@ -9,14 +9,14 @@ them until the M1 flight runtime. These guides cover the code that exists today.
    connects those layers, owns scheduling, and handles locale changes and failure.
 3. Use the generated API pages for exact types, methods, and source locations.
 
-| Library guide                                 | Current responsibility                                   |
-| --------------------------------------------- | -------------------------------------------------------- |
-| [Engine](../../packages/engine/README.md)     | Shared pose, pure flight dynamics, and rate assistance   |
-| [Viewport](../../packages/viewport/README.md) | Three.js scene, inspection camera, resize, GPU lifecycle |
-| [UI](../../packages/ui/README.md)             | Optional Lit HUD, native help dialog, and localization   |
+| Library guide                                 | Current responsibility                                  |
+| --------------------------------------------- | ------------------------------------------------------- |
+| [Engine](../../packages/engine/README.md)     | Shared pose, pure flight dynamics, and rate assistance  |
+| [Viewport](../../packages/viewport/README.md) | Three.js scene, interpolation, follow camera, lifecycle |
+| [UI](../../packages/ui/README.md)             | Optional Lit flight HUD, help dialog, and localization  |
 
-The application in `apps/game` owns branding, the pose/pad fixture, locale loading,
-and browser scheduling. Libraries never import app code; viewport and UI are
+The application in `apps/game` owns branding, the lander and scenario, the flight
+session and keyboard, locale loading, and browser scheduling. Libraries never import app code; viewport and UI are
 siblings. They share plain engine data and are connected by the app.
 
 ## Work locally

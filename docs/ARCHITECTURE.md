@@ -1,8 +1,8 @@
 # Architecture
 
-**Status:** workspace boundaries, viewport, bilingual inspection HUD, hosted
-delivery, and engine flight dynamics implemented; the flight runtime, input, and
-flight instruments are pending. See [the flight model](FLIGHT.md),
+**Status:** workspace boundaries, viewport, hosted delivery, engine flight
+dynamics, and a flyable keyboard runtime with a bilingual flight HUD implemented.
+The chase camera and designed instruments (1.3) and ground contact (M2) are pending. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -29,8 +29,8 @@ Each library exports only `src/index.ts`. Engine defines the shared `VehiclePose
 type (centre of mass in world metres and a body-to-world quaternion), imported
 directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 `rateControlTorque` assistance; `FlightState` extends `VehiclePose`.
-Viewport exposes lifecycle/pose operations. UI exposes `InspectionHud`, explicit registration,
-locale-request details, and localized messages.
+Viewport exposes lifecycle, pose, and interpolated-render operations. UI exposes
+`FlightHud`, explicit registration, telemetry/request types, and localized messages.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
 imports use `@gravitas/*`, never relative paths or private subpaths. Engine's
@@ -64,9 +64,10 @@ Start at 60 Hz simulation with animation-frame rendering, an accumulator, and a
 bounded number of catch-up steps. Account explicitly for discarded wall time
 under overload; do not silently fast-forward physics.
 
-Pause on document hide; clear accumulated wall time on resume. Paused wall time
-never becomes simulation time. Consume discrete actions once and sample held
-controls each tick. Restart resets input, tick history, and interpolation.
+Pause on document hide. Paused or hidden wall time never becomes simulation time;
+the sub-step remainder from before a pause is kept so the picture does not jump.
+Consume discrete actions once; held controls are sampled per frame and applied to
+each tick in it (keyboard events cannot arrive between ticks of one frame). Restart resets input, tick history, and interpolation.
 HUD quantities update at a deliberate lower rate; outcomes publish promptly.
 Keep full simulation state outside Lit's reactive component state.
 
@@ -113,38 +114,42 @@ English complete; locale switches preserve flight state. UI's TypeScript config
 uses legacy decorators (`experimentalDecorators: true`, `useDefineForClassFields:
 false`), matching Lux's familiar Lit convention. App and browser-test TypeScript
 configs use the same settings because they consume UI source directly.
-`InspectionHud` receives immutable pose snapshots and the app's pad reference;
-only presentation properties are reactive. Native select/button/dialog elements
+`FlightHud` receives immutable telemetry snapshots and the session phase; only
+presentation properties are reactive. Native select/button/dialog elements
 provide language selection and help. No component kit is needed yet.
 
 TypeDoc generates each library's API/guide and the application integration
 walkthrough from public exports, TSDoc comments, and Markdown. `npm run build`
 combines the game and docs in one Pages artifact, with docs under `/gravitas/docs/`.
-See [the developer guides](developer/README.md). Live docs publication awaits this
-step's merge and deployment. A separate bilingual VitePress player manual and
+See [the developer guides](developer/README.md). Main deployments publish both. A separate bilingual VitePress player manual and
 its build remain planned for M2.
 
-## Current integration: a fixture becomes a scene
+## Current integration: one flight
 
-1. `apps/game/src/main.ts` registers the HUD and supplies branding, the stationary
-   pose, and pad reference from the app. It selects the initial locale.
-2. The HUD displays loading text, then the app dynamically imports viewport so the larger 3D
-   download does not block the initial status presentation.
-3. The app supplies `fixture.ts`'s stationary pose, whose origin is the lander's
-   centre of mass, and the centre-of-mass height from `lander.ts`. Viewport offsets
-   its artwork by that height, validates/copies the pose, initializes Three.js,
-   compiles materials, and attaches its own canvas.
-4. The app owns one animation-frame loop, pausing it for a hidden document or a
-   zero-size host. Viewport owns its inspection camera, resize/DPR updates, and draw.
-5. A HUD `locale-request` event asks the app to load translations. On success it
-   updates the HUD locale, document language, canvas label through `setLabel`, and
-   URL. The renderer, camera, and pose remain intact. Translation failure preserves
-   the current language and scene, with a localized reload hint.
-6. Device loss becomes a render error; the app stops, disposes, and presents a
-   localized failure. Language and help remain usable. Disposal during pending
-   init cannot attach a canvas later.
+1. `apps/game/src/main.ts` registers the HUD, creates a `FlightSession` from the
+   lander and opening scenario, and attaches `KeyboardControls` to the window.
+   It selects the initial locale.
+2. The HUD displays loading text, then the app dynamically imports viewport so the
+   larger 3D download does not block the initial status presentation.
+3. Viewport is constructed with the centre-of-mass height and the scenario's camera
+   offset, receives the opening pose, initializes Three.js, compiles materials,
+   and attaches its own canvas. The session waits in `ready`.
+4. Each animation frame, the app passes elapsed time and sampled input to the
+   session, which runs whole 60 Hz ticks (at most 5). The app then hands viewport
+   the current and previous tick poses and the remainder fraction. Viewport blends
+   them, moves the following camera, and draws.
+5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
+   at once on any phase change. HUD buttons emit `flight-request`; P and Enter
+   reach the app through `KeyboardControls`. Both call the same session operations.
+6. Window blur releases held keys. A hidden document stops frames and pauses the
+   flight. Resuming drawing resets the frame timestamp, so hidden time is never
+   simulated.
+7. A HUD `locale-request` loads translations and updates the HUD locale, document
+   language, canvas label, and URL. The renderer, camera, and session remain intact.
+8. Device loss becomes a render error; the app stops, disposes, pauses the session,
+   releases the keyboard, and presents a localized failure. Language and help
+   remain usable.
 
-The running game does not step the flight model yet; that arrives with the
-fixed-step runtime in 1.2. The shared pose type is the only engine contract it uses. See
+The session owns flight state; viewport and HUD receive copies. See
 [viewport's API](../packages/viewport/README.md), [UI/localization](../packages/ui/README.md),
-and [ADR 0007](decisions/0007-inspection-ui.md).
+[ADR 0009](decisions/0009-flight-runtime.md), and the [flight model](FLIGHT.md).

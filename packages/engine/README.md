@@ -62,4 +62,5 @@ Equations, parameters, worked examples, and simplifications are in the
 Engine imports no Three.js, Lit, DOM, browser clock, storage, network, or other
 workspace. Its TypeScript project has no DOM or ambient Node types. There is no
 ground contact, landing classification, scheduler, or input handling: contact is
-planned for M2, and the fixed-step runtime and input mapping belong to the app (M1 step 1.2).
+planned for M2; the fixed-step session and input mapping live in the app
+(`apps/game/src/session.ts`, `controls.ts`).

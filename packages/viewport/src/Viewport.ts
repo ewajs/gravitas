@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { VehiclePose } from '@gravitas/engine';
-import { assertPose } from './pose';
+import type { Vector3, VehiclePose } from '@gravitas/engine';
+import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
 import { createScene } from './scene';
 
 /** Backend request. Auto permits Three.js's built-in WebGL 2 fallback. */
@@ -18,15 +18,23 @@ export interface ViewportOptions {
   readonly centerOfMassHeight: number;
   /** Defaults to auto, allowing WebGPU with Three.js's WebGL 2 fallback. */
   readonly backend?: BackendRequest;
+  /** Initial camera position relative to the vehicle's centre of mass, in metres. */
+  readonly cameraOffset?: Vector3;
 }
 
 const MAX_PIXEL_RATIO = 2;
+const DEFAULT_CAMERA_OFFSET: Vector3 = { x: 8, y: 4, z: -9 };
+const MIN_CAMERA_DISTANCE = 4;
+const MAX_CAMERA_DISTANCE = 30;
 
 /** Owns rendering resources; the host owns poses and frame scheduling. */
 export class Viewport {
   readonly #options: ViewportOptions;
   readonly #art: ReturnType<typeof createScene>;
-  readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.1, 160);
+  readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1500);
+  readonly #previous = poseBuffer();
+  readonly #current = poseBuffer();
+  readonly #followShift = new THREE.Vector3();
   #renderer: THREE.WebGPURenderer | undefined;
   #controls: OrbitControls | undefined;
   #observer: ResizeObserver | undefined;
@@ -49,10 +57,16 @@ export class Viewport {
     if (!Number.isFinite(options.centerOfMassHeight) || options.centerOfMassHeight <= 0) {
       throw new RangeError('centerOfMassHeight must be finite and positive');
     }
+    const offset = options.cameraOffset ?? DEFAULT_CAMERA_OFFSET;
+    const distance = Math.hypot(offset.x, offset.y, offset.z);
+    if (!(distance >= MIN_CAMERA_DISTANCE && distance <= MAX_CAMERA_DISTANCE)) {
+      throw new RangeError('cameraOffset length must be within the orbit distance limits');
+    }
     this.#art = createScene(options.centerOfMassHeight);
+    this.#current.position.copy(this.#art.vehicle.position);
+    this.#previous.position.copy(this.#art.vehicle.position);
     this.#options = options;
     this.#label = options.label;
-    this.#camera.position.set(8, 5, -9);
   }
 
   /** Initializes once. Disposing during initialization rejects with AbortError. */
@@ -68,14 +82,17 @@ export class Viewport {
     return 'isWebGPUBackend' in backend && backend.isWebGPUBackend ? 'webgpu' : 'webgl2';
   }
 
-  /** Copies a validated pose into the artwork without changing the caller's data. */
-  setVehiclePose(pose: VehiclePose): void {
+  /**
+   * Copies validated poses without changing the caller's data. Pass the last two
+   * completed simulation ticks; render(alpha) blends between them. A single pose
+   * is displayed as-is.
+   */
+  setVehiclePose(current: VehiclePose, previous: VehiclePose = current): void {
     if (this.#disposed) throw new Error('Viewport has been disposed');
-    assertPose(pose);
-    const p = pose.position;
-    const q = pose.orientation;
-    this.#art.vehicle.position.set(p.x, p.y, p.z);
-    this.#art.vehicle.quaternion.set(q.x, q.y, q.z, q.w);
+    assertPose(current);
+    if (previous !== current) assertPose(previous);
+    copyPose(current, this.#current);
+    copyPose(previous, this.#previous);
   }
 
   /** Updates the accessible canvas description without resetting camera or GPU resources. */
@@ -85,12 +102,19 @@ export class Viewport {
     this.#renderer?.domElement.setAttribute('aria-label', label);
   }
 
-  /** Draws one frame; returns false before init, after disposal, or for a zero-size host. */
-  render(): boolean {
+  /**
+   * Draws one frame at `alpha` in [0, 1] between the previous and current poses
+   * (the host's fixed-step remainder). The camera follows the drawn centre of mass.
+   * Returns false before init, after disposal, or for a zero-size host.
+   */
+  render(alpha = 1): boolean {
+    if (!(alpha >= 0 && alpha <= 1)) throw new RangeError('alpha must be within [0, 1]');
     if (!this.#ready || this.#disposed || !this.#renderer) return false;
     if (this.#deviceFailure) throw this.#deviceFailure;
     if (this.#pixelRatio !== this.#devicePixelRatio()) this.#resize();
     if (!this.#width || !this.#height) return false;
+    blendPose(this.#previous, this.#current, alpha, this.#art.vehicle);
+    this.#follow(this.#art.vehicle.position);
     this.#controls?.update();
     this.#renderer.render(this.#art.scene, this.#camera);
     return true;
@@ -128,12 +152,14 @@ export class Viewport {
       canvas.setAttribute('role', 'img');
       canvas.setAttribute('aria-label', this.#label);
       this.#controls = new OrbitControls(this.#camera, canvas);
-      this.#controls.target.set(0, 1, 0);
-      this.#controls.minDistance = 4;
-      this.#controls.maxDistance = 30;
+      this.#controls.target.copy(this.#current.position);
+      const offset = this.#options.cameraOffset ?? DEFAULT_CAMERA_OFFSET;
+      this.#camera.position.set(offset.x, offset.y, offset.z).add(this.#current.position);
+      this.#controls.minDistance = MIN_CAMERA_DISTANCE;
+      this.#controls.maxDistance = MAX_CAMERA_DISTANCE;
       this.#controls.maxPolarAngle = Math.PI * 0.48;
-      this.#controls.maxTargetRadius = 4;
-      this.#controls.listenToKeyEvents(canvas);
+      // The target follows the vehicle each frame, so panning away would be undone.
+      this.#controls.enablePan = false;
       this.#controls.update();
       this.#resize();
       await renderer.compileAsync(this.#art.scene, this.#camera);
@@ -151,6 +177,14 @@ export class Viewport {
       await this.#releaseResources();
       throw error;
     }
+  }
+
+  // Translate camera and target together, preserving the player's orbit and zoom.
+  #follow(target: THREE.Vector3): void {
+    if (!this.#controls) return;
+    this.#followShift.subVectors(target, this.#controls.target);
+    this.#camera.position.add(this.#followShift);
+    this.#controls.target.copy(target);
   }
 
   #devicePixelRatio(): number {

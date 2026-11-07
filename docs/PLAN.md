@@ -222,6 +222,46 @@ provenance when assets arrive.
 
 ## Releases
 
+### v0.2.0 — A complete landing (2026-11-07)
+
+Every descent now ends in a verdict you can understand and retry, with physical
+ground contact, effects and sound, a player manual with a Learn section, and the
+Glass look with the Kepler mark.
+
+- **Contact (2.1):** spring-damper legs and hull points with friction, so the
+  lander can bounce, slide, or tip over; drawn leg compression. See ADR 0011.
+- **Outcomes (2.2):** verdicts (on the pad, off the pad, too rough, crash) from
+  engine contact facts and game-owned limits; an explanatory results card, Try
+  again, a "How to fly" card, and a 60 kg opening. See ADR 0012.
+- **Manual (2.3):** a bilingual player manual at `/gravitas/manual/`, linked from
+  Help.
+- **Effects (3.1):** engine plume and light, attitude-thruster puffs, and ground
+  dust, held still under reduced motion.
+- **Audio and settings (3.2):** synthesized engine, thruster, and touchdown sound;
+  Mute (M); language, mute, and start card remembered.
+- **Diagnostics (3.3):** a `?debug` overlay and `npm run measure`, with proposed
+  performance budgets.
+- **Learn (3.4):** seven chapters per language with rendered equations and six
+  explorers running the real engine, up to Newton's cannon on the Moon. See
+  ADR 0013.
+- **Housekeeping (4.1):** shared engine math, also exposed to UI as the pure
+  `@gravitas/engine/math` entry point; the HUD split into focused modules; no
+  behaviour change (scripted flights bit-identical).
+- **Theme and identity (4.2):** typed themes in `@gravitas/ui/themes` driving the
+  HUD, scene accents, and manual (ADR 0014); the Glass look in a deeper cyan with
+  self-hosted Space Grotesk and Inter (ADR 0015), the motion rules, a safe-sink
+  hint under vertical speed, and a "Reduce transparency" setting; the Kepler mark,
+  favicons, install icons, and a link preview.
+
+Known limits: keyboard only, with touch and gamepad in 4.3. Phone layouts are 4.4:
+on a landscape phone the start card overlaps the instruments, and the glass blur's
+cost on the test phones is unmeasured. Install icons exist, but the web app
+manifest arrives in 4.4. Measured on an Apple M1 Pro with the Glass UI: 60 fps on
+WebGPU, main-thread work 0.7 ms p50 and 0.8 ms p95, 45 draw calls; the
+software-rendered test project runs at about 15 fps. See the
+[performance](verification/performance.md), [theme](verification/themes.md), and
+[housekeeping](verification/housekeeping.md) records.
+
 ### v0.1.0 — First flight (2026-11-06)
 
 The first playable build: one lander flown with the keyboard from 80 m above the

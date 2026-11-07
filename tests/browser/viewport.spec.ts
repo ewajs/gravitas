@@ -25,15 +25,15 @@ test('production scene renders in both languages with the requested backend', as
     await expect(page.locator('canvas')).toHaveAttribute(
       'aria-label',
       lang === 'en'
-        ? 'A lunar lander on a landing pad.'
-        : 'Un módulo lunar sobre una plataforma de aterrizaje.',
+        ? 'A lunar lander and its landing pad.'
+        : 'Un módulo lunar y su plataforma de aterrizaje.',
     );
     await expect(page.locator('#controls')).toContainText(
-      lang === 'en' ? 'Drag to orbit' : 'Arrastrá para girar',
+      lang === 'en' ? 'W/S pitch' : 'W/S cabeceo',
     );
     await expect(page.locator('html')).toHaveAttribute('lang', lang);
     await expect(page.locator('#subtitle')).toHaveText(
-      lang === 'en' ? 'Inspection view' : 'Vista de inspección',
+      lang === 'en' ? 'Lunar descent' : 'Descenso lunar',
     );
     await expect(page.locator('#status')).toBeHidden();
   }
@@ -68,7 +68,7 @@ test.beforeEach(async ({ page }, info) => {
   await page.waitForFunction(() => !!window.fixture);
 });
 
-test('scene has a lit vehicle, pose changes are visible, and input is not mutated', async ({
+test('scene has a lit vehicle, the camera follows it, rotation is visible, and input is not mutated', async ({
   page,
 }, info) => {
   const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
@@ -78,16 +78,27 @@ test('scene has a lit vehicle, pose changes are visible, and input is not mutate
   await expect.poll(() => page.evaluate(() => window.fixture.sample().gold)).toBeGreaterThan(50);
   const before = await page.evaluate(() => window.fixture.sample());
   expect(before.white).toBeGreaterThan(50);
+  // A 20 m climb keeps the vehicle near the same screen position: the camera follows it.
   expect(
     await page.evaluate(() =>
       window.fixture.setPose({
-        position: { x: 2, y: 2.5, z: 0 },
+        position: { x: 0, y: 21.5, z: 0 },
         orientation: { x: 0, y: 0, z: 0, w: 1 },
       }),
     ),
   ).toBe(true);
-  const after = await page.evaluate(() => window.fixture.sample());
-  expect(Math.hypot(after.x - before.x, after.y - before.y)).toBeGreaterThan(15);
+  const climbed = await page.evaluate(() => window.fixture.sample());
+  expect(climbed.gold).toBeGreaterThan(50);
+  expect(Math.hypot(climbed.x - before.x, climbed.y - before.y)).toBeLessThan(10);
+  // Inverting about the centre of mass lifts the gold descent stage 0.5 m on screen.
+  await page.evaluate(() =>
+    window.fixture.setPose({
+      position: { x: 0, y: 21.5, z: 0 },
+      orientation: { x: 0, y: 0, z: 1, w: 0 },
+    }),
+  );
+  const inverted = await page.evaluate(() => window.fixture.sample());
+  expect(climbed.y - inverted.y).toBeGreaterThan(15);
   await page.locator('canvas').screenshot({ path: info.outputPath('fixture.png') });
 });
 

@@ -14,7 +14,7 @@ export function setLocale(locale: Locale): Promise<void> {
   return localization.setLocale(locale);
 }
 
-/** Loading, accessibility, and inspection copy; call after awaiting setLocale(). */
+/** Loading, accessibility, and flight copy; call after awaiting setLocale(). */
 export function viewportMessages() {
   return {
     loading: msg('Preparando la vista 3D…', { id: 'viewport-loading' }),
@@ -24,9 +24,9 @@ export function viewportMessages() {
         id: 'viewport-failed',
       },
     ),
-    scene: msg('Un módulo lunar sobre una plataforma de aterrizaje.', { id: 'viewport-scene' }),
-    subtitle: msg('Vista de inspección', { id: 'viewport-subtitle' }),
-    controls: msg('Arrastrá para girar · Rueda para acercar · Flechas para desplazar', {
+    scene: msg('Un módulo lunar y su plataforma de aterrizaje.', { id: 'viewport-scene' }),
+    subtitle: msg('Descenso lunar', { id: 'viewport-subtitle' }),
+    controls: msg('W/S cabeceo · A/D alabeo · Q/E guiñada · R/F empuje · P pausa', {
       id: 'viewport-controls',
     }),
   };

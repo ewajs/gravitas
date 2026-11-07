@@ -31,3 +31,33 @@ describe('presentation pose boundary', () => {
     );
   });
 });
+
+describe('presentation blend between completed ticks', () => {
+  it('interpolates position linearly and orientation along the shortest arc', async () => {
+    const { Object3D } = await import('three/webgpu');
+    const { blendPose, copyPose, poseBuffer } = await import('./pose');
+    const previous = poseBuffer();
+    const current = poseBuffer();
+    copyPose(
+      { position: { x: 0, y: 10, z: 0 }, orientation: { x: 0, y: 0, z: 0, w: 1 } },
+      previous,
+    );
+    // 90° about body Z, stored as the negated quaternion to require shortest-arc handling.
+    copyPose(
+      {
+        position: { x: 4, y: 6, z: -2 },
+        orientation: { x: 0, y: 0, z: -Math.SQRT1_2, w: -Math.SQRT1_2 },
+      },
+      current,
+    );
+    const target = new Object3D();
+    blendPose(previous, current, 0.25, target);
+    expect(target.position.toArray()).toEqual([1, 9, -0.5]);
+    // A quarter of 90° is 22.5°: |q| = (0, 0, sin 11.25°, cos 11.25°) up to sign.
+    const angle = (22.5 * Math.PI) / 180;
+    expect(Math.abs(target.quaternion.z)).toBeCloseTo(Math.sin(angle / 2), 12);
+    expect(Math.abs(target.quaternion.w)).toBeCloseTo(Math.cos(angle / 2), 12);
+    blendPose(previous, current, 1, target);
+    expect(target.position.toArray()).toEqual([4, 6, -2]);
+  });
+});

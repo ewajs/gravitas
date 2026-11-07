@@ -1,9 +1,10 @@
 # Flight model
 
-**Status:** implemented in engine (step 1.1) and covered by unit references. No
-runtime loop, keyboard input, instruments, or ground contact use it yet; those
-are planned for the next M1 step and M2. [ADR 0008](decisions/0008-flight-model.md)
-records why this model and integrator were chosen.
+**Status:** implemented in engine (step 1.1) and flyable in the game (step 1.2)
+with keyboard controls, a fixed-step runtime, and plain readouts. Ground contact
+is a placeholder halt until M2. [ADR 0008](decisions/0008-flight-model.md) covers
+the model and integrator; [ADR 0009](decisions/0009-flight-runtime.md) covers the
+runtime, input, and interpolation.
 
 ## State and frames
 
@@ -25,7 +26,7 @@ centre-of-mass height (1.5 m for the first lander).
 | Mass             | Dry mass plus remaining fuel; current mass sets thrust acceleration                      |
 | Rotation         | Euler's equations about constant principal axes, including gyroscopic coupling           |
 | Atmosphere       | None                                                                                     |
-| Ground/contact   | None in 1.1; the vehicle passes through the surface plane (contact is M2)                |
+| Ground/contact   | None in engine; the game halts at first foot contact as a placeholder (contact is M2)    |
 
 **Shared propellant.** Main engine and attitude thrusters draw from one tank.
 Main flow is `thrust / exhaustVelocity`. An attitude couple producing torque `T`
@@ -56,9 +57,41 @@ with `rateControlTorque`:
   body −Z), so thrust pushes the vehicle forward. A positive Z rate tilts it toward
   −X (left). Yaw spins the vehicle about its thrust axis.
 
-Keyboard bindings, focus handling, and throttle step size are planned for step
-1.2, where browser tests can cover them. The `responseTime` must be at least one
-maximum step (1/60 s), which keeps the discrete controller from overshooting.
+The `responseTime` must be at least one maximum step (1/60 s), which keeps the
+discrete controller from overshooting.
+
+### Keyboard bindings
+
+Physical key positions (shown here for QWERTY), sampled once per animation frame
+and applied to every 60 Hz tick in that frame:
+
+| Keys  | Input                               | Body axis / effect                      |
+| ----- | ----------------------------------- | --------------------------------------- |
+| W / S | Pitch forward / back                | −X / +X rate: thrust tilts forward/back |
+| A / D | Roll left / right                   | +Z / −Z rate: thrust tilts left/right   |
+| Q / E | Yaw left / right                    | +Y / −Y rate: nose turns left/right     |
+| R / F | Raise / lower throttle while held   | 0.5 of full range per second            |
+| Z / X | Full throttle / cut, once per press | Applied at the next tick                |
+| P     | Start, pause, or resume             | Immediate; pausing releases held keys   |
+| Enter | Restart from the opening            | Immediate; returns to the ready phase   |
+
+Opposite keys cancel. Keys from the language selector, the help dialog, or with
+Ctrl/Meta/Alt are ignored. Window blur, pause, and restart release all held keys.
+Opening help while flying pauses. A hidden tab pauses, and the flight stays
+paused until the player resumes.
+
+## Opening scenario
+
+`apps/game/src/scenario.ts`: upright, feet 80 m above the surface, 30 m from the
+pad along −X, sinking at 4 m/s and drifting toward the pad at 2 m/s, full tank,
+throttle 0. Untouched, it reaches the surface after about 7.8 s at about
+−16.6 m/s. A pilot that only trims the throttle to hold a sink rate of one sixth
+of altitude, using the same held-key ramp, touches down at about −0.8 m/s after
+20 s with 94% fuel left. The opening is generous; M3 playtesting tunes it.
+
+Until M2 contact, the flight stops when any foot reaches y = 0. The vehicle is
+placed with its lowest foot on the surface and its touchdown velocities shown.
+The game gives no landing verdict yet.
 
 ## First lander
 
@@ -123,3 +156,8 @@ and world angular-momentum conservation; fourth-order convergence; burnout insid
 a step for main and attitude demand, with exact zero fuel; rate assistance tracking,
 braking, holding attitude, and its `I × Δω` propellant cost; immutability and input
 validation.
+
+`apps/game/src/session.test.ts` checks the runtime: identical states at 30 Hz and
+144 Hz frame rates, bounded catch-up with discarded-time accounting, pause, the
+throttle ramp and one-shot timing, ground-halt timing against the free-fall
+formula, and the opening's landability.

@@ -1,4 +1,9 @@
-import type { AttitudeSettings, FlightEnvironment, VehicleParameters } from '@gravitas/engine';
+import type {
+  AttitudeSettings,
+  FlightEnvironment,
+  VehicleParameters,
+  Vector3,
+} from '@gravitas/engine';
 
 /** Fictional first-flight vehicle; these tunable values are not historical Apollo specifications. */
 export const LANDER: VehicleParameters = {
@@ -24,3 +29,11 @@ export const ENVIRONMENT: FlightEnvironment = { gravity: { x: 0, y: -1.62, z: 0 
 
 /** Body centre of mass above the level foot-contact plane, in metres. */
 export const CENTER_OF_MASS_HEIGHT = 1.5;
+
+/** Four foot-contact points relative to the centre of mass, in body metres. */
+export const FOOT_CONTACTS: readonly Vector3[] = [
+  { x: -1.5, y: -CENTER_OF_MASS_HEIGHT, z: -1.5 },
+  { x: -1.5, y: -CENTER_OF_MASS_HEIGHT, z: 1.5 },
+  { x: 1.5, y: -CENTER_OF_MASS_HEIGHT, z: -1.5 },
+  { x: 1.5, y: -CENTER_OF_MASS_HEIGHT, z: 1.5 },
+];

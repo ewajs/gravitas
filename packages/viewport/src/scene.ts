@@ -69,7 +69,8 @@ export function createScene(centerOfMassHeight: number) {
     }
   }
 
-  const ground = mesh(new THREE.CircleGeometry(70, 64), material(0x50555a), scene);
+  // Large enough to stay under the vehicle throughout a local descent.
+  const ground = mesh(new THREE.CircleGeometry(600, 96), material(0x50555a), scene);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.17;
   ground.castShadow = false;

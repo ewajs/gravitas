@@ -49,7 +49,9 @@ entry point. `contactFacts` and the `Surface` seam report surface contact
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,
 camera-reset, leg-compression, and actuator-effect operations. UI exposes
-`FlightHud`, explicit registration, telemetry/request types, and localized messages;
+`FlightHud`, `TouchControls` (on-screen lever, stick, and yaw buttons that emit
+plain values, never pilot input), explicit registration, telemetry/request/input
+types, and localized messages;
 its themes entry exposes the theme type, the house theme, and CSS generation.
 Viewport's `setAccents` takes a theme's scene accents; the game passes them across.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
@@ -165,8 +167,12 @@ Main deployments publish all three.
 
 1. `apps/game/src/main.ts` registers the HUD, creates a `FlightSession` from the
    lander and opening scenario, and attaches its input sources (`KeyboardControls`
-   on the window, `GamepadControls` over `navigator.getGamepads`) through
-   `PilotInputs` (`input.ts`), which merges them.
+   on the window, `GamepadControls` over `navigator.getGamepads`, and
+   `TouchControlsSource` listening to UI's `<gravitas-touch-controls>`) through
+   `PilotInputs` (`input.ts`), which merges them. The touch element draws the
+   controls and reports lever, stick, and yaw values; the game maps them (dead
+   zone, response curve, signs) and shows the element during a flight when the
+   setting and the device in use call for it.
    It selects the initial locale. The page's colours come from the theme, written
    into `index.html` at build time. `index.html` slots the app's mark into the
    HUD and carries the favicons and link-preview tags; `npm run icons` renders the

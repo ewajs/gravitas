@@ -18,6 +18,29 @@ Las teclas son posiciones físicas del teclado (se muestran en QWERTY).
 Arrastrá la escena para mirar alrededor (la cámara vuelve sola detrás del
 módulo) y usá la rueda para acercar o alejar.
 
+### En una pantalla táctil
+
+En un teléfono o una tableta, los controles aparecen en pantalla durante el vuelo:
+
+- **Pulgar izquierdo: la palanca de empuje.** Apoyá el pulgar en cualquier
+  parte de la zona izquierda y deslizalo hacia arriba o abajo: la palanca se mueve
+  desde donde estaba, no salta a tu dedo, y queda donde la soltás. Muestra el
+  empuje real aunque lo cambies con el teclado o un mando. Cerca del empuje que
+  sostiene el módulo flotando tiene una **muesca**: la palanca se traba ahí, la
+  marca se ilumina y, en Android, el teléfono vibra un instante (Safari en iPhone
+  no permite vibrar). La muesca sigue al combustible: cuanto más liviano el
+  módulo, más abajo.
+- **Pulgar derecho: inclinar.** Tocá en cualquier parte de la zona derecha y el
+  control aparece bajo tu pulgar; arrastralo para cabecear y alabear, suave cerca
+  del centro y al máximo en el borde. Al soltarlo vuelve al centro.
+- **Botones ⟲ ⟳** (arriba de la zona derecha): mantenelos para girar.
+- **Pausa:** el botón de pausa de arriba.
+
+Podés usar los dos pulgares a la vez. Arrastrá fuera de los controles para mirar
+alrededor y pellizcá para acercar la cámara. En **Ayuda → Pantalla → Controles
+táctiles** elegís **Automático** (aparecen al tocar la pantalla y se ocultan al
+usar el teclado o un mando), **Siempre** o **Nunca**.
+
 ### Con un mando
 
 Un mando con la distribución estándar (Xbox, PlayStation y la mayoría de los
@@ -42,7 +65,8 @@ desconecta en pleno vuelo, el juego se pausa.
 **R** y **F** mueven una palanca: mientras las mantenés, el empuje sube o baja
 la mitad de su recorrido por segundo, y queda donde la soltaste. **Z** la lleva
 al máximo y **X** la corta de golpe. Los gatillos de un mando la mueven igual,
-más lento cuanto menos los apretás.
+más lento cuanto menos los apretás. En pantalla táctil la palanca va directo
+adonde la llevás.
 
 El motor empuja a lo largo del eje del módulo. Si está vertical, frena la caída;
 si está inclinado, parte del empuje te mueve de costado.
@@ -77,7 +101,7 @@ pestaña, y queda en pausa hasta que vuelvas a pulsar **P**.
 ## Preferencias
 
 El juego recuerda en este navegador tu idioma, si silenciaste el sonido, si
-pediste **Reducir transparencia** y que ya leíste la tarjeta **Cómo volar**
+pediste **Reducir transparencia**, cuándo mostrar los **Controles táctiles** y que ya leíste la tarjeta **Cómo volar**
 (después de tu primer vuelo deja de aparecer; la Ayuda siempre tiene los
 controles).
 

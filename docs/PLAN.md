@@ -204,13 +204,13 @@ pinch zoom and double-tap zoom are blocked.
         byte-identical across runs; brand contrast unit test; browser tests for the
         served icons and sizes, preview tags, slotted marks, and the manual's logo
         and brand; both browser suites; screenshots of the game and the manual.
-- [~] **4.3 Input layer, touch, and gamepad:** one input abstraction. On touch, a
-  left-thumb absolute throttle lever with a hover detent, a right-thumb virtual
-  stick for proportional pitch and roll rates, yaw buttons, and pause. Owner
-  decisions on 2026-11-07: the touch controls are a themed UI element that
-  draws them, handles pointers, and emits plain values, which the game maps to
-  pilot input; a gamepad is built and verified with a simulated one, as the
-  owner has no controller. Three stacked PRs:
+- [x] **4.3 Input layer, touch, and gamepad:** one input abstraction. On touch, a
+      left-thumb absolute throttle lever with a hover detent, a right-thumb virtual
+      stick for proportional pitch and roll rates, yaw buttons, and pause. Owner
+      decisions on 2026-11-07: the touch controls are a themed UI element that
+      draws them, handles pointers, and emits plain values, which the game maps to
+      pilot input; a gamepad is built and verified with a simulated one, as the
+      owner has no controller. Three stacked PRs:
   - [x] **4.3a Input layer:** a generalized `PilotInput` (any lever speed in
         [−1, 1], any one-shot lever position in [0, 1]); `InputSource` and one
         merge rule in `PilotInputs` (strongest rotation per axis, the throttle to
@@ -229,12 +229,17 @@ pinch zoom and double-tap zoom are blocked.
         browser tests with a stubbed `navigator.getGamepads`; keyboard flights
         still bit-identical. No physical controller was available; see
         [input verification](verification/input.md).
-  - [ ] **4.3c Touch controls:** a themed `@gravitas/ui` element: a non-centering
-        left-thumb lever with a hover detent, a floating right-thumb stick, yaw
-        buttons; multi-touch without stuck input; shown on touch, hidden after
-        keyboard or gamepad use, with an Auto / Always / Never setting; "How to
-        fly" and Help for the active device. **Verify:** mapping unit tests;
-        browser tests with real multi-touch on emulated phones.
+  - [x] **4.3c Touch controls:** a themed `@gravitas/ui` element
+        (`TouchControls`) that draws the controls, owns pointers, and emits plain
+        values: a non-centering left-thumb lever moved relative to the grab, showing
+        the applied throttle, with a detent at the current hover throttle (a visual
+        tick, and a vibration where supported); a floating right-thumb stick (8%
+        dead zone, gentle curve in the game); two yaw buttons; multi-touch without
+        stuck input. Shown on touch and hidden after keyboard or gamepad use, with
+        a persisted Automatic / Always / Never setting; "How to fly" and Help for
+        the active device. **Verify:** mapping, source, and settings unit tests;
+        browser tests with real multi-touch on emulated phones, both backends. See
+        [input verification](verification/input.md).
 - [ ] **4.4 Mobile layout and PWA:** landscape-only flight with a rotate prompt;
       pinch and double-tap zoom blocked; a compact HUD; install to the home screen;
       the WebGL 2 fallback. Phone testing happens on the deployed site after

@@ -73,3 +73,38 @@ none): every check uses a simulated pad.
   common Xbox and PlayStation pads with the standard mapping, but button labels,
   trigger ranges, and stick drift vary by pad and browser. Browsers reveal a pad
   only after one of its buttons is pressed while the page is visible.
+
+## 4.3c Touch controls
+
+Verified locally on 2026-11-07 in Chromium's phone emulation (`isMobile`,
+`hasTouch`, landscape 852 × 393 at DPR 3 for the iPhone 15 Pro and 914 × 411 at
+DPR 2.625 for the Galaxy A70), not on the phones themselves: the owner tests on
+the deployed site after merging.
+
+- `npm run check`: 167 unit tests in 27 files passed. New: the touch mapping
+  (dead zone, keyboard signs, gentle and proportional), the touch source (a lever
+  move as one one-shot setting, held stick and yaw, activity, malformed event
+  details ignored, clamping, clearing, disposal), and settings saved before the
+  touch-controls setting still load (as Automatic).
+- Browser, with real multi-touch dispatched through the Chrome DevTools Protocol
+  (`Input.dispatchTouchEvent`; pointer events alone cannot hold two fingers), on
+  both emulated phones and both backends:
+  - touching the lever changes nothing; sliding it moves it relative to the
+    grab; with the lever held, a second finger holds a yaw button (the radar's pad
+    swings) and a third, the stick, which appears where it lands and leans thrust
+    forward; lifting each releases only it; the lever stays where it was left;
+  - the lever snaps exactly to the hover throttle inside the detent and lights
+    the mark;
+  - `touchcancel`, window blur, and a hidden page each release a held stick, and
+    the lander stops rotating;
+  - a phone starts with touch help in Spanish; a key hides the controls, a touch
+    brings them back; Help pauses them (inert) and lists them; "Never" hides them
+    and persists across a reload;
+  - on a desktop, "Always" shows them during a flight; a mouse drags the lever;
+    the keyboard still works beside them and the lever shows its change; buttons
+    and the stick zone have accessible names; transitions are 200 ms and stop for
+    reduced motion.
+- Not verified without the phones: real thumbs and palm contact, iOS Safari's
+  own gestures at the screen edges, Android vibration strength, and comfort of
+  the zone sizes. The layout that keeps the thumb zones clear of the instruments
+  is 4.4a.

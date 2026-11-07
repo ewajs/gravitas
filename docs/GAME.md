@@ -14,7 +14,13 @@ flies: the right stick pitches and rolls in proportion to how far it is pushed
 (gently near centre), LB/RB yaw, RT/LT raise and lower the lever faster the
 harder they are pressed, A starts, resumes, or tries again, and Start pauses.
 While a gamepad is in use, the start card, Help, and hints show its buttons;
-losing it mid-flight pauses. Rotation controls request a turn rate;
+losing it mid-flight pauses. On a touch screen, on-screen controls appear during
+a flight: a left-thumb throttle lever that moves relative to where it is grabbed,
+stays put, shows the actual throttle, and catches in a detent at the current
+hover throttle (with a short vibration on Android); a right-thumb stick that
+appears where the thumb lands; and two yaw buttons. They show on the first touch
+and hide after keyboard or gamepad use; Help's Display section has "Touch
+controls: Automatic / Always / Never". Rotation controls request a turn rate;
 releasing them stops rotation but does not level the lander. Rotation burns
 fuel from the same tank as the engine.
 
@@ -29,8 +35,8 @@ and dust motion stop when the system asks for reduced motion.
 
 Synthesized sound follows the flight: an engine rumble with throttle, thruster
 hiss, a touchdown thud, and short verdict tones. M or the speaker button silences
-it. The browser remembers language, mute, the "Reduce transparency" display
-setting, and that the start card was read (`?lang=` still wins).
+it. The browser remembers language, mute, the "Reduce transparency" and "Touch controls" display
+settings, and that the start card was read (`?lang=` still wins).
 
 The instruments sit on frosted glass panels and put altitude and vertical speed
 first. Under vertical speed, a safe-sink scale shades how fast it is wise to sink at
@@ -50,8 +56,8 @@ structure; a sideways or tilted one can slide or tip. A "How to fly" card shows
 the essential keys and the goal before the start. Every flight ends with a
 verdict and a results card explaining it (see Landing rules). Help links to the
 player manual in the current language. Try again (or
-Enter) restarts. Desktop keyboard only; narrow layouts stay readable but have no
-touch controls.
+Enter) restarts. The phone layout (thumb zones kept clear, landscape only) is
+step 4.4.
 
 ## Landing rules
 

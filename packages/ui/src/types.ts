@@ -14,18 +14,46 @@ export interface SoundRequest {
   readonly muted: boolean;
 }
 
-/** A requested appearance setting; the host applies and persists it, then sets the property. */
+/** When on-screen touch controls show: as the device suggests, always, or never. */
+export type TouchControlsMode = 'auto' | 'always' | 'never';
+
+/**
+ * A requested display setting from Help; the host applies and persists it, then
+ * sets the matching property. Only the changed setting is present.
+ */
 export interface AppearanceRequest {
   /** Solid panels without backdrop blur. */
-  readonly reduceTransparency: boolean;
+  readonly reduceTransparency?: boolean;
+  /** When the touch controls show. */
+  readonly touchControls?: TouchControlsMode;
+}
+
+/** The touch lever moved: its new position in [0, 1]. */
+export interface LeverInput {
+  readonly value: number;
+}
+
+/**
+ * The touch stick's deflection: x to the right, y up, each in [-1, 1] and at
+ * most 1 long together. Both are zero when it is released.
+ */
+export interface StickInput {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** Yaw buttons held: −1 turns left, +1 right, 0 neither (or both). */
+export interface YawInput {
+  readonly direction: -1 | 0 | 1;
 }
 
 /**
  * The input device the player is using, as the host judges it; help, hints, and
  * the start card describe its controls. Gamepad labels follow the standard
- * mapping's Xbox-style names (A, Start, LB/RB, LT/RT).
+ * mapping's Xbox-style names (A, Start, LB/RB, LT/RT); touch describes the
+ * on-screen controls.
  */
-export type InputDevice = 'keyboard' | 'gamepad';
+export type InputDevice = 'keyboard' | 'gamepad' | 'touch';
 
 /** Session phase decided by the host; the HUD only presents it. */
 export type FlightPhase = 'ready' | 'flying' | 'paused' | 'complete';

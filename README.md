@@ -5,8 +5,9 @@ viewport, and Lit UI libraries. Ambitious in direction; small, reviewable steps
 in delivery.
 
 **Status:** procedural 3D inspection scene with a stationary lander, pad, and bilingual HUD.
-No flight simulation or gameplay yet. The first playable target is a short lunar
-landing challenge; orbital flight and construction are later possibilities.
+Engine flight dynamics are implemented and tested, but not yet playable; no gameplay yet.
+The first playable target is a short lunar landing challenge; orbital flight and
+construction are later possibilities.
 
 [Open the live inspection scene](https://ewajs.github.io/gravitas/).
 
@@ -56,12 +57,13 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 
 - [Game direction](docs/GAME.md): intended experience and first playable scope.
 - [Architecture](docs/ARCHITECTURE.md): boundaries, ownership, time, and units.
+- [Flight model](docs/FLIGHT.md): dynamics, controls, first lander, and worked examples.
 - [Plan](docs/PLAN.md): reviewable increments and acceptance criteria.
 - [Decisions](docs/decisions/README.md): choices and their tradeoffs.
 - [Contributing](CONTRIBUTING.md): workflow, dependencies, and verification.
 - [Agent instructions](AGENTS.md): shared rules for Claude and Codex.
 - [Developer docs](docs/developer/README.md): library guides, API build, and integration walkthrough.
-- [Engine library](packages/engine/README.md): shared pose data, units, and frames.
+- [Engine library](packages/engine/README.md): pose/state contract and flight dynamics.
 - [Viewport library](packages/viewport/README.md): pose/lifecycle contract and ownership.
 - [UI/localization](packages/ui/README.md): inspection HUD, help, and live language switching.
 

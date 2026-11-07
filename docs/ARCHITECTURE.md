@@ -1,7 +1,8 @@
 # Architecture
 
-**Status:** workspace boundaries, viewport, bilingual inspection HUD, and hosted
-delivery implemented; flight simulation and flight instruments pending. See
+**Status:** workspace boundaries, viewport, bilingual inspection HUD, hosted
+delivery, and engine flight dynamics implemented; the flight runtime, input, and
+flight instruments are pending. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -25,9 +26,11 @@ Consume packages from TypeScript source initially; publication and stable API
 compatibility promises are deferred.
 
 Each library exports only `src/index.ts`. Engine defines the shared `VehiclePose`
-type (world metres and body-to-world quaternion), imported directly by every consumer.
+type (centre of mass in world metres and a body-to-world quaternion), imported
+directly by every consumer. Engine also exports pure `stepFlight` dynamics and
+`rateControlTorque` assistance; `FlightState` extends `VehiclePose`.
 Viewport exposes lifecycle/pose operations. UI exposes `InspectionHud`, explicit registration,
-locale-request details, and localized messages. Engine still has no dynamics.
+locale-request details, and localized messages.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
 imports use `@gravitas/*`, never relative paths or private subpaths. Engine's
@@ -77,7 +80,9 @@ resize, and initialization failure without leaking resources.
 - SI: metres, seconds, kilograms, newtons, radians. Display conversion is at the UI edge.
 - Right-handed world coordinates, Y up. Initial ground is XZ; gravity is -Y.
 - Vehicle-local +Y is up, -Z forward, +X right. Orientation maps body to world;
-  document force and control frames explicitly.
+  document force and control frames explicitly. Main thrust acts along body +Y;
+  torque and angular velocity use body axes; poses locate the centre of mass. See
+  [FLIGHT.md](FLIGHT.md).
 - Normalized quaternions for physical orientation; Euler angles only for
   presentation/input conveniences.
 - Time/randomness are explicit; physical assumptions and assist parameters are named.
@@ -125,8 +130,10 @@ its build remain planned for M2.
    pose, and pad reference from the app. It selects the initial locale.
 2. The HUD displays loading text, then the app dynamically imports viewport so the larger 3D
    download does not block the initial status presentation.
-3. The app supplies `fixture.ts`'s stationary pose. Viewport validates/copies it,
-   initializes Three.js, compiles materials, and attaches its own canvas.
+3. The app supplies `fixture.ts`'s stationary pose, whose origin is the lander's
+   centre of mass, and the centre-of-mass height from `lander.ts`. Viewport offsets
+   its artwork by that height, validates/copies the pose, initializes Three.js,
+   compiles materials, and attaches its own canvas.
 4. The app owns one animation-frame loop, pausing it for a hidden document or a
    zero-size host. Viewport owns its inspection camera, resize/DPR updates, and draw.
 5. A HUD `locale-request` event asks the app to load translations. On success it
@@ -137,6 +144,7 @@ its build remain planned for M2.
    localized failure. Language and help remain usable. Disposal during pending
    init cannot attach a canvas later.
 
-The shared pose type is the only engine contract involved so far. See
+The running game does not step the flight model yet; that arrives with the
+fixed-step runtime in 1.2. The shared pose type is the only engine contract it uses. See
 [viewport's API](../packages/viewport/README.md), [UI/localization](../packages/ui/README.md),
 and [ADR 0007](decisions/0007-inspection-ui.md).

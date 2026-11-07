@@ -1,5 +1,6 @@
 Gravitas currently renders a stationary lander and pad with a bilingual inspection
-HUD. These guides cover the code that exists today; flight simulation begins in M1.
+HUD. Engine flight dynamics are implemented and tested, but the game does not run
+them until the M1 flight runtime. These guides cover the code that exists today.
 
 ## Start here
 
@@ -10,7 +11,7 @@ HUD. These guides cover the code that exists today; flight simulation begins in 
 
 | Library guide                                 | Current responsibility                                   |
 | --------------------------------------------- | -------------------------------------------------------- |
-| [Engine](../../packages/engine/README.md)     | Shared `VehiclePose` data, without runtime dependencies  |
+| [Engine](../../packages/engine/README.md)     | Shared pose, pure flight dynamics, and rate assistance   |
 | [Viewport](../../packages/viewport/README.md) | Three.js scene, inspection camera, resize, GPU lifecycle |
 | [UI](../../packages/ui/README.md)             | Optional Lit HUD, native help dialog, and localization   |
 
@@ -72,3 +73,4 @@ for software-runner options, review workflow, and verification rules.
 - [Implementation plan](https://github.com/ewajs/gravitas/blob/main/docs/PLAN.md)
 - [Architectural decisions](https://github.com/ewajs/gravitas/blob/main/docs/decisions/README.md)
 - [Game direction](https://github.com/ewajs/gravitas/blob/main/docs/GAME.md)
+- [Flight model](https://github.com/ewajs/gravitas/blob/main/docs/FLIGHT.md)

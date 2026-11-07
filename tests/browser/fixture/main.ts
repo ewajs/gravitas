@@ -25,7 +25,12 @@ async function unmount() {
 const fixture = {
   async mount(backend: BackendRequest) {
     await unmount();
-    viewport = new Viewport({ container: host, label: 'Test lander', backend });
+    viewport = new Viewport({
+      container: host,
+      label: 'Test lander',
+      backend,
+      centerOfMassHeight: 1.5,
+    });
     await viewport.init();
     draw();
     return viewport.backend;
@@ -76,7 +81,12 @@ const fixture = {
       await gate;
       return rendererInit.call(this);
     };
-    viewport = new Viewport({ container: host, label: 'Pending test', backend });
+    viewport = new Viewport({
+      container: host,
+      label: 'Pending test',
+      backend,
+      centerOfMassHeight: 1.5,
+    });
     outcome = 'pending';
     pendingInit = viewport.init().then(
       () => {
@@ -101,7 +111,12 @@ const fixture = {
     WebGPURenderer.prototype.init = async function () {
       throw new Error('Controlled initialization failure');
     };
-    viewport = new Viewport({ container: host, label: 'Failed test', backend: 'webgl2' });
+    viewport = new Viewport({
+      container: host,
+      label: 'Failed test',
+      backend: 'webgl2',
+      centerOfMassHeight: 1.5,
+    });
     try {
       await viewport.init();
     } catch (error) {

@@ -13,3 +13,4 @@ does not imply implemented code.
 | [0005](0005-viewport-lifecycle.md)     | Viewport lifecycle, first scene, and localization prerequisite | Implemented                         |
 | [0006](0006-browser-ci-and-pages.md)   | Local browser verification and artifact-based Pages delivery   | Amended; browser suites run locally |
 | [0007](0007-inspection-ui.md)          | Inspection HUD, shared pose, and live language switching       | Implemented; visuals await review   |
+| [0008](0008-flight-model.md)           | Rigid-body flight model, RK4, and rate-command assistance      | Implemented                         |

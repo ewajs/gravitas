@@ -81,7 +81,7 @@ test('scene has a lit vehicle, pose changes are visible, and input is not mutate
   expect(
     await page.evaluate(() =>
       window.fixture.setPose({
-        position: { x: 2, y: 1, z: 0 },
+        position: { x: 2, y: 2.5, z: 0 },
         orientation: { x: 0, y: 0, z: 0, w: 1 },
       }),
     ),

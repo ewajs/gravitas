@@ -20,6 +20,13 @@ export interface AppearanceRequest {
   readonly reduceTransparency: boolean;
 }
 
+/**
+ * The input device the player is using, as the host judges it; help, hints, and
+ * the start card describe its controls. Gamepad labels follow the standard
+ * mapping's Xbox-style names (A, Start, LB/RB, LT/RT).
+ */
+export type InputDevice = 'keyboard' | 'gamepad';
+
 /** Session phase decided by the host; the HUD only presents it. */
 export type FlightPhase = 'ready' | 'flying' | 'paused' | 'complete';
 

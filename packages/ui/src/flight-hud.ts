@@ -13,7 +13,27 @@ export interface LocaleRequest {
 }
 
 /** Session phase decided by the host; the HUD only presents it. */
-export type FlightPhase = 'ready' | 'flying' | 'paused';
+export type FlightPhase = 'ready' | 'flying' | 'paused' | 'complete';
+
+/** One judged quantity: SI value (m/s, rad, or m), its limit, and whether it passed. */
+export interface LandingCheck {
+  readonly id: 'vertical-speed' | 'horizontal-speed' | 'tilt' | 'pad-distance';
+  readonly value: number;
+  readonly limit: number;
+  readonly pass: boolean;
+}
+
+/** Final result explained to the player; decided by the host, presented by the HUD. */
+export interface LandingReport {
+  readonly verdict: 'landed' | 'landed-off-pad' | 'rough' | 'crashed';
+  /** Why a crash happened. */
+  readonly cause?: 'hull' | 'impact' | 'tipped';
+  readonly checks: readonly LandingCheck[];
+  /** Remaining fuel as a fraction of capacity. */
+  readonly fuel: number;
+  /** Seconds from start to the verdict. */
+  readonly flightTime: number;
+}
 
 /** A player action the host may apply to its flight session. */
 export interface FlightRequest {
@@ -69,6 +89,8 @@ export class FlightHud extends LitElement {
   @property({ attribute: false }) telemetry?: FlightTelemetry;
   /** Current session phase owned by the application. */
   @property() phase: FlightPhase = 'ready';
+  /** Result shown while `phase` is `complete`. */
+  @property({ attribute: false }) report: LandingReport | undefined;
   /** Committed display locale, set after setLocale() resolves. */
   @property() locale: Locale = 'es-AR';
   /** Rendering status owned by the application. */
@@ -293,6 +315,98 @@ export class FlightHud extends LitElement {
         font-size: 12px;
         color: var(--gravitas-muted);
       }
+      .overlay {
+        position: absolute;
+        top: calc(max(24px, env(safe-area-inset-top)) + 96px);
+        left: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .card {
+        pointer-events: auto;
+        width: min(440px, 100%);
+        padding: 16px 20px;
+        border: 1px solid var(--gravitas-line);
+        border-radius: var(--gravitas-radius);
+        background: var(--gravitas-panel);
+      }
+      .card h2 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      .quick-keys {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 14px;
+        margin: 0 0 10px;
+      }
+      .quick-keys dt,
+      .quick-keys dd {
+        margin: 0;
+        font-size: 13px;
+        color: var(--gravitas-text);
+        white-space: normal;
+      }
+      .quick-keys kbd {
+        letter-spacing: 0.15em;
+      }
+      .goal,
+      .summary,
+      .meta {
+        font-size: 13px;
+        color: var(--gravitas-muted);
+      }
+      .checks {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+        display: grid;
+        gap: 6px;
+      }
+      .checks li {
+        display: grid;
+        grid-template-columns: 1.2em 1fr auto;
+        gap: 8px;
+        font-size: 13px;
+        align-items: baseline;
+      }
+      .checks .value {
+        font-variant-numeric: tabular-nums;
+        text-align: end;
+      }
+      .checks .limit {
+        grid-column: 2 / -1;
+        font-size: 11px;
+        color: var(--gravitas-muted);
+        margin-top: -4px;
+      }
+      .pass .mark {
+        color: var(--gravitas-good);
+      }
+      .fail .mark {
+        color: var(--gravitas-bad);
+      }
+      .report.landed h2 {
+        color: var(--gravitas-good);
+      }
+      .report.crashed h2,
+      .report.rough h2 {
+        color: var(--gravitas-bad);
+      }
+      .report button {
+        margin-top: 12px;
+      }
+      .sr {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
       .status,
       #phase {
         position: absolute;
@@ -307,9 +421,20 @@ export class FlightHud extends LitElement {
         background: var(--gravitas-panel);
         text-align: center;
       }
-      /* Below the header, clear of the vehicle the camera keeps centred. */
-      #phase {
-        top: calc(max(24px, env(safe-area-inset-top)) + 96px);
+      /* In the overlay column below the header, clear of the vehicle. */
+      .overlay #phase {
+        position: static;
+        margin: 0;
+      }
+      /* After a verdict the region only speaks; the results card shows the title. */
+      .overlay #phase.sr {
+        position: absolute;
+        inline-size: 1px;
+        block-size: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
       #phase:empty {
         display: none;
@@ -445,10 +570,21 @@ export class FlightHud extends LitElement {
         .actions {
           justify-content: flex-end;
         }
-        #phase {
+        .overlay {
           top: calc(max(16px, env(safe-area-inset-top)) + 72px);
+          left: 16px;
+          right: 16px;
+          gap: 6px;
+        }
+        #phase {
           font-size: 13px;
           padding: 10px 14px;
+        }
+        .card {
+          padding: 12px 14px;
+        }
+        .goal {
+          display: none;
         }
         /* Keyboard hints duplicate Help; keep the narrow view on the flight. */
         #controls {
@@ -515,8 +651,24 @@ export class FlightHud extends LitElement {
         return msg('Listo para descender. Pulsá P o Comenzar.', { id: 'phase-ready' });
       case 'paused':
         return msg('En pausa. Pulsá P o Reanudar.', { id: 'phase-paused' });
+      case 'complete':
+        // The live region announces the verdict; the card shows it, so it is hidden here.
+        return this.report ? this.reportTitle(this.report.verdict) : '';
       case 'flying':
         return '';
+    }
+  }
+
+  private reportTitle(verdict: LandingReport['verdict']) {
+    switch (verdict) {
+      case 'landed':
+        return msg('¡Aterrizaje en la plataforma!', { id: 'report-landed' });
+      case 'landed-off-pad':
+        return msg('Aterrizaje fuera de la plataforma', { id: 'report-off-pad' });
+      case 'rough':
+        return msg('Aterrizaje demasiado duro', { id: 'report-rough' });
+      case 'crashed':
+        return msg('Accidente', { id: 'report-crashed' });
     }
   }
 
@@ -534,7 +686,115 @@ export class FlightHud extends LitElement {
         return html`<button @click=${() => this.request('resume')}>
           ${msg('Reanudar', { id: 'resume' })}
         </button>`;
+      case 'complete':
+        return nothing;
     }
+  }
+
+  // Shown before the first start: the essential keys and the goal.
+  private quickCard() {
+    const row = (keys: string, action: string) =>
+      html`<dt><kbd>${keys}</kbd></dt>
+        <dd>${action}</dd>`;
+    return html`<aside class="card quick" aria-labelledby="quick-title">
+      <h2 id="quick-title">${msg('Cómo volar', { id: 'quick-title' })}</h2>
+      <dl class="quick-keys">
+        ${row('W A S D', msg('Inclinar el módulo', { id: 'quick-tilt' }))}
+        ${row('Q E', msg('Girar', { id: 'quick-turn' }))}
+        ${row('R F', msg('Subir / bajar empuje', { id: 'quick-throttle' }))}
+        ${row('Z X', msg('Empuje máximo / cortar', { id: 'help-throttle-set' }))}
+      </dl>
+      <p class="goal">
+        ${msg('Posate en la plataforma a 2 m/s o menos, casi vertical. Para frenar la deriva, inclinate contra la flecha del radar.', { id: 'quick-goal' })}
+      </p>
+    </aside>`;
+  }
+
+  // The verdict and why: each judged quantity against its limit.
+  private reportCard(report: LandingReport) {
+    const whole = new Intl.NumberFormat(this.locale, { maximumFractionDigits: 0 });
+    const percent = new Intl.NumberFormat(this.locale, {
+      style: 'percent',
+      maximumFractionDigits: 0,
+    });
+    const summaries = {
+      landed: msg('Tocaste suave y quedaste quieto sobre las cuatro patas.', {
+        id: 'summary-landed',
+      }),
+      'landed-off-pad': msg('Un aterrizaje seguro, pero lejos del objetivo.', {
+        id: 'summary-off-pad',
+      }),
+      rough: msg('El módulo quedó en pie, pero el contacto superó un límite.', {
+        id: 'summary-rough',
+      }),
+      hull: msg('La estructura del módulo golpeó el suelo.', { id: 'cause-hull' }),
+      impact: msg('Una pata golpeó el suelo demasiado rápido para resistirlo.', {
+        id: 'cause-impact',
+      }),
+      tipped: msg('El módulo volcó.', { id: 'cause-tipped' }),
+    };
+    const labels = {
+      'vertical-speed': msg('Vel. vertical al tocar', { id: 'check-vertical' }),
+      'horizontal-speed': msg('Vel. horizontal al tocar', { id: 'check-horizontal' }),
+      tilt: msg('Inclinación al tocar', { id: 'check-tilt' }),
+      'pad-distance': msg('Distancia al centro de la plataforma', { id: 'check-pad' }),
+    };
+    // Tilt in whole degrees, others to 0.1. A failing value never displays as if it
+    // met its limit (2.04 m/s would round to "2.0"): it gains decimals until it reads above.
+    const display = (check: LandingCheck) =>
+      check.id === 'tilt'
+        ? { scale: 180 / Math.PI, unit: '°', digits: 0 }
+        : { scale: 1, unit: check.id === 'pad-distance' ? ' m' : ' m/s', digits: 1 };
+    const shown = (check: LandingCheck, value: number, digits: number) => {
+      const { scale, unit } = display(check);
+      const format = new Intl.NumberFormat(this.locale, {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+      return `${format.format(value * scale)}${unit}`;
+    };
+    const valueDigits = (check: LandingCheck) => {
+      const { scale, digits } = display(check);
+      const rounded = (d: number) => Math.round(check.value * scale * 10 ** d) / 10 ** d;
+      let d = digits;
+      while (!check.pass && d < digits + 3 && rounded(d) <= check.limit * scale) d++;
+      return d;
+    };
+    const summary =
+      report.verdict === 'crashed' ? summaries[report.cause ?? 'hull'] : summaries[report.verdict];
+    return html`<section
+      id="report"
+      class="card report ${report.verdict}"
+      role="status"
+      aria-labelledby="report-title"
+    >
+      <h2 id="report-title" data-testid="report-title">${this.reportTitle(report.verdict)}</h2>
+      <p class="summary">${summary}</p>
+      <ul class="checks">
+        ${report.checks.map(
+          (check) =>
+            html`<li class=${check.pass ? 'pass' : 'fail'} data-testid="check-${check.id}">
+              <span class="mark" aria-hidden="true">${check.pass ? '✓' : '✗'}</span>
+              <span>
+                ${labels[check.id]}
+                <span class="sr">
+                  ${check.pass ? msg('dentro del límite', { id: 'check-pass' }) : msg('fuera del límite', { id: 'check-fail' })}
+                </span>
+              </span>
+              <span class="value">${shown(check, check.value, valueDigits(check))}</span>
+              <span class="limit">
+                ${msg('Límite', { id: 'check-limit' })}:
+                ${shown(check, check.limit, display(check).digits)}
+              </span>
+            </li>`,
+        )}
+      </ul>
+      <p class="meta">
+        ${msg('Combustible restante', { id: 'fuel-left' })}: ${percent.format(report.fuel)} ·
+        ${msg('Tiempo de vuelo', { id: 'flight-time' })}: ${whole.format(report.flightTime)} s
+      </p>
+      <button @click=${() => this.request('restart')}>${msg('Reintentar', { id: 'retry' })}</button>
+    </section>`;
   }
 
   private instruments(t: FlightTelemetry) {
@@ -704,7 +964,13 @@ export class FlightHud extends LitElement {
       ${this.status !== 'ready' ? html`<p id="status" class="status" role=${this.status === 'failed' ? 'alert' : 'status'}>${this.status === 'failed' ? text.failed : text.loading}</p>` : nothing}
       ${
         this.status === 'ready'
-          ? html`<p id="phase" role="status">${this.phaseMessage()}</p>
+          ? html`<div class="overlay">
+                <p id="phase" role="status" class=${this.phase === 'complete' ? 'sr' : ''}>
+                  ${this.phaseMessage()}
+                </p>
+                ${this.phase === 'ready' ? this.quickCard() : nothing}
+                ${this.phase === 'complete' && this.report ? this.reportCard(this.report) : nothing}
+              </div>
               <div class="bottom">
                 ${
                   this.telemetry
@@ -723,7 +989,11 @@ export class FlightHud extends LitElement {
                       this.phase === 'ready'
                         ? nothing
                         : html`<button @click=${() => this.request('restart')}>
-                            ${msg('Reiniciar', { id: 'restart' })}
+                            ${
+                              this.phase === 'complete'
+                                ? msg('Reintentar', { id: 'retry' })
+                                : msg('Reiniciar', { id: 'restart' })
+                            }
                           </button>`
                     }
                   </div>
@@ -752,6 +1022,9 @@ export class FlightHud extends LitElement {
             </dd>
           </div>
         </dl>
+        <p class="about">
+          ${msg('Aterrizaje limpio: tocar a 2 m/s o menos hacia abajo, a 1 m/s o menos de costado y con menos de 10° de inclinación, y quedarse quieto sobre las cuatro patas un segundo. Si la estructura toca el suelo, una pata golpea a más de 5 m/s o el módulo vuelca, es un accidente.', { id: 'rules-help' })}
+        </p>
         <p class="about">
           ${msg('El radar mira hacia donde apunta el módulo: arriba es adelante (W). El punto muestra hacia dónde se inclina el empuje; la flecha, tu deriva horizontal; el rombo, la plataforma (hueco a más de 60 m). Para frenar la deriva, inclinate en contra de la flecha. La marca en la barra de empuje indica cuánto hace falta para flotar.', { id: 'radar-help' })}
         </p>

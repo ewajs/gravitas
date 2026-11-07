@@ -87,11 +87,16 @@ assets only.
       both backends. Local checks passed on 2026-11-07; see
       [ADR 0011](decisions/0011-contact-model.md) and
       [contact verification](verification/contact.md).
-- [ ] **2.2 Landing outcomes:** reusable `classifyTouchdown(facts, limits)` in
-      engine, game limits (2 m/s vertical, 1 m/s horizontal, 10° tilt, settled 1 s;
-      crash on hull contact, leg impact above 5 m/s, or tip-over), verdicts (pad,
-      off pad, crash), an explanatory results panel, retry, a first-run control card,
-      reduced starting fuel, scripted whole-flight regression tests.
+- [x] **2.2 Landing outcomes:** pure `updateTouchdown`/`classifyTouchdown` reducer
+      in engine; game limits (2 m/s vertical, 1 m/s horizontal, 10° tilt, still 1 s;
+      crash on hull contact, leg impact above 5 m/s, or tipping past 60°); verdicts
+      (pad, off pad, rough, crash); an explanatory results card; Try again; a "How to
+      fly" card; 60 kg opening fuel; scripted whole-flight regression tests.
+      **Verify:** boundary and simulated-drop references, regression flights (land,
+      rough, crash, run dry, determinism), report tests, browser crash/report/retry in
+      both locales, both backends. Local checks passed on 2026-11-07; see
+      [ADR 0012](decisions/0012-landing-outcomes.md) and
+      [outcome verification](verification/outcomes.md).
 - [ ] **2.3 Player manual:** bilingual VitePress manual at `/gravitas/manual/`,
       `npm run manual`, CI build and link checks.
 

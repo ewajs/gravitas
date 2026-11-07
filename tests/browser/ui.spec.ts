@@ -33,11 +33,12 @@ test('locale switching preserves the canvas, camera, and readouts while translat
   await expect(page.getByTestId('tilt')).toHaveText('60°');
   await expect(page.getByTestId('fuel')).toHaveText('54%');
   const canvas = await page.locator('canvas').elementHandle();
-  // Sample scene between the phase message and the bottom panels, which legitimately
-  // change language. Zoom is the player's camera state the chase rig never resets.
-  const scene = { x: 100, y: 200, width: 800, height: 300 };
+  // Sample scene left of the centred phase message and card and above the bottom
+  // panels, all of which legitimately change language. Zoom is the player's camera
+  // state the chase rig never resets.
+  const scene = { x: 20, y: 180, width: 240, height: 320 };
   const unzoomed = await page.screenshot({ clip: scene });
-  await page.mouse.move(500, 350);
+  await page.mouse.move(140, 340); // Open scene, clear of the centred start card.
   await page.mouse.wheel(0, -600);
   await expect
     .poll(async () => (await page.screenshot({ clip: scene })).equals(unzoomed))
@@ -135,6 +136,7 @@ test('keyboard help traps focus, restores it on Escape, and both locales fit nar
       '.instruments',
       '.actions',
       '#phase',
+      '.quick',
       '[data-testid="fuel"]',
       '[data-testid="throttle"]',
       '[data-testid="vertical-speed"]',

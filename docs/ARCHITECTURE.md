@@ -3,7 +3,8 @@
 **Status:** workspace boundaries, viewport, hosted delivery, engine flight
 dynamics, a flyable keyboard runtime, a heading-following chase camera, and a
 bilingual flight HUD with landing radar implemented (M1, v0.1.0). Engine surface
-contact implemented (M2 step 2.1); landing outcomes are pending. See [the flight model](FLIGHT.md),
+contact and touchdown judging implemented (M2 steps 2.1–2.2); the player manual is
+pending. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -32,7 +33,9 @@ directly by every consumer. Engine also exports pure `stepFlight` dynamics and
 `rateControlTorque` assistance; `FlightState` extends `VehiclePose`. Its
 `headingAngle` and `bodyToWorld` helpers give viewport's camera and the app's radar
 one heading definition. `contactFacts` and the `Surface` seam report surface contact
-without deciding outcomes ([ADR 0011](decisions/0011-contact-model.md)). Viewport exposes lifecycle, pose, interpolated-render, and
+([ADR 0011](decisions/0011-contact-model.md)). The pure
+`updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
+with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render, and
 camera-reset operations. UI exposes
 `FlightHud`, explicit registration, telemetry/request types, and localized messages.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
@@ -148,6 +151,9 @@ its build remain planned for M2.
    drift, pad). HUD buttons emit `flight-request`; P and Enter reach the app through
    `KeyboardControls`. Both call the same session operations. Restart also calls
    `viewport.resetCamera()`, so the camera does not ease across the teleport.
+   After each tick the session updates its touchdown record. On a final verdict it
+   enters `complete` (engine cut, input ignored, physics continuing), and the app
+   publishes a `LandingReport` built by `report.ts`.
 6. Window blur releases held keys. A hidden document stops frames and pauses the
    flight. Resuming drawing resets the frame timestamp, so hidden time is never
    simulated.

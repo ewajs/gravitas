@@ -6,6 +6,8 @@ export {
   type FlightPhase,
   type FlightRequest,
   type FlightTelemetry,
+  type LandingCheck,
+  type LandingReport,
   type RadarVector,
   type LocaleRequest,
 } from './flight-hud';

@@ -12,3 +12,4 @@ does not imply implemented code.
 | [0004](0004-workspace-tooling.md)      | Workspace tooling and MIT licensing                            | Implemented                         |
 | [0005](0005-viewport-lifecycle.md)     | Viewport lifecycle, first scene, and localization prerequisite | Implemented                         |
 | [0006](0006-browser-ci-and-pages.md)   | Local browser verification and artifact-based Pages delivery   | Amended; browser suites run locally |
+| [0007](0007-inspection-ui.md)          | Inspection HUD, shared pose, and live language switching       | Implemented; visuals await review   |

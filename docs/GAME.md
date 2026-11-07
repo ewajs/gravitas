@@ -7,9 +7,12 @@ distinguish shipped rules from future direction as the game develops.
 
 The current build shows an illustrative stationary lunar lander and landing pad.
 Drag to orbit, scroll to zoom, or focus the canvas and use arrow keys to pan.
-The initial inspection/loading/failure copy is available in Spanish and English
-(`?lang=en`); a visible language selector and HUD remain in 0.4. There is no flight,
-fuel, scoring, or landing outcome yet. Rendering/backend verification is reported
+The ES/EN selector switches language without resetting the scene or camera
+(`?lang=en` also selects English on load). The HUD shows horizontal offset from
+the pad and tilt from upright, calculated from the stationary artwork pose.
+Help/Ayuda explains the camera controls and readouts, with keyboard focus and Escape
+to close. Loading and failure messages also follow the selected language.
+There is no flight, fuel, scoring, or landing outcome yet. Rendering/backend verification is reported
 separately from future physical correctness.
 
 ## Purpose

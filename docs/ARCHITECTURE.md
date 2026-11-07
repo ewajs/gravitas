@@ -1,7 +1,7 @@
 # Architecture
 
-**Status:** workspace boundaries, first viewport, minimal localization, and hosted
-delivery implemented; simulation and full HUD pending. See
+**Status:** workspace boundaries, viewport, bilingual inspection HUD, and hosted
+delivery implemented; flight simulation and flight instruments pending. See
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 
@@ -24,8 +24,10 @@ or Lit dependency. Enforce boundaries in lint, including reverse type-only impor
 Consume packages from TypeScript source initially; publication and stable API
 compatibility promises are deferred.
 
-Each library exports only `src/index.ts`. Viewport exposes its lifecycle/pose types;
-UI exposes initial localized messages. Engine still exposes no API.
+Each library exports only `src/index.ts`. Engine defines the shared `VehiclePose`
+type (world metres and body-to-world quaternion), imported directly by every consumer.
+Viewport exposes lifecycle/pose operations. UI exposes `InspectionHud`, explicit registration,
+locale-request details, and localized messages. Engine still has no dynamics.
 ESLint resolves npm workspace symlinks to their actual package paths and checks
 static imports, re-exports, dynamic imports, and type-only dependencies. Cross-package
 imports use `@gravitas/*`, never relative paths or private subpaths. Engine's
@@ -104,8 +106,11 @@ require an explicit fallback policy before adoption.
 Lit and `@lit/localize`, native platform behavior, shared CSS tokens. es-AR default,
 English complete; locale switches preserve flight state. UI's TypeScript config
 uses legacy decorators (`experimentalDecorators: true`, `useDefineForClassFields:
-false`), matching Lux's familiar Lit convention. The minimal runtime locale setup
-is installed, but no UI components or component kit have been introduced.
+false`), matching Lux's familiar Lit convention. App and browser-test TypeScript
+configs use the same settings because they consume UI source directly.
+`InspectionHud` receives immutable pose snapshots and the app's pad reference;
+only presentation properties are reactive. Native select/button/dialog elements
+provide language selection and help. No component kit is needed yet.
 
 TypeDoc covers each library's API/guides and application integration walkthroughs.
 A separate VitePress player manual is bilingual. Introduce each build with its
@@ -113,15 +118,22 @@ content, and do not claim published docs before deployment exists.
 
 ## Current integration: a fixture becomes a scene
 
-1. `apps/game/src/main.ts` selects the locale and reads `viewportMessages()` from UI.
-2. It displays loading text, then dynamically imports viewport so the larger 3D
+1. `apps/game/src/main.ts` registers the HUD and supplies branding, the stationary
+   pose, and pad reference from the app. It selects the initial locale.
+2. The HUD displays loading text, then the app dynamically imports viewport so the larger 3D
    download does not block the initial status presentation.
 3. The app supplies `fixture.ts`'s stationary pose. Viewport validates/copies it,
    initializes Three.js, compiles materials, and attaches its own canvas.
 4. The app owns one animation-frame loop, pausing it for a hidden document or a
    zero-size host. Viewport owns its inspection camera, resize/DPR updates, and draw.
-5. Device loss becomes a render error; the app stops, disposes, and presents a
-   localized failure. Disposal during pending init cannot attach a canvas later.
+5. A HUD `locale-request` event asks the app to load translations. On success it
+   updates the HUD locale, document language, canvas label through `setLabel`, and
+   URL. The renderer, camera, and pose remain intact. Translation failure preserves
+   the current language and scene, with a localized reload hint.
+6. Device loss becomes a render error; the app stops, disposes, and presents a
+   localized failure. Language and help remain usable. Disposal during pending
+   init cannot attach a canvas later.
 
-The engine is not involved yet. See [viewport's API](../packages/viewport/README.md),
-[localization](../packages/ui/README.md), and [ADR 0005](decisions/0005-viewport-lifecycle.md).
+The shared pose type is the only engine contract involved so far. See
+[viewport's API](../packages/viewport/README.md), [UI/localization](../packages/ui/README.md),
+and [ADR 0007](decisions/0007-inspection-ui.md).

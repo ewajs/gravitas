@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { assertPose, type VehiclePose } from './pose';
+import type { VehiclePose } from '@gravitas/engine';
+import { assertPose } from './pose';
 import { createScene } from './scene';
 
 /** Backend request. Auto permits Three.js's built-in WebGL 2 fallback. */
@@ -33,12 +34,14 @@ export class Viewport {
   #height = 0;
   #pixelRatio = 0;
   #deviceFailure: Error | undefined;
+  #label: string;
 
   constructor(options: ViewportOptions) {
     if (options.backend && !['auto', 'webgl2'].includes(options.backend)) {
       throw new RangeError('Unknown viewport backend');
     }
     this.#options = options;
+    this.#label = options.label;
     this.#camera.position.set(8, 5, -9);
   }
 
@@ -63,6 +66,13 @@ export class Viewport {
     const q = pose.orientation;
     this.#art.vehicle.position.set(p.x, p.y, p.z);
     this.#art.vehicle.quaternion.set(q.x, q.y, q.z, q.w);
+  }
+
+  /** Updates the accessible canvas description without resetting camera or GPU resources. */
+  setLabel(label: string): void {
+    if (this.#disposed) throw new Error('Viewport has been disposed');
+    this.#label = label;
+    this.#renderer?.domElement.setAttribute('aria-label', label);
   }
 
   /** Draws one frame; returns false before init, after disposal, or for a zero-size host. */
@@ -106,7 +116,7 @@ export class Viewport {
       canvas.style.cssText = 'display:block;width:100%;height:100%;touch-action:none';
       canvas.tabIndex = 0;
       canvas.setAttribute('role', 'img');
-      canvas.setAttribute('aria-label', this.#options.label);
+      canvas.setAttribute('aria-label', this.#label);
       this.#controls = new OrbitControls(this.#camera, canvas);
       this.#controls.target.set(0, 1, 0);
       this.#controls.minDistance = 4;

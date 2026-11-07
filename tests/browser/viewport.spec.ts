@@ -33,7 +33,7 @@ test('production scene renders in both languages with the requested backend', as
     );
     await expect(page.locator('html')).toHaveAttribute('lang', lang);
     await expect(page.locator('#subtitle')).toHaveText(
-      lang === 'en' ? 'Moon · Inspection view' : 'Luna · Vista de inspección',
+      lang === 'en' ? 'Inspection view' : 'Vista de inspección',
     );
     await expect(page.locator('#status')).toBeHidden();
   }
@@ -246,5 +246,8 @@ test.describe('lost graphics context', () => {
     await expect(page.getByRole('alert')).toContainText('We couldn’t display');
     await expect(page.locator('canvas')).toHaveCount(0);
     await expect(page.locator('#viewport')).not.toHaveAttribute('data-backend');
+    await page.getByRole('combobox', { name: 'Language' }).selectOption('es-AR');
+    await expect(page.getByRole('alert')).toContainText('No pudimos mostrar');
+    await expect(page.locator('canvas')).toHaveCount(0);
   });
 });

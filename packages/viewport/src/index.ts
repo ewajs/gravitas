@@ -5,4 +5,3 @@ export {
   type BackendRequest,
   type RenderBackend,
 } from './Viewport';
-export type { VehiclePose } from './pose';

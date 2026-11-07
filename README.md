@@ -4,7 +4,7 @@ A spaceflight game for the web, built alongside reusable simulation, Three.js
 viewport, and Lit UI libraries. Ambitious in direction; small, reviewable steps
 in delivery.
 
-**Status:** first procedural 3D inspection scene with a stationary lander and pad.
+**Status:** procedural 3D inspection scene with a stationary lander, pad, and bilingual HUD.
 No flight simulation or gameplay yet. The first playable target is a short lunar
 landing challenge; orbital flight and construction are later possibilities.
 
@@ -21,8 +21,9 @@ landing challenge; orbital flight and construction are later possibilities.
 
 TypeScript strict, npm workspaces, Vite, Node 24 LTS. The viewport uses Three.js
 WebGPURenderer with WebGL 2 fallback; its lifecycle/pose API is independent of
-dynamics. Engine remains empty. Lit/localize supplies initial es-AR/English copy;
-the full HUD arrives in 0.4. CI runs fast checks and builds the app; browser suites
+dynamics. Engine defines the shared pose contract. The Lit HUD shows pad offset
+and tilt, with live es-AR/English switching and keyboard-accessible help.
+CI runs fast checks and builds the app; browser suites
 run locally when relevant. GitHub Pages serves that build after successful main checks.
 See [delivery verification](docs/verification/delivery.md) for its current status.
 
@@ -35,7 +36,9 @@ npm run dev
 ```
 
 Open the URL Vite prints. Drag to orbit, scroll to zoom, or focus the canvas and
-use arrow keys to pan. Add `?lang=en` for English or `?backend=webgl2` to explicitly
+use arrow keys to pan. Use the ES/EN selector to change language without resetting
+the camera, and open Help/Ayuda for controls and readout definitions. Add
+`?lang=en` for English or `?backend=webgl2` to explicitly
 request WebGL 2. With no backend override, Three.js selects the available backend.
 `npm run check` runs format/lint/type checks and the test runner; `npm run build`
 writes the production shell to `apps/game/dist`. Use `npm run preview` to serve it.
@@ -56,7 +59,7 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 - [Contributing](CONTRIBUTING.md): workflow, dependencies, and verification.
 - [Agent instructions](AGENTS.md): shared rules for Claude and Codex.
 - [Viewport library](packages/viewport/README.md): pose/lifecycle contract and ownership.
-- [UI/localization](packages/ui/README.md): initial bilingual messages.
+- [UI/localization](packages/ui/README.md): inspection HUD, help, and live language switching.
 
 Separate package references and a player manual arrive with their
 implementations. Names under `@gravitas/*` are internal workspace identifiers;

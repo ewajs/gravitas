@@ -3,6 +3,9 @@
 - Status: Implemented in 0.3a; browser/backend evidence is recorded in the PR.
 - Date: 2026-11-05
 
+Step 0.4 moves the shared pose type into engine and adds live localization and a
+Lit HUD; those amendments are recorded in [ADR 0007](0007-inspection-ui.md).
+
 ## Decision
 
 Expose one Viewport class with explicit init, setVehiclePose, render, backend, and

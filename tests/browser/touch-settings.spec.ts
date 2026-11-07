@@ -71,6 +71,17 @@ test('Always shows them on a desktop, and a mouse can drag the lever', async ({ 
     'aria-valuenow',
     '0',
   );
+  // A right-click never starts a drag (its menu can swallow the release).
+  const zone = (await controls.getByTestId('touch-stick-zone').boundingBox())!;
+  await page.mouse.click(zone.x + zone.width / 2, zone.y + zone.height / 2, { button: 'right' });
+  await expect(controls.getByTestId('touch-stick')).toHaveCount(0);
+  // The yaw buttons also hold from the keyboard (Space), and release on key up.
+  const yawLeft = controls.getByTestId('touch-yaw-left');
+  await yawLeft.focus();
+  await page.keyboard.down(' ');
+  await expect(yawLeft).toHaveClass(/pressed/);
+  await page.keyboard.up(' ');
+  await expect(yawLeft).not.toHaveClass(/pressed/);
   // Named controls; motion follows the 4.2 rules and stops for reduced motion.
   await expect(page.getByRole('button', { name: 'Turn left' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Turn right' })).toBeVisible();
@@ -80,4 +91,23 @@ test('Always shows them on a desktop, and a mouse can drag the lever', async ({ 
   expect(await transition()).toBe('0.2s');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await transition()).toBe('0s');
+});
+
+test.describe('on a short phone screen (browser bars showing)', () => {
+  test.use({ viewport: { width: 852, height: 330 }, isMobile: true, hasTouch: true });
+
+  test('the yaw buttons stay below the header buttons', async ({ page }, info) => {
+    await openPhone(page, info.project.name);
+    await page.getByRole('button', { name: 'Start', exact: true }).tap();
+    const controls = page.locator('gravitas-touch-controls');
+    await expect(controls).toBeVisible();
+    const nav = (await page.locator('gravitas-flight-hud').locator('nav').boundingBox())!;
+    for (const id of ['touch-yaw-left', 'touch-yaw-right']) {
+      const yaw = (await controls.getByTestId(id).boundingBox())!;
+      expect(yaw.y, id).toBeGreaterThanOrEqual(nav.y + nav.height);
+    }
+    const zone = (await controls.getByTestId('touch-stick-zone').boundingBox())!;
+    const yaw = (await controls.getByTestId('touch-yaw-left').boundingBox())!;
+    expect(zone.y).toBeGreaterThanOrEqual(yaw.y + yaw.height);
+  });
 });

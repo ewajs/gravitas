@@ -53,7 +53,8 @@ const inputs = new PilotInputs([
   new TouchControlsSource(touchControls),
 ]);
 // A phone or tablet (no hover, coarse pointer) starts with touch; others with keys.
-const touchFirst = matchMedia('(hover: none) and (pointer: coarse)').matches;
+// Coarse primary pointer: some Android phones also report hover, so it is not tested.
+const touchFirst = matchMedia('(pointer: coarse)').matches;
 const defaultDevice: InputDevice = touchFirst ? 'touch' : 'keyboard';
 // The device the player last used; help, hints, and touch controls follow it.
 let inputDevice: InputDevice = defaultDevice;
@@ -136,6 +137,12 @@ function useDevice(device: InputDevice): void {
 // Touch controls show during a flight when the setting asks for them: always, or
 // (automatic) while touch is the device in use. Paused, they stay but are inert.
 function syncTouchControls(): void {
+  if (stopped) {
+    // After a graphics failure there is nothing to steer.
+    touchControls.hidden = true;
+    hud.touchControls = false;
+    return;
+  }
   const mode = settings.touchControls;
   const wanted = mode === 'always' || (mode === 'auto' && inputDevice === 'touch');
   const underway = session.phase === 'flying' || session.phase === 'paused';

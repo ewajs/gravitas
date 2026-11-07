@@ -25,7 +25,8 @@ WebGPU):
   screen and overlap neither the lever, the lever zone, the stick zone, nor the yaw
   buttons. Paused, with a fast sink and the caution icon, the strip still does not
   overflow.
-- **Help** fits and scrolls inside itself to its last setting.
+- **Help** fits, and a real touch scroll (CDP `Input.synthesizeScrollGesture`)
+  scrolls it inside itself without panning the page.
 - **Results** fit with Try again on screen; on short screens the checks sit in a
   second column and nothing scrolls.
 - **Portrait:** no prompt before a flight; the start card fits upright; starting

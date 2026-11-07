@@ -140,7 +140,11 @@ controls.addEventListener('yaw-input', (e) => e.detail.direction); // −1 left,
 - **Stick (right zone):** appears where the thumb lands (kept inside the zone),
   reports its raw deflection up to a 56 px radius, and reports zero on release.
   Dead zone and response curve are the host's.
-- **Yaw buttons:** two 48 px buttons above the stick zone, held to turn.
+- **Yaw buttons:** two 48 px buttons above the stick zone, held to turn (Space or
+  Enter hold them from the keyboard). They never sit over the host's header row
+  (the top 56 px plus the safe area), and the zones start below them.
+- A mouse steers only with its main button; drawn parts never take a touch, so the
+  zone stays the event target while parts are redrawn.
 - Multi-touch with pointer capture; lift, `pointercancel`, window blur, a hidden
   page, `disabled`, or `release()` release everything and report neutral values.
 - Motion: controls respond in 130 ms, levels ease in 200 ms, the element fades

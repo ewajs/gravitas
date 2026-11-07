@@ -57,12 +57,18 @@ export function gamepadInput(pad: GamepadReading): PilotInput {
   };
 }
 
-// Whether a pad shows any deliberate input: a pressed button or a deflected axis.
-function active(pad: GamepadReading): boolean {
+// Whether two pilot inputs ask for the same thing.
+function same(a: PilotInput, b: PilotInput): boolean {
   return (
-    pad.buttons.some((button) => button.pressed) ||
-    pad.axes.some((axis) => Math.abs(axis) > GAMEPAD_STICK_DEAD_ZONE)
+    a.rates.x === b.rates.x &&
+    a.rates.y === b.rates.y &&
+    a.rates.z === b.rates.z &&
+    a.throttleChange === b.throttleChange
   );
+}
+
+function idle(input: PilotInput): boolean {
+  return same(input, IDLE);
 }
 
 /**
@@ -81,6 +87,8 @@ export class GamepadControls implements InputSource {
   #active = false;
   // Buttons held at the previous poll, so a press fires once.
   #held = new Set<number>();
+  // Every button pressed at the previous poll, to tell fresh presses from held ones.
+  #down = new Set<number>();
   #index: number | undefined;
 
   /**
@@ -100,7 +108,11 @@ export class GamepadControls implements InputSource {
     target.addEventListener('gamepaddisconnected', this.#disconnected);
   }
 
-  /** Whether the latest poll saw deliberate input (a button or a deflected axis). */
+  /**
+   * Whether the latest poll saw deliberate use: a fresh button press, or flight
+   * input that changed. A drifting unused stick or a button left held does not
+   * count, so an idle pad never takes the device away from the keyboard or touch.
+   */
   get active(): boolean {
     return this.#active;
   }
@@ -113,6 +125,7 @@ export class GamepadControls implements InputSource {
       const lost = this.#index !== undefined;
       this.#index = pad?.index;
       this.#held.clear();
+      this.#down.clear();
       if (pad) this.#onConnection(true);
       else if (lost) this.#onConnection(false);
     }
@@ -121,8 +134,15 @@ export class GamepadControls implements InputSource {
       this.#active = false;
       return;
     }
-    this.#input = gamepadInput(pad);
-    this.#active = active(pad);
+    const input = gamepadInput(pad);
+    const down = new Set<number>();
+    pad.buttons.forEach((button, index) => {
+      if (button.pressed) down.add(index);
+    });
+    const pressed = [...down].some((index) => !this.#down.has(index));
+    this.#down = down;
+    this.#active = pressed || (!idle(input) && !same(input, this.#input));
+    this.#input = input;
     const fresh = (index: number) => {
       const pressed = pad.buttons[index]?.pressed === true;
       const wasHeld = this.#held.has(index);
@@ -176,6 +196,7 @@ export class GamepadControls implements InputSource {
     if (index === undefined || index !== this.#index) return;
     this.#index = undefined;
     this.#held.clear();
+    this.#down.clear();
     this.#input = IDLE;
     this.#active = false;
     this.#onConnection(false);

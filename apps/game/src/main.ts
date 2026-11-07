@@ -53,8 +53,9 @@ const inputs = new PilotInputs([
   ),
   new TouchControlsSource(touchControls),
 ]);
-// A phone or tablet (no hover, coarse pointer) starts with touch; others with keys.
-const touchFirst = matchMedia('(hover: none) and (pointer: coarse)').matches;
+// A phone or tablet (coarse pointer) starts with touch; others with keys.
+// Coarse primary pointer: some Android phones also report hover, so it is not tested.
+const touchFirst = matchMedia('(pointer: coarse)').matches;
 // Flights are landscape-only on such a device; portrait asks the player to turn it.
 const portrait = matchMedia('(orientation: portrait)');
 const reducedTransparency = matchMedia('(prefers-reduced-transparency: reduce)');
@@ -141,6 +142,12 @@ function useDevice(device: InputDevice): void {
 // Touch controls show during a flight when the setting asks for them: always, or
 // (automatic) while touch is the device in use. Paused, they stay but are inert.
 function syncTouchControls(): void {
+  if (stopped) {
+    // After a graphics failure there is nothing to steer.
+    touchControls.hidden = true;
+    hud.touchControls = false;
+    return;
+  }
   const mode = settings.touchControls;
   const wanted = mode === 'always' || (mode === 'auto' && inputDevice === 'touch');
   const shown = wanted && underway() && !rotateNeeded();

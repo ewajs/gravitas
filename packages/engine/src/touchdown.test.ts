@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bodyToWorld,
   classifyTouchdown,
   contactFacts,
   MAX_FLIGHT_STEP,
+  multiplyQuaternions,
   NO_TOUCHDOWN,
+  rotationAbout,
   stepFlight,
   toRadians,
   updateTouchdown,
@@ -213,5 +216,70 @@ describe('touchdowns simulated with the contact model', () => {
     expect(drop(1).status).toBe('landed');
     expect(drop(3)).toMatchObject({ status: 'rough', exceeded: ['verticalSpeed'] });
     expect(drop(7)).toMatchObject({ status: 'crashed' });
+  });
+});
+
+describe('touchdowns judged against a local vertical', () => {
+  const leg: ContactFact = {
+    id: 'leg',
+    kind: 'leg',
+    position: { x: 0, y: 0, z: 0 },
+    penetration: 0.01,
+    normalForce: 200,
+    approachSpeed: 1.2,
+    slipSpeed: 0.3,
+  };
+  const state = (changes: Partial<FlightState>): FlightState => ({
+    position: { x: 0, y: 1.5, z: 0 },
+    orientation: { x: 0, y: 0, z: 0, w: 1 },
+    velocity: { x: 0.3, y: -1.2, z: 0.4 },
+    angularVelocity: { x: 0, y: 0, z: 0 },
+    fuelMass: 10,
+    ...changes,
+  });
+
+  it('reads the same touchdown in a world turned so that up is not +Y', () => {
+    const tilted = rotationAbout('z', toRadians(4));
+    const flat = updateTouchdown(
+      NO_TOUCHDOWN,
+      {
+        before: state({ orientation: tilted }),
+        beforeFacts: [],
+        after: state({ orientation: tilted }),
+        afterFacts: [leg],
+      },
+      MAX_FLIGHT_STEP,
+      limits,
+    );
+    // The same moment seen from a frame turned 70° about X and 30° about Y.
+    const turn = multiplyQuaternions(rotationAbout('y', 0.5), rotationAbout('x', 1.2));
+    const moved = (s: FlightState) => ({
+      ...s,
+      velocity: bodyToWorld(turn, s.velocity),
+      orientation: multiplyQuaternions(turn, s.orientation),
+    });
+    const turned = updateTouchdown(
+      NO_TOUCHDOWN,
+      {
+        before: moved(state({ orientation: tilted })),
+        beforeFacts: [],
+        after: moved(state({ orientation: tilted })),
+        afterFacts: [leg],
+        up: bodyToWorld(turn, { x: 0, y: 1, z: 0 }),
+      },
+      MAX_FLIGHT_STEP,
+      limits,
+    );
+    expect(turned.touchdown!.verticalSpeed).toBeCloseTo(flat.touchdown!.verticalSpeed, 12);
+    expect(turned.touchdown!.horizontalSpeed).toBeCloseTo(flat.touchdown!.horizontalSpeed, 12);
+    expect(turned.touchdown!.tilt).toBeCloseTo(flat.touchdown!.tilt, 9);
+    expect(flat.touchdown!.tilt).toBeCloseTo(toRadians(4), 9);
+  });
+
+  it('rejects an up that is not a unit vector', () => {
+    const tick = { before: state({}), beforeFacts: [], after: state({}), afterFacts: [leg] };
+    expect(() =>
+      updateTouchdown(NO_TOUCHDOWN, { ...tick, up: { x: 0, y: 2, z: 0 } }, MAX_FLIGHT_STEP, limits),
+    ).toThrow(RangeError);
   });
 });

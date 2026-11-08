@@ -7,7 +7,9 @@ import {
   MAX_FLIGHT_STEP,
   NO_TOUCHDOWN,
   rateControlTorque,
+  scale,
   stepFlight,
+  subtract,
   timeToAltitude,
   toRadians,
   updateTouchdown,
@@ -119,6 +121,17 @@ export interface Actuation {
 
 const IDLE_ACTUATION: Actuation = { throttle: 0, attitude: { x: 0, y: 0, z: 0 } };
 const AIRBORNE: TouchdownOutcome = { status: 'airborne' };
+
+/**
+ * Around a body (central gravity), up is away from its centre, so touchdowns are
+ * judged against the local vertical; uniform gravity keeps world +Y.
+ */
+function localVertical(environment: FlightEnvironment, state: FlightState): { up?: Vector3 } {
+  if (environment.gravity.kind !== 'central') return {};
+  const { centre } = environment.gravity;
+  const away = subtract(state.position, centre);
+  return { up: scale(away, 1 / magnitude(away)) };
+}
 
 /** A touchdown judgement that ends the flight. */
 export type Verdict = Extract<
@@ -362,7 +375,13 @@ export class FlightSession {
         this.#facts = facts;
         this.#record = updateTouchdown(
           this.#record,
-          { before, beforeFacts, after: next, afterFacts: facts },
+          {
+            before,
+            beforeFacts,
+            after: next,
+            afterFacts: facts,
+            ...localVertical(environment, before),
+          },
           FIXED_STEP,
           limits,
         );

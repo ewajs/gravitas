@@ -50,7 +50,7 @@ export {
   type OrbitFrame,
 } from './orbits';
 export { rateControlTorque, type AttitudeSettings } from './attitude';
-export { bodyToWorld, headingAngle, tiltAngle } from './orientation';
+export { bodyToWorld, headingAngle, tiltAngle, tiltFrom } from './orientation';
 export {
   add,
   addScaled,

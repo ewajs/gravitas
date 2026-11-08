@@ -24,6 +24,16 @@ it('explains a clean pad landing with every check passing', () => {
   expect(report.flightTime).toBeGreaterThan(20);
 });
 
+it('calls a safe landing simply landed where there is no pad, without a pad check', () => {
+  const report = landingReport(fly(session(), padPilot), { pad: false })!;
+  expect(report.verdict).toBe('landed-no-pad');
+  expect(report.checks.map((check) => check.id)).toEqual([
+    'vertical-speed',
+    'horizontal-speed',
+    'tilt',
+  ]);
+});
+
 it('names the failed limit of a rough landing', () => {
   const report = landingReport(fly(session(), verticalPilot))!;
   expect(report.verdict).toBe('rough');

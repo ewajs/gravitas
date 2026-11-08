@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
+import type { FlightHud } from '@gravitas/ui';
 import { test, expect } from './test';
 
-// The terrain sandbox (5.4b): ?scenario=terrain puts the first lander 300 m above
-// Tranquility Base, over tiles meshed from the Moon's height function.
+// The terrain sandbox (5.4b, 5.4c): ?scenario=terrain puts the first lander 300 m
+// above Tranquility Base, over tiles meshed from the Moon's height function, which
+// its legs touch.
 
 async function openTerrain(page: Page, project: string, lang = 'en') {
   const backend = project === 'webgl2' ? 'webgl2' : 'auto';
@@ -27,7 +29,7 @@ async function settledTerrain(page: Page) {
   };
 }
 
-test('the terrain sandbox: tiles over Tranquility Base, finer near the ground, then the ground', async ({
+test('the terrain sandbox: tiles over Tranquility Base, finer near the ground, then a crash', async ({
   page,
 }, info) => {
   test.slow();
@@ -47,19 +49,27 @@ test('the terrain sandbox: tiles over Tranquility Base, finer near the ground, t
   expect(high.tiles).toBeLessThan(150);
   await page.screenshot({ path: info.outputPath('terrain-high.png') });
 
-  // Fall at 4× until the ground, which pauses (no contact until 5.4c).
+  // Fall unpowered at 4× onto the ground: the legs and hull touch the terrain, and
+  // a 30 m/s impact is judged a crash (5.4c).
   for (let n = 0; n < 2; n++) await page.keyboard.press('Period');
   await expect(hud.getByTestId('warp')).toHaveText('×4');
-  await expect(hud.locator('#notice')).toHaveText(
-    'You reached the ground. Touching it comes with the next step; restart to start over.',
-    { timeout: 30_000 },
-  );
+  await expect(page.getByTestId('report-title')).toHaveText('Crash', { timeout: 30_000 });
   const low = await settledTerrain(page);
   expect(low.level).toBeGreaterThanOrEqual(17);
   await page.screenshot({ path: info.outputPath('terrain-low.png') });
 });
 
-test('the terrain sandbox reads in Spanish', async ({ page }, info) => {
+test('the terrain sandbox reads in Spanish, and a landing without a pad is simply landed', async ({
+  page,
+}, info) => {
   await openTerrain(page, info.project.name, 'es-AR');
   await expect(page.locator('#subtitle')).toHaveText('Superficie lunar · prueba');
+  const hud = page.locator('gravitas-flight-hud');
+  await hud.evaluate((element: FlightHud) => {
+    element.phase = 'complete';
+    element.report = { verdict: 'landed-no-pad', checks: [], fuel: 0.5, flightTime: 30 };
+  });
+  await expect(page.getByTestId('report-title')).toHaveText('¡Aterrizaje!');
+  await page.getByRole('combobox', { name: 'Idioma' }).selectOption('en');
+  await expect(page.getByTestId('report-title')).toHaveText('Landed!');
 });

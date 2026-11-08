@@ -13,6 +13,8 @@ export function verdictTitle(verdict: LandingReport['verdict']): string {
       return msg('¡Aterrizaje en la plataforma!', { id: 'report-landed' });
     case 'landed-off-pad':
       return msg('Aterrizaje fuera de la plataforma', { id: 'report-off-pad' });
+    case 'landed-no-pad':
+      return msg('¡Aterrizaje!', { id: 'report-landed-no-pad' });
     case 'rough':
       return msg('Aterrizaje demasiado duro', { id: 'report-rough' });
     case 'crashed':
@@ -24,6 +26,7 @@ export function verdictTitle(verdict: LandingReport['verdict']): string {
 const BADGES = {
   landed: { tone: 'good', icon: () => icons.check(22) },
   'landed-off-pad': { tone: 'warn', icon: () => icons.caution(22) },
+  'landed-no-pad': { tone: 'good', icon: () => icons.check(22) },
   rough: { tone: 'bad', icon: () => icons.cross(20) },
   crashed: { tone: 'bad', icon: () => icons.cross(20) },
 } as const;
@@ -47,6 +50,9 @@ export function reportCard(
     }),
     'landed-off-pad': msg('Un aterrizaje seguro, pero lejos del objetivo.', {
       id: 'summary-off-pad',
+    }),
+    'landed-no-pad': msg('Tocaste suave y quedaste quieto sobre las cuatro patas.', {
+      id: 'summary-landed',
     }),
     rough: msg('El módulo quedó en pie, pero el contacto superó un límite.', {
       id: 'summary-rough',

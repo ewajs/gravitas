@@ -1,5 +1,17 @@
 import type { Locale } from './localization';
 
+/**
+ * A countdown in seconds as m:ss, or h:mm:ss from an hour; rounded down to the
+ * second, never negative. Digits are the same in both locales.
+ */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const rest = String(total % 60).padStart(2, '0');
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
+}
+
 /** How the HUD writes numbers in one locale. */
 export interface NumberFormats {
   /** One decimal: distances and speeds. */

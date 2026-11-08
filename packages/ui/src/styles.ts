@@ -38,6 +38,8 @@ export const hudStyles = css`
   .mission,
   .panel,
   #phase,
+  .notice,
+  .warp-level,
   .status,
   .locale-error,
   #controls,
@@ -233,6 +235,35 @@ export const hudStyles = css`
     padding-inline-end: 8px;
     border-inline-end: 1px solid var(--gravitas-line);
   }
+  /* Time warp: slower, the factor, faster, joined into one control. */
+  .warp {
+    display: flex;
+    align-items: stretch;
+  }
+  .warp button.icon {
+    inline-size: 36px;
+  }
+  .warp button:first-child {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
+  .warp button:last-child {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+  }
+  .warp button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .warp-level {
+    display: grid;
+    place-items: center;
+    min-inline-size: 58px;
+    padding: 0 6px;
+    border-block: 1px solid var(--gravitas-line);
+    font: 600 14px var(--gravitas-font-display);
+    font-variant-numeric: tabular-nums;
+  }
 
   /* Phase, start card, and Start: a column below the header. */
   .overlay {
@@ -263,6 +294,16 @@ export const hudStyles = css`
     max-width: min(520px, calc(100% - 48px));
     margin: 0 auto;
     padding: 16px 20px;
+  }
+  /* A transient explanation from the host (a refused warp), under the phase line. */
+  .notice {
+    margin: 0;
+    padding: 8px 16px;
+    border-radius: var(--control-radius);
+    border: 1px solid color-mix(in srgb, var(--gravitas-warn) 55%, transparent);
+    font-size: 13px;
+    text-align: center;
+    animation: fade 200ms ease-out both;
   }
   /* After a verdict the region only speaks; the results card shows the title. */
   #phase.sr,
@@ -469,8 +510,22 @@ export const hudStyles = css`
     gap: 10px;
     justify-items: center;
   }
-  .pad-readout {
+  .pad-readout,
+  .orbit-readout {
     justify-self: stretch;
+  }
+  .orbit-readout {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+  }
+  .orbit-readout dd {
+    margin: 0;
+    font-size: 16px;
+  }
+  .orbit-readout .time {
+    color: var(--gravitas-muted);
+    font-size: 13px;
   }
   figure {
     margin: 0;
@@ -1290,6 +1345,9 @@ export const hudStyles = css`
     :host([touch-layout]) header .brand,
     :host([touch-layout]) header nav,
     :host([touch-layout]) header .restart,
+    :host([touch-layout]) header .view,
+    :host([touch-layout]) .orbit-readout .secondary,
+    :host([touch-layout]) .orbit-readout .time,
     :host([touch-layout]) #controls,
     :host([touch-layout]) .instruments .throttle,
     :host([touch-layout]) .instruments figcaption,
@@ -1487,6 +1545,34 @@ export const hudStyles = css`
     }
     :host([touch-layout]) .pad-readout .unit {
       font-size: 11px;
+    }
+    /* Around a body the radar card shows Ap and Pe on two short lines. */
+    :host([touch-layout]) .orbit-readout {
+      gap: 0;
+      text-align: center;
+    }
+    :host([touch-layout]) .orbit-readout > div {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 3px;
+    }
+    :host([touch-layout]) .orbit-readout dd,
+    :host([touch-layout]) .orbit-readout .unit {
+      font-size: 11px;
+      font-weight: 500;
+    }
+    :host([touch-layout]) .warp button.icon {
+      inline-size: 34px;
+    }
+    :host([touch-layout]) .warp-level {
+      min-inline-size: 46px;
+      font-size: 12px;
+    }
+    :host([touch-layout]) .notice {
+      white-space: normal;
+      font-size: 12px;
+      padding: 6px 12px;
     }
   }
 

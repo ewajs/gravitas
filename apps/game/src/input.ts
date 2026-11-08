@@ -7,7 +7,14 @@ import type { PilotInput } from './session';
  * `confirm` is the gamepad's A: start when ready, resume when paused, and try
  * again after a verdict.
  */
-export type InputCommand = 'toggle-pause' | 'restart' | 'toggle-mute' | 'confirm';
+export type InputCommand =
+  | 'toggle-pause'
+  | 'restart'
+  | 'toggle-mute'
+  | 'confirm'
+  | 'warp-faster'
+  | 'warp-slower'
+  | 'toggle-map';
 
 /**
  * One input device, such as the keyboard. Held input is sampled once per animation

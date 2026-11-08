@@ -45,6 +45,19 @@ export const icons = {
     icon(
       svg`<circle cx="5" cy="12" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="19" cy="12" r="1.2"></circle>`,
     ),
+  /** Two chevrons pointing right: faster time warp. */
+  faster: (size = 18) => icon(svg`<path d="M5 6l6 6-6 6M13 6l6 6-6 6"></path>`, size),
+  /** Two chevrons pointing left: slower time warp. */
+  slower: (size = 18) => icon(svg`<path d="M19 6l-6 6 6 6M11 6l-6 6 6 6"></path>`, size),
+  /** A globe with an orbit around it, for the map view. */
+  map: (size = 20) =>
+    icon(
+      svg`<circle cx="12" cy="12" r="5"></circle><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-20 12 12)"></ellipse>`,
+      size,
+    ),
+  /** A small lander shape, for returning to the chase view. */
+  chase: (size = 20) =>
+    icon(svg`<path d="M8 6h8l1 7H7z"></path><path d="M9 13l-3 6M15 13l3 6M12 13v3"></path>`, size),
   check: (size = 18) => icon(svg`<path d="M5 12.5l4.5 4.5L19 7.5"></path>`, size),
   cross: (size = 16) => icon(svg`<path d="M6 6l12 12M18 6L6 18"></path>`, size),
   caution: (size = 18) =>

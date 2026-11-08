@@ -22,6 +22,10 @@ const COMMAND_KEYS: Readonly<Record<string, InputCommand>> = {
   KeyM: 'toggle-mute',
   Enter: 'restart',
   NumpadEnter: 'restart',
+  // Time warp and the map, for flights around a body; the host ignores them elsewhere.
+  Period: 'warp-faster',
+  Comma: 'warp-slower',
+  KeyV: 'toggle-map',
 };
 
 /** Maps currently held physical keys to normalized pilot input; opposite keys cancel. */

@@ -21,6 +21,25 @@ function touchLabels() {
   };
 }
 
+// Time warp and the map, for flights around a body, on the device in use.
+function orbitalKeys(
+  device: InputDevice,
+  key: (label: string, keys: string | TemplateResult) => TemplateResult,
+): TemplateResult[] {
+  const warp = msg('Tiempo: más lento / más rápido', { id: 'help-warp' });
+  const map = msg('Mapa y órbita', { id: 'help-map' });
+  if (device === 'touch') {
+    return [
+      key(warp, html`${icons.slower(14)} / ${icons.faster(14)}`),
+      key(map, html`${icons.more()} → ${icons.map(14)}`),
+    ];
+  }
+  if (device === 'gamepad') {
+    return [key(warp, msg('Cruceta ← / →', { id: 'pad-dpad-left-right' })), key(map, 'Back')];
+  }
+  return [key(warp, ', / .'), key(map, 'V')];
+}
+
 /**
  * "How to fly", shown before the first start: the host's mark and name (the
  * `mark-large` slot and `heading`), the essential controls of the device in use,
@@ -81,6 +100,7 @@ export function helpDialog(
   device: InputDevice,
   onClose: () => void,
   onDisplay: (request: AppearanceRequest) => void,
+  orbital = false,
 ): TemplateResult {
   const touch = touchLabels();
   const key = (label: string, keys: string | TemplateResult) =>
@@ -145,6 +165,7 @@ export function helpDialog(
                 key(msg('Reiniciar', { id: 'restart' }), 'Enter'),
               ]
       }
+      ${orbital ? orbitalKeys(device, key) : nothing}
       <div>
         <dt>${msg('Cámara', { id: 'help-camera' })}</dt>
         <dd>

@@ -48,7 +48,7 @@ describe('flight telemetry', () => {
       safeSink: START_ALTITUDE / 8,
     });
     expect(t.hoverThrottle).toBeCloseTo((1350 * 1.62) / 4500, 12);
-    expect(near(t.pad)).toEqual([0, 30]);
+    expect(near(t.pad!)).toEqual([0, 30]);
     expect(near(t.drift)).toEqual([0, 2]);
     expect(near(t.lean)).toEqual([0, 0]);
   });

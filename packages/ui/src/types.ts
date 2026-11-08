@@ -78,6 +78,40 @@ export interface LandingReport {
   readonly flightTime: number;
 }
 
+/** Asks the host for the next faster (+1) or slower (−1) time warp. */
+export interface WarpRequest {
+  readonly direction: 1 | -1;
+}
+
+/** Asks the host to show the chase camera or the map. */
+export interface ViewRequest {
+  readonly camera: 'chase' | 'map';
+}
+
+/**
+ * A short message the host shows for a moment: why faster time warp was refused
+ * (the lever is open, the vehicle is turning, or it is too low), or that a
+ * vehicle reached the surface where no landing is modelled yet.
+ */
+export type FlightNotice = 'warp-throttle' | 'warp-rotation' | 'warp-altitude' | 'surface';
+
+/**
+ * The orbit, for flights around a body: distances in metres above the reference
+ * sphere, times in seconds, speed in metres per second.
+ */
+export interface OrbitTelemetry {
+  /** Highest point above the surface; Infinity when escaping. */
+  readonly apoapsis: number;
+  /** Lowest point above the surface; negative when the orbit dips into the body. */
+  readonly periapsis: number;
+  /** Seconds to the next apoapsis; undefined when circular or escaping. */
+  readonly timeToApoapsis?: number;
+  /** Seconds to the next periapsis; undefined when circular or already past it while escaping. */
+  readonly timeToPeriapsis?: number;
+  /** Speed relative to the body's centre in inertial space (orbital speed). */
+  readonly speed: number;
+}
+
 /** A player action the host may apply to its flight session. */
 export interface FlightRequest {
   /** Start from ready, pause or resume flight, or restart from the scenario's start. */
@@ -111,8 +145,8 @@ export interface FlightTelemetry {
   readonly safeSink?: number;
   /** Horizontal speed magnitude in metres per second. */
   readonly horizontalSpeed: number;
-  /** Horizontal distance from the pad reference, in metres. */
-  readonly padDistance: number;
+  /** Horizontal distance from the pad reference, in metres; omit where there is no pad. */
+  readonly padDistance?: number;
   /** Angle between body +Y and world +Y, in radians. */
   readonly tilt: number;
   /** Remaining fuel as a fraction of capacity, in [0, 1]. */
@@ -125,6 +159,8 @@ export interface FlightTelemetry {
   readonly lean: RadarVector;
   /** Horizontal velocity in metres per second. */
   readonly drift: RadarVector;
-  /** Pad reference relative to the vehicle, in metres. */
-  readonly pad: RadarVector;
+  /** Pad reference relative to the vehicle, in metres; omit where there is no pad. */
+  readonly pad?: RadarVector;
+  /** The orbit, for flights around a body; the right panel shows it instead of the pad. */
+  readonly orbit?: OrbitTelemetry;
 }

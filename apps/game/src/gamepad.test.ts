@@ -90,6 +90,19 @@ describe('gamepad source', () => {
     expect(commands).toEqual(['confirm', 'toggle-pause', 'toggle-pause']);
   });
 
+  it('maps the D-pad to slower and faster time and Back to the map, once per press', () => {
+    const { source, commands, pads } = setup([pad()]);
+    source.poll();
+    for (const button of [15, 15, 14, 8]) {
+      pads[0] = pad({ buttons: { [button]: 1 } });
+      source.poll();
+      source.poll(); // Held: no repeat.
+      pads[0] = pad();
+      source.poll();
+    }
+    expect(commands).toEqual(['warp-faster', 'warp-faster', 'warp-slower', 'toggle-map']);
+  });
+
   it('samples the polled pad and reports deliberate input as active', () => {
     const { source, pads } = setup([pad({ buttons: { 7: 1 } })]);
     expect(source.sample().throttleChange).toBe(0); // Nothing until polled.

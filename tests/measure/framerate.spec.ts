@@ -35,3 +35,30 @@ test('frame rate during a powered descent', async ({ page }, info) => {
   });
   console.log(`MEASURE ${JSON.stringify(result)}`);
 });
+
+// The Moon's terrain (5.4b): low over Tranquility Base, falling at 2× so tiles
+// refine and get replaced, and from 100 km in orbit, where the most ground shows.
+for (const [name, scenario, keys] of [
+  ['low over the Moon’s terrain', 'terrain', ['Period']],
+  ['in lunar orbit over the terrain', 'orbit', []],
+] as const) {
+  test(`frame rate ${name}`, async ({ page }, info) => {
+    const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
+    await page.goto(
+      `http://127.0.0.1:4173/gravitas/?scenario=${scenario}&backend=${backend}&lang=en&debug`,
+    );
+    await page.waitForSelector('#viewport[data-backend]');
+    await page.keyboard.press('p');
+    for (const key of keys) await page.keyboard.press(key);
+    await page.waitForTimeout(8000);
+    const data = await page
+      .locator('#diagnostics')
+      .evaluate((element: HTMLElement) => ({ ...element.dataset }));
+    const result = { project: info.project.name, workload: scenario, ...data };
+    await info.attach(`framerate-${scenario}.json`, {
+      body: JSON.stringify(result, null, 2),
+      contentType: 'application/json',
+    });
+    console.log(`MEASURE ${JSON.stringify(result)}`);
+  });
+}

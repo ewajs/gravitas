@@ -4,6 +4,7 @@ import type { Vector3, VehiclePose } from '@gravitas/engine';
 import { CHASE, ChaseRig } from './chase';
 import { NO_ACTUATORS, type Actuators } from './effects';
 import { createPlanet, type OrbitPath, type PlanetPose, type PlanetView } from './planet';
+import type { TerrainStats } from './terrain';
 import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
 import { createScene, DEFAULT_SUN, type SceneAccents } from './scene';
 
@@ -40,6 +41,8 @@ const LOCAL_AMBIENT = 0.4;
 const PLANET_AMBIENT = 0.06;
 // Distance of the chase scene's sun from the vehicle; it only aims the light and shadows.
 const SUN_DISTANCE = 20;
+/** The chase camera stays at least this high above a planet's ground, in metres. */
+const CAMERA_CLEARANCE = 1.5;
 const ORIGIN = new THREE.Vector3();
 
 /** Owns rendering resources; the host owns poses and frame scheduling. */
@@ -49,6 +52,7 @@ export class Viewport {
   // Near plane well inside the 6 m minimum zoom; it sets depth precision for surface decals.
   readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.5, LOCAL_FAR);
   readonly #planet: ReturnType<typeof createPlanet>;
+  readonly #scratch = new THREE.Vector3();
   readonly #mapCamera = new THREE.PerspectiveCamera(45, 1, 1e4, 1e8);
   readonly #sunDirection = DEFAULT_SUN.clone().normalize();
   #mapControls: OrbitControls | undefined;
@@ -102,6 +106,14 @@ export class Viewport {
     if (!this.#ready || !this.#renderer) return null;
     const backend = this.#renderer.backend;
     return 'isWebGPUBackend' in backend && backend.isWebGPUBackend ? 'webgpu' : 'webgl2';
+  }
+
+  /**
+   * Terrain tiles drawn, cached, and waiting on the last frame, and the deepest
+   * level drawn; null without a planet's terrain.
+   */
+  get terrainStats(): TerrainStats | null {
+    return this.#planet.visible ? this.#planet.terrainStats : null;
   }
 
   /** Draw calls and triangles of the last rendered frame; null before initialization. */
@@ -319,7 +331,9 @@ export class Viewport {
     );
     this.#aimSun();
     this.#controls?.update();
+    if (this.#planet.visible) this.#keepCameraAboveGround();
     if (this.#planet.visible) {
+      this.#planet.updateTerrain(this.#camera);
       this.#planet.setVehicle(this.#art.vehicle.position);
       this.#mapControls?.update();
       this.#planet.followCameras(this.#camera, this.#mapCamera);
@@ -406,12 +420,20 @@ export class Viewport {
   readonly #orbitEnded = () => this.#rig?.setUserActive(false);
 
   // Upright foot clearance over the flat y = 0 surface, or over a shown planet's
-  // reference sphere; framing only, not contact.
+  // ground (its terrain, else its reference sphere); framing only, not contact.
   #altitude(): number {
     const position = this.#art.vehicle.position;
     if (!this.#planet.visible) return position.y - this.#options.centerOfMassHeight;
-    const centre = this.#planet.chaseGroup.children[0]!.position;
-    return position.distanceTo(centre) - this.#planet.radius - this.#options.centerOfMassHeight;
+    return this.#planet.heightAboveGround(position) - this.#options.centerOfMassHeight;
+  }
+
+  // Around a planet, lift the chase camera out of rising ground (a hill behind the
+  // vehicle, a crater rim) so it never looks from inside the terrain.
+  #keepCameraAboveGround(): void {
+    const clearance = this.#planet.heightAboveGround(this.#camera.position);
+    if (clearance >= CAMERA_CLEARANCE) return;
+    const up = this.#planet.upAt(this.#camera.position, this.#scratch);
+    this.#camera.position.addScaledVector(up, CAMERA_CLEARANCE - clearance);
   }
 
   // The chase scene's sun sits along the sun direction from the vehicle, so the

@@ -179,7 +179,7 @@ export class FlightHud extends LitElement {
         return msg('Demasiado bajo para acelerar más el tiempo.', { id: 'notice-warp-altitude' });
       case 'surface':
         return msg(
-          'Llegaste al suelo. Aterrizar desde la órbita llega con el nivel de descenso; reiniciá para volver a la órbita.',
+          'Llegaste al suelo. Tocarlo llega con el próximo paso; reiniciá para volver a empezar.',
           { id: 'notice-surface' },
         );
       default:

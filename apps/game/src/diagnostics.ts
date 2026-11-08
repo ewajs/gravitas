@@ -48,6 +48,13 @@ export interface DiagnosticFacts {
   readonly triangles: number;
   /** A line about the device and display (size, orientation, input, panels). */
   readonly device?: string;
+  /** Terrain tiles drawn, cached, and waiting, and the deepest level drawn. */
+  readonly terrain?: {
+    readonly drawn: number;
+    readonly cached: number;
+    readonly pending: number;
+    readonly deepest: number;
+  };
 }
 
 const WINDOW = 120;
@@ -98,6 +105,11 @@ export class DiagnosticsOverlay {
     this.#element.textContent = [
       `${stats.fps.toFixed(1)} fps  ${stats.intervalMs.toFixed(1)} ms/frame  work p50 ${stats.workP50Ms.toFixed(2)} p95 ${stats.workP95Ms.toFixed(2)} ms`,
       `${f.backend}  ${f.drawCalls} draws  ${f.triangles} tris  ${f.phase}  tick ${f.ticks}  α ${f.alpha.toFixed(2)}  dropped ${f.discardedSeconds.toFixed(3)} s`,
+      ...(f.terrain
+        ? [
+            `terrain ${f.terrain.drawn} tiles  ${f.terrain.cached} cached  ${f.terrain.pending} waiting  level ${f.terrain.deepest}`,
+          ]
+        : []),
       ...(f.device ? [f.device] : []),
     ].join('\n');
     Object.assign(this.#element.dataset, {
@@ -107,6 +119,13 @@ export class DiagnosticsOverlay {
       discarded: f.discardedSeconds.toFixed(4),
       drawCalls: String(f.drawCalls),
       triangles: String(f.triangles),
+      ...(f.terrain
+        ? {
+            terrainTiles: String(f.terrain.drawn),
+            terrainPending: String(f.terrain.pending),
+            terrainLevel: String(f.terrain.deepest),
+          }
+        : {}),
     });
   }
 

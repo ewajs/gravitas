@@ -30,6 +30,9 @@ import {
   orbitPath,
   orbitTelemetry,
   groundAltitude,
+  SUN_DIRECTION,
+  TERRAIN_SUN,
+  terrainSandbox,
 } from './orbital';
 import { landingReport } from './report';
 import { FIRST_DESCENT } from './scenario';
@@ -59,10 +62,18 @@ const host = document.querySelector<HTMLDivElement>('#viewport')!;
 const hud = document.querySelector('gravitas-flight-hud')!;
 const touchControls = document.querySelector('gravitas-touch-controls')!;
 const parameters = new URLSearchParams(location.search);
-// ?scenario=orbit: the orbit sandbox (5.3b), reached only by URL, not the start card.
-const sandbox = parameters.get('scenario') === 'orbit';
-const scenario = sandbox ? ORBIT_SANDBOX : FIRST_DESCENT;
-const session = new FlightSession(scenario);
+// ?scenario=orbit: the orbit sandbox (5.3b); ?scenario=terrain: the terrain sandbox
+// (5.4b), low over Tranquility Base. Both are reached only by URL, not the start card.
+const requestedScenario = parameters.get('scenario');
+const terrainSandboxMode = requestedScenario === 'terrain';
+const sandbox = requestedScenario === 'orbit' || terrainSandboxMode;
+// The Moon's terrain (both sandboxes): its elevation grid starts downloading now.
+const terrainLoad = sandbox ? loadMoonTerrain(import.meta.env.BASE_URL) : undefined;
+// The terrain sandbox starts from the ground's height, so its session is made once
+// the terrain has loaded, before Start is offered; the orbit stands in until then.
+let session = new FlightSession(sandbox ? ORBIT_SANDBOX : FIRST_DESCENT);
+// Sunlight: low behind the orbit's start, or a low morning Sun over Tranquility Base.
+const sunDirection = terrainSandboxMode ? TERRAIN_SUN : SUN_DIRECTION;
 // Every input source reports commands to one handler; held input merges per frame.
 const inputs = new PilotInputs([
   new KeyboardControls(window, inputCommand),
@@ -103,16 +114,9 @@ let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 // In the sandbox, at the ground: there is no contact with it yet, so the flight
 // stays paused until restarted.
 let surfaceReached = false;
-// The Moon's terrain, once its elevation grid has downloaded (sandbox only); until
-// then altitude is measured from the mean radius.
+// The Moon's terrain once loaded (sandboxes only). Without it, the orbit sandbox
+// measures altitude from the mean radius and draws a smooth sphere.
 let terrain: Terrain | undefined;
-if (sandbox) {
-  loadMoonTerrain(import.meta.env.BASE_URL)
-    .then((loaded) => {
-      if (!destroyed) terrain = loaded;
-    })
-    .catch((error: unknown) => console.error('Gravitas could not load the Moon terrain.', error));
-}
 // Developer diagnostics only behind an explicit ?debug switch; zero cost otherwise.
 const diagnostics = parameters.has('debug')
   ? new DiagnosticsOverlay(document.querySelector('main')!)
@@ -237,7 +241,7 @@ function gamepadConnection(connected: boolean): void {
 
 // Presentation only: how far each foot is pressed into the surface, in artwork order.
 function legCompression(): number[] {
-  const surface = scenario.environment.surface;
+  const surface = session.scenario.environment.surface;
   if (!surface) return [0, 0, 0, 0];
   return contactFacts(session.state, FEET, surface).map((fact) => fact.penetration);
 }
@@ -276,17 +280,24 @@ function setCamera(camera: 'chase' | 'map'): void {
 // The vehicle-centred poses, the Moon, and the Sun for this frame (sandbox only).
 function placeOrbitalScene(): void {
   if (!viewport) return;
-  const scene = orbitalScene(session.state, session.previous, session.time);
+  const scene = orbitalScene(session.state, session.previous, session.time, sunDirection);
   viewport.setPlanetPose(scene.planet);
   viewport.setSunDirection(scene.sun);
   viewport.setVehiclePose(scene.current, scene.previous);
+}
+
+// The canvas description for the current scenario and language.
+function sceneLabel(): string {
+  const messages = viewportMessages();
+  if (!sandbox) return messages.scene;
+  return terrainSandboxMode ? messages.terrainScene : messages.orbitScene;
 }
 
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
   const telemetry = sandbox
     ? orbitalFlightTelemetry(
-        orbitalScene(session.state, session.state, session.time).current,
+        orbitalScene(session.state, session.state, session.time, sunDirection).current,
         session.throttle,
         Math.max(0, groundAltitude(session.state, terrain)),
         localGravity(session.state),
@@ -342,6 +353,7 @@ function draw(timestamp: number): void {
         alpha: session.alpha,
         drawCalls: viewport?.renderStats?.drawCalls ?? 0,
         triangles: viewport?.renderStats?.triangles ?? 0,
+        ...(viewport?.terrainStats ? { terrain: viewport.terrainStats } : {}),
         // For on-device checks: screen, input, and whether the glass blur is on.
         device: [
           `${innerWidth}×${innerHeight} @${devicePixelRatio.toFixed(2)}x`,
@@ -555,8 +567,10 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     hud.manualHref = `${import.meta.env.BASE_URL}manual/${locale === 'en' ? 'en/' : ''}`;
     document.documentElement.lang = locale;
     const messages = viewportMessages();
-    if (sandbox) hud.subtitle = messages.orbitSubtitle;
-    if (viewport && !stopped) viewport.setLabel(sandbox ? messages.orbitScene : messages.scene);
+    if (sandbox) {
+      hud.subtitle = terrainSandboxMode ? messages.terrainSubtitle : messages.orbitSubtitle;
+    }
+    if (viewport && !stopped) viewport.setLabel(sceneLabel());
     if (updateUrl) {
       updateSettings({ locale });
       const url = new URL(location.href);
@@ -603,15 +617,30 @@ async function start(): Promise<void> {
   viewport = new Viewport({
     container: host,
     centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
-    label: sandbox ? viewportMessages().orbitScene : viewportMessages().scene,
+    label: sceneLabel(),
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });
   // Scene marks match the interface; physical materials keep their own colours.
   viewport.setAccents(gravitasTheme.scene);
+  if (terrainLoad) {
+    try {
+      terrain = await terrainLoad;
+    } catch (error) {
+      // The terrain sandbox needs the ground; the orbit sandbox can do without it.
+      if (terrainSandboxMode) throw error;
+      console.error('Gravitas could not load the Moon terrain.', error);
+    }
+    if (destroyed) return;
+    if (terrainSandboxMode) {
+      session = new FlightSession(terrainSandbox(terrain!));
+      publish();
+    }
+  }
   if (sandbox) {
     viewport.setPlanet({
       radius: MOON.radius,
       surfaceMap: `${import.meta.env.BASE_URL}moon/lroc-color-2k.jpg`,
+      ...(terrain ? { terrain } : {}),
     });
     placeOrbitalScene();
     viewport.setOrbitPath(orbitPath(session.state, session.time) ?? null);

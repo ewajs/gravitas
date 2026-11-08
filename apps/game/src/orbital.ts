@@ -6,6 +6,8 @@ import {
   bodyToWorld,
   conjugate,
   heightAboveTerrain,
+  surfaceToBodyFixed,
+  terrainHeight,
   inertialToBodyFixed,
   magnitude,
   MOON,
@@ -104,6 +106,58 @@ export const ORBIT_SANDBOX: FlightScenario = {
   orbit: { body: MOON, frame: 'body-fixed', railsFloor: RAILS_FLOOR },
 };
 
+/** Apollo 11's landing site, Tranquility Base: 0.674°N, 23.473°E, on smooth mare. */
+export const TRANQUILITY_BASE = { latitude: toRadians(0.674), longitude: toRadians(23.473) };
+
+/** The terrain sandbox starts this far above the ground, in metres. */
+export const TERRAIN_HOP_HEIGHT = 300;
+
+/**
+ * The terrain sandbox's start: the first lander hovering 300 m above Tranquility
+ * Base, still relative to the ground, upright, facing north, with a full tank.
+ */
+export function terrainStart(terrain: Terrain): FlightState {
+  const ground = surfaceToBodyFixed(MOON, { ...TRANQUILITY_BASE, altitude: 0 });
+  const height = terrainHeight(terrain, ground);
+  const place = {
+    ...TRANQUILITY_BASE,
+    altitude: height + TERRAIN_HOP_HEIGHT + CENTER_OF_MASS_HEIGHT,
+  };
+  return {
+    position: surfaceToBodyFixed(MOON, place),
+    // The surface frame's orientation is upright with body −Z pointing north.
+    orientation: surfaceFrame(MOON, place).orientation,
+    velocity: { x: 0, y: 0, z: 0 },
+    angularVelocity: { x: 0, y: 0, z: 0 },
+    fuelMass: LANDER.fuelCapacity,
+  };
+}
+
+/**
+ * The terrain sandbox's sunlight (inertial, matching Moon-fixed at time 0): 12°
+ * above the eastern horizon at Tranquility Base, a morning Sun like Apollo 11's,
+ * so craters and boulders cast long shadows.
+ */
+export const TERRAIN_SUN: Vector3 = (() => {
+  const elevation = toRadians(12);
+  const { latitude, longitude } = TRANQUILITY_BASE;
+  const up = surfaceToBodyFixed({ ...MOON, radius: 1 }, { latitude, longitude, altitude: 0 });
+  const east = { x: -Math.sin(longitude), y: 0, z: -Math.cos(longitude) };
+  return {
+    x: Math.cos(elevation) * east.x + Math.sin(elevation) * up.x,
+    y: Math.cos(elevation) * east.y + Math.sin(elevation) * up.y,
+    z: Math.cos(elevation) * east.z + Math.sin(elevation) * up.z,
+  };
+})();
+
+/**
+ * The terrain sandbox (`?scenario=terrain`, 5.4b): the first lander low over the
+ * real ground, to see and fly the terrain before the descent level.
+ */
+export function terrainSandbox(terrain: Terrain): FlightScenario {
+  return { ...ORBIT_SANDBOX, start: terrainStart(terrain) };
+}
+
 /** What the viewport draws for one frame, in a world centred on the vehicle. */
 export interface OrbitalScene {
   /** The latest tick's state in the vehicle-centred frame (at the origin, +Y up). */
@@ -119,16 +173,18 @@ export interface OrbitalScene {
 /**
  * The frame centred on the vehicle at `state`, +Y away from the Moon's centre, +X
  * east, −Z north, and both states and the Moon in it, `time` seconds into the
- * flight. Float32 rendering stays steady because the vehicle is at the origin.
+ * flight, lit from `sun` (a unit vector in the Moon's inertial frame). Float32
+ * rendering stays steady because the vehicle is at the origin.
  */
 export function orbitalScene(
   state: FlightState,
   previous: FlightState,
   time: number,
+  sun: Vector3 = SUN_DIRECTION,
 ): OrbitalScene {
   const frame = surfaceFrame(MOON, bodyFixedToSurface(MOON, state.position));
   const toLocal: Quaternion = conjugate(frame.orientation);
-  const sunFixed = bodyToWorld(rotationAbout('y', -MOON.rotationRate * time), SUN_DIRECTION);
+  const sunFixed = bodyToWorld(rotationAbout('y', -MOON.rotationRate * time), sun);
   return {
     current: bodyFixedToSurfaceFrame(state, frame),
     previous: bodyFixedToSurfaceFrame(previous, frame),

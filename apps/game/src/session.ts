@@ -192,6 +192,11 @@ export class FlightSession {
   get actuation(): Actuation {
     return this.#phase === 'flying' || this.#phase === 'complete' ? this.#applied : IDLE_ACTUATION;
   }
+  /** The scenario this session flies. */
+  get scenario(): FlightScenario {
+    return this.#scenario;
+  }
+
   /** Latest touchdown judgement; final once the phase is `complete`. */
   get outcome(): TouchdownOutcome {
     return this.#outcome;

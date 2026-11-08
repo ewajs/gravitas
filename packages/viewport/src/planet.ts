@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { float, smoothstep, uv, vec2 } from 'three/tsl';
-import type { Quaternion, Vector3 } from '@gravitas/engine';
+import { terrainHeight, type Quaternion, type Terrain, type Vector3 } from '@gravitas/engine';
+import { createTerrainTiles, type TerrainStats, type TerrainTiles } from './terrain';
 
 // The planetary half of the scene (ADR 0020): a body with a colour map, stars,
 // and a map view with the orbit. The chase scene draws the body in the host's
@@ -16,6 +17,12 @@ export interface PlanetView {
    * the middle, north at the top. Drawn grey until it loads.
    */
   readonly surfaceMap?: string;
+  /**
+   * The body's ground (from the engine's createTerrain). With it, the chase view
+   * draws tiles meshed from the same height function the vehicle touches, finer
+   * near the camera (ADR 0022); the map keeps a smooth sphere.
+   */
+  readonly terrain?: Terrain;
 }
 
 /** Where the body is in the host's world: its centre, and its body-fixed axes. */
@@ -45,7 +52,8 @@ export interface MapAccents {
 }
 
 // Sphere tessellation: 256 × 128 keeps the silhouette within about 130 m of the
-// true sphere at lunar size, invisible from orbit. Terrain replaces it in 5.4.
+// true sphere at lunar size, invisible from orbit. With terrain, tiles replace it
+// in the chase view once the coarsest are meshed; the map keeps it.
 const SEGMENTS = [256, 128] as const;
 const STAR_COUNT = 2400;
 // Stars sit on a shell around each camera, inside its far plane.
@@ -171,6 +179,12 @@ export function createPlanet(sky: THREE.Color) {
     map.add(marker);
   }
 
+  let tiles: TerrainTiles | undefined;
+  const frustum = new THREE.Frustum();
+  const projection = new THREE.Matrix4();
+  const bounds = new THREE.Sphere();
+  let terrainStats: TerrainStats | null = null;
+
   // Unit normal of the drawn orbit's plane, or zero without one; aims the map camera.
   const orbitNormal = new THREE.Vector3();
   const inverse = new THREE.Quaternion();
@@ -196,6 +210,18 @@ export function createPlanet(sky: THREE.Color) {
       radius = view.radius;
       chaseBody.scale.setScalar(radius);
       mapBody.scale.setScalar(radius);
+      if (view.terrain !== tiles?.terrain) {
+        tiles?.dispose();
+        tiles?.group.removeFromParent();
+        tiles = view.terrain ? createTerrainTiles(view.terrain, surface) : undefined;
+        terrainStats = null;
+        chaseBody.visible = true;
+        if (tiles) {
+          tiles.group.position.copy(chaseBody.position);
+          tiles.group.quaternion.copy(chaseBody.quaternion);
+          chaseGroup.add(tiles.group);
+        }
+      }
       if (view.surfaceMap && view.surfaceMap !== textureUrl) {
         textureUrl = view.surfaceMap;
         new THREE.TextureLoader().load(view.surfaceMap, (loaded) => {
@@ -221,6 +247,50 @@ export function createPlanet(sky: THREE.Color) {
         pose.orientation.w,
       );
       inverse.copy(chaseBody.quaternion).invert();
+      tiles?.group.position.copy(chaseBody.position);
+      tiles?.group.quaternion.copy(chaseBody.quaternion);
+    },
+
+    /**
+     * Chooses and requests terrain tiles for the chase camera at `cameraWorld`. The
+     * smooth sphere stands in until the coarsest tiles are ready.
+     */
+    updateTerrain(camera: THREE.Camera) {
+      if (!tiles) return;
+      camera.updateMatrixWorld();
+      frustum.setFromProjectionMatrix(
+        projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse),
+      );
+      tiles.group.updateMatrixWorld();
+      const inView = (centre: Vector3, bound: number) => {
+        bounds.center.set(centre.x, centre.y, centre.z).applyMatrix4(tiles!.group.matrixWorld);
+        bounds.radius = bound;
+        return frustum.intersectsSphere(bounds);
+      };
+      scratch.copy(camera.position).sub(chaseBody.position).applyQuaternion(inverse);
+      terrainStats = tiles.update(scratch, inView);
+      chaseBody.visible = !tiles.ready;
+    },
+
+    /** The last terrain update's counts, or null without terrain. */
+    get terrainStats(): TerrainStats | null {
+      return terrainStats;
+    },
+
+    /**
+     * Height of a chase-world point above the ground straight below it: the
+     * terrain when shown, else the reference sphere.
+     */
+    heightAboveGround(worldPosition: THREE.Vector3): number {
+      scratch.copy(worldPosition).sub(chaseBody.position).applyQuaternion(inverse);
+      const distance = scratch.length();
+      const ground = tiles ? terrainHeight(tiles.terrain, scratch) : 0;
+      return distance - radius - ground;
+    },
+
+    /** Unit vector from the body's centre through a chase-world point (local up). */
+    upAt(worldPosition: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {
+      return out.copy(worldPosition).sub(chaseBody.position).normalize();
     },
 
     /** Keeps each star shell centred on its camera, so stars are infinitely far. */
@@ -293,6 +363,8 @@ export function createPlanet(sky: THREE.Color) {
     },
 
     dispose() {
+      tiles?.dispose();
+      tiles = undefined;
       orbitLine?.geometry.dispose();
       texture?.dispose();
       textureUrl = undefined;

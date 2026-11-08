@@ -475,7 +475,8 @@ function addDetail(
   let layer = 0;
   for (let cell = CRATER_CELL_LARGEST; cell >= CRATER_CELL_SMALLEST; cell /= 2) {
     layer++;
-    if (cell / 4 < resolution) break;
+    // The layer's smallest crater, rim to rim, is 0.175 cells across.
+    if (0.5 * FEATURE_REACH * cell < resolution) break;
     features(px, py, pz, R, cell, seed ^ (CRATER_SALT + layer), CRATERS_PER_CELL, CRATER, out);
   }
 
@@ -484,7 +485,8 @@ function addDetail(
   let boulderLayer = 0;
   for (const cell of BOULDER_CELLS) {
     boulderLayer++;
-    if (cell / 4 < resolution) break;
+    // The layer's smallest boulder is 0.35 cells across.
+    if (FEATURE_REACH * cell < resolution) break;
     features(
       px,
       py,

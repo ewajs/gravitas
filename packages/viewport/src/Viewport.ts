@@ -321,13 +321,18 @@ export class Viewport {
     const altitude = this.#altitude();
     this.#rig?.update(this.#art.vehicle, altitude, dt);
     this.#art.updateMarker(this.#art.vehicle.position, altitude);
+    // Around a planet, dust needs terrain: it spreads on the ground below the vehicle
+    // (+Y is up there); over a smooth sphere there is no ground to raise it from.
+    const terrain = this.#planet.visible && this.#planet.hasTerrain;
     this.#art.effects.update(
       this.#actuators,
       this.#art.vehicle.position,
-      // Dust needs the flat site's ground plane; around a planet there is none yet (5.4).
-      this.#planet.visible ? Infinity : altitude,
+      this.#planet.visible && !terrain ? Infinity : altitude,
       Math.min(dt, CHASE.maxFrameTime),
       this.#reducedMotion?.matches ?? false,
+      ...(terrain
+        ? [this.#art.vehicle.position.y - altitude - this.#options.centerOfMassHeight]
+        : []),
     );
     this.#aimSun();
     this.#controls?.update();

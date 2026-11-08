@@ -1,8 +1,9 @@
 import type { ContactFact } from './contact';
 import type { FlightState } from './flight';
-import { magnitude } from './math';
-import { tiltAngle } from './orientation';
-import { positive } from './validation';
+import type { Vector3 } from './pose';
+import { addScaled, dot, magnitude } from './math';
+import { tiltAngle, tiltFrom } from './orientation';
+import { positive, vector } from './validation';
 
 /** Thresholds a host chooses for judging a touchdown; speeds m/s, angles rad, times s. */
 export interface TouchdownLimits {
@@ -101,6 +102,12 @@ export interface TouchdownTick {
   readonly beforeFacts: readonly ContactFact[];
   readonly after: FlightState;
   readonly afterFacts: readonly ContactFact[];
+  /**
+   * The local vertical as a world unit vector, for a world where "up" is not +Y,
+   * such as a body-fixed frame (up is away from the centre). Vertical and
+   * horizontal speed and tilt are measured against it; omit it for world +Y.
+   */
+  readonly up?: Vector3;
 }
 
 /**
@@ -119,6 +126,10 @@ export function updateTouchdown(
 ): TouchdownRecord {
   positive(dt, 'dt');
   validateLimits(limits);
+  if (tick.up) {
+    vector(tick.up, 'up');
+    if (Math.abs(magnitude(tick.up) - 1) > 1e-9) throw new RangeError('up must be a unit vector');
+  }
   const touching = tick.afterFacts.filter((fact) => fact.normalForce > 0);
   if (touching.length === 0) {
     const airborneFor = record.airborneFor + dt;
@@ -138,19 +149,29 @@ export function updateTouchdown(
     magnitude(after.velocity) < limits.restSpeed &&
     magnitude(after.angularVelocity) < limits.restAngularSpeed;
   const hull = touching.find((fact) => fact.kind === 'hull');
+  const { up } = tick;
+  const tilt = (state: FlightState) =>
+    up ? tiltFrom(state.orientation, up) : tiltAngle(state.orientation);
+  const snapshot = (): TouchdownSnapshot => {
+    if (!up) {
+      return {
+        verticalSpeed: -before.velocity.y,
+        horizontalSpeed: Math.hypot(before.velocity.x, before.velocity.z),
+        tilt: tilt(before),
+      };
+    }
+    const vertical = dot(before.velocity, up);
+    return {
+      verticalSpeed: -vertical,
+      horizontalSpeed: magnitude(addScaled(before.velocity, up, -vertical)),
+      tilt: tilt(before),
+    };
+  };
   return {
-    touchdown:
-      record.touchdown ??
-      (loadedLegs.length > 0
-        ? {
-            verticalSpeed: -before.velocity.y,
-            horizontalSpeed: Math.hypot(before.velocity.x, before.velocity.z),
-            tilt: tiltAngle(before.orientation),
-          }
-        : null),
+    touchdown: record.touchdown ?? (loadedLegs.length > 0 ? snapshot() : null),
     peakLegImpact: Math.max(record.peakLegImpact, ...impacts),
     hullContact: record.hullContact ?? hull?.id ?? null,
-    tipped: record.tipped || tiltAngle(after.orientation) > limits.maxRestingTilt,
+    tipped: record.tipped || tilt(after) > limits.maxRestingTilt,
     settledFor: still ? record.settledFor + dt : 0,
     airborneFor: 0,
   };

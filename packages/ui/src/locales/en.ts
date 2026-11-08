@@ -55,6 +55,7 @@ export const templates = {
     'Settle on the pad at 2 m/s or less, nearly upright. To stop drifting, lean against the radar arrow.',
   'report-landed': 'Landed on the pad!',
   'report-off-pad': 'Landed off the pad',
+  'report-landed-no-pad': 'Landed!',
   'report-rough': 'Too rough a landing',
   'report-crashed': 'Crash',
   'summary-landed': 'A gentle touchdown, settled on all four legs.',

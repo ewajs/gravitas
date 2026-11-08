@@ -272,6 +272,11 @@ export function createPlanet(sky: THREE.Color) {
       chaseBody.visible = !tiles.ready;
     },
 
+    /** Whether terrain tiles are shown in place of the smooth sphere. */
+    get hasTerrain(): boolean {
+      return tiles?.ready ?? false;
+    },
+
     /** The last terrain update's counts, or null without terrain. */
     get terrainStats(): TerrainStats | null {
       return terrainStats;

@@ -94,9 +94,10 @@ Moon's real ground, finer near the camera; the map keeps a smooth sphere.
 
 `?scenario=terrain` opens a second developer sandbox: the same lander hovering
 300 m above Tranquility Base (Apollo 11's site) with a full tank, in a low
-morning Sun, with physics time warp up to 4×. In both sandboxes the ground is not
-touched yet: reaching it pauses the flight until a restart. Contact arrives in
-5.4c, and the descent level in 5.5.
+morning Sun, with physics time warp up to 4×. In both sandboxes the legs touch the
+real ground, and touchdowns are judged by the landing rules below against the
+local vertical; with no pad, a safe landing is "Landed!". The descent level and
+its own limits arrive in 5.5.
 
 ## Landing rules
 
@@ -106,6 +107,7 @@ Defined in `apps/game/src/rules.ts` and judged by engine's touchdown reducer:
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | Landed on the pad  | First leg contact at ≤ 2 m/s down, ≤ 1 m/s sideways, ≤ 10° tilt; then still on all legs for 1 s; centre over the pad (≤ 3.8 m) |
 | Landed off the pad | The same, but the centre of mass ends more than 3.8 m from the pad centre: safe, but off target                                |
+| Landed!            | The same where there is no pad (the sandboxes)                                                                                 |
 | Too rough          | Settled and intact, but the first contact broke a speed or tilt limit                                                          |
 | Crash              | Any hull point touches, a leg strikes faster than 5 m/s, or the lander tilts past 60° on the ground                            |
 

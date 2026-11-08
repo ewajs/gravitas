@@ -6,9 +6,13 @@ import { isVerdict, type FlightSession } from './session';
 
 /**
  * Explains a final verdict for the HUD: what happened, each touchdown limit with
- * its value, and how far from the pad. Returns undefined before a verdict.
+ * its value, and how far from the pad (with `pad`, the opening's). Without a pad, a
+ * safe landing anywhere is simply landed. Returns undefined before a verdict.
  */
-export function landingReport(session: FlightSession): LandingReport | undefined {
+export function landingReport(
+  session: FlightSession,
+  { pad = true }: { readonly pad?: boolean } = {},
+): LandingReport | undefined {
   const outcome = session.outcome;
   if (!isVerdict(outcome)) return undefined;
   // Judge from the verdict moment: a crash may keep sliding or tumbling afterwards.
@@ -22,13 +26,15 @@ export function landingReport(session: FlightSession): LandingReport | undefined
     check('horizontal-speed', outcome.touchdown.horizontalSpeed, LANDING_LIMITS.maxHorizontalSpeed);
     check('tilt', outcome.touchdown.tilt, LANDING_LIMITS.maxTilt);
   }
-  check('pad-distance', distance, PAD_RADIUS);
+  if (pad) check('pad-distance', distance, PAD_RADIUS);
   const verdict =
-    outcome.status === 'landed'
-      ? distance <= PAD_RADIUS
-        ? 'landed'
-        : 'landed-off-pad'
-      : outcome.status;
+    outcome.status !== 'landed'
+      ? outcome.status
+      : !pad
+        ? 'landed-no-pad'
+        : distance <= PAD_RADIUS
+          ? 'landed'
+          : 'landed-off-pad';
   return {
     verdict,
     ...(outcome.status === 'crashed' ? { cause: outcome.cause } : {}),

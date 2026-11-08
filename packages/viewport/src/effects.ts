@@ -119,8 +119,9 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
   let time = 0;
   return {
     /**
-     * Applies actuator state. `altitude` is the feet's height above the surface;
-     * `dt` advances flicker and dust motion unless motion is reduced.
+     * Applies actuator state. `altitude` is the feet's height above the surface,
+     * which lies at world height `groundY` below the vehicle; `dt` advances flicker
+     * and dust motion unless motion is reduced.
      */
     update(
       actuators: Actuators,
@@ -128,6 +129,7 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
       altitude: number,
       dt: number,
       reduceMotion: boolean,
+      groundY = surfaceY,
     ) {
       if (!reduceMotion) time += dt;
       const throttle = actuators.throttle;
@@ -162,7 +164,7 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
       if (dust.visible) {
         const swell = reduceMotion ? 0 : 0.6 * Math.sin(time * 2.3);
         const radius = 2.5 + 6 * near + swell;
-        dust.position.set(position.x, surfaceY + 0.03, position.z);
+        dust.position.set(position.x, groundY + 0.03, position.z);
         dust.scale.set(radius, radius, 1);
         dustAmount.value = 0.55 * amount;
       }

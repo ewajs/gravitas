@@ -25,6 +25,18 @@ export function headingAngle(q: Quaternion): number {
   return 2 * Math.atan2(q.y, q.w);
 }
 
+/**
+ * Angle between body +Y and `up` (a world-frame unit vector, such as the local
+ * vertical on a sphere) in radians, independent of heading.
+ */
+export function tiltFrom(q: Quaternion, up: Vector3): number {
+  // Body +Y in world coordinates, the second column of the rotation.
+  const x = 2 * (q.x * q.y - q.z * q.w);
+  const y = 1 - 2 * (q.x * q.x + q.z * q.z);
+  const z = 2 * (q.y * q.z + q.x * q.w);
+  return Math.acos(clamp(x * up.x + y * up.y + z * up.z, -1, 1));
+}
+
 /** Angle between body +Y and world +Y in radians, independent of heading. */
 export function tiltAngle(q: Quaternion): number {
   // The world Y component of body +Y is 1 − 2(x² + z²).

@@ -409,13 +409,15 @@ bit-identical unless a step says otherwise.
         [ADR 0022](decisions/0022-terrain-rendering.md) and
         [terrain view verification](verification/terrain-view.md). The planet
         budget awaits the owner and the A70.
-  - [ ] **5.4c Terrain contact and touchdowns anywhere:** split from 5.4b on
+  - [x] **5.4c Terrain contact and touchdowns anywhere:** split from 5.4b on
         2026-11-08. Both sandboxes gain contact with the terrain; the touchdown
         judge measures vertical speed and tilt against the local vertical
-        instead of world +Y; the results card works without a pad; dust, the
-        ground ring, and the drop line follow the terrain. **Verify:** scripted
+        instead of world +Y; the results card works without a pad; dust spreads
+        on the terrain. **Verify:** scripted
         landings on level mare and on a slope in the terrain sandbox; the opening
-        bit-identical; both browser suites.
+        bit-identical; both browser suites. Local checks passed on 2026-11-08;
+        see the [ADR 0012 amendment](decisions/0012-landing-outcomes.md) and
+        [terrain contact verification](verification/terrain-contact.md).
 - [ ] **5.5 Free landing from orbit:** a second level with its own vehicle. Two
       stacked PRs:
   - [ ] **5.5a Vehicle definitions and a descent vehicle:** a vehicle becomes

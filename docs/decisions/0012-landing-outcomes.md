@@ -63,3 +63,20 @@ flights pin this.
   limit. If playtesting finds it confusing, it could fold into crash or success.
 - The crash cause reports the first decisive fact. A leg strike usually comes
   one tick before the bell lip touches.
+
+## Amendment (2026-11-08, step 5.4c): anywhere on a body
+
+- **The local vertical.** `TouchdownTick` takes an optional `up`, the local
+  vertical as a world unit vector. Vertical speed is the velocity against it,
+  horizontal speed the rest, and tilt (`tiltFrom`) the angle from it, both at
+  first contact and for tipping. The game's session passes the direction away
+  from the body's centre whenever gravity is central, so a touchdown on the Moon's
+  terrain is judged as it would be on the flat site. Without `up`, world +Y is
+  used exactly as before: the opening's flights are bit-identical.
+- **No pad, plain success.** Where there is no pad (the sandboxes now; the free
+  landing level in 5.5), a safe landing is `landed-no-pad`, shown as "Landed!"
+  ("¡Aterrizaje!"), and the results card lists the three touchdown checks without
+  a distance to a pad. The limits are unchanged; 5.5 sets the level's own.
+- **Tilt is from the vertical, not the ground.** Landing upright on a 10° slope
+  reads about 10° of tilt and is at the limit; the vehicle's legs must take the
+  slope. The descent level may relax the tilt limit.

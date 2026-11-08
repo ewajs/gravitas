@@ -32,6 +32,7 @@ import {
   groundAltitude,
   SUN_DIRECTION,
   TERRAIN_SUN,
+  orbitSandbox,
   terrainSandbox,
 } from './orbital';
 import { landingReport } from './report';
@@ -111,8 +112,8 @@ let stopped = false;
 let destroyed = false;
 let lastOutcome = session.outcome.status;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-// In the sandbox, at the ground: there is no contact with it yet, so the flight
-// stays paused until restarted.
+// In the orbit sandbox without terrain, at the mean radius: there is no ground to
+// touch, so the flight stays paused until restarted.
 let surfaceReached = false;
 // The Moon's terrain once loaded (sandboxes only). Without it, the orbit sandbox
 // measures altitude from the mean radius and draws a smooth sphere.
@@ -309,7 +310,7 @@ function publish(): void {
     viewport?.setOrbitPath(orbitPath(session.state, session.time) ?? null);
   }
   hud.phase = session.phase;
-  hud.report = landingReport(session);
+  hud.report = landingReport(session, { pad: !sandbox });
   hud.telemetry = telemetry;
   // The lever shows the throttle actually applied, whichever device moved it.
   touchControls.throttle = session.throttle;
@@ -331,7 +332,13 @@ function draw(timestamp: number): void {
     const phase = session.phase;
     session.advance(elapsed, inputs.sample());
     if (inputs.activeDevice) useDevice(inputs.activeDevice);
-    if (sandbox && session.phase === 'flying' && groundAltitude(session.state, terrain) <= 0) {
+    // Without terrain to touch, reaching the mean radius pauses the orbit sandbox.
+    if (
+      sandbox &&
+      !session.scenario.environment.surface &&
+      session.phase === 'flying' &&
+      groundAltitude(session.state, terrain) <= 0
+    ) {
       surfaceReached = true;
       flightAction('pause');
       showNotice('surface');
@@ -631,10 +638,11 @@ async function start(): Promise<void> {
       console.error('Gravitas could not load the Moon terrain.', error);
     }
     if (destroyed) return;
-    if (terrainSandboxMode) {
-      session = new FlightSession(terrainSandbox(terrain!));
-      publish();
-    }
+    // Both sandboxes touch the terrain; without it, the orbit flies without ground.
+    session = new FlightSession(
+      terrainSandboxMode ? terrainSandbox(terrain!) : orbitSandbox(terrain),
+    );
+    publish();
   }
   if (sandbox) {
     viewport.setPlanet({

@@ -68,7 +68,8 @@ export interface LandingCheck {
 
 /** Final result explained to the player; decided by the host, presented by the HUD. */
 export interface LandingReport {
-  readonly verdict: 'landed' | 'landed-off-pad' | 'rough' | 'crashed';
+  /** `landed-no-pad`: a safe landing where there is no pad to aim for. */
+  readonly verdict: 'landed' | 'landed-off-pad' | 'landed-no-pad' | 'rough' | 'crashed';
   /** Why a crash happened. */
   readonly cause?: 'hull' | 'impact' | 'tipped';
   readonly checks: readonly LandingCheck[];

@@ -19,7 +19,7 @@
     "preview": "vite preview",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "lint": "eslint . --max-warnings 0",
-    "typecheck": "npm run typecheck --workspaces && tsc -p tsconfig.tools.json && tsc -p tests/browser/tsconfig.json",
+    "typecheck": "npm run typecheck --workspaces && tsc -p tsconfig.tools.json && tsc -p tests/browser/tsconfig.json && tsc -p tests/data/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",

@@ -100,7 +100,7 @@ export const ORBIT_SANDBOX: FlightScenario = {
   start: sandboxStart(),
   vehicle: LANDER,
   attitude: ATTITUDE,
-  // No surface yet: the terrain is drawn and touched from 5.4b.
+  // No surface: orbitSandbox adds the terrain once it has loaded.
   environment: bodyFixedEnvironment(MOON),
   limits: LANDING_LIMITS,
   orbit: { body: MOON, frame: 'body-fixed', railsFloor: RAILS_FLOOR },
@@ -113,15 +113,19 @@ export const TRANQUILITY_BASE = { latitude: toRadians(0.674), longitude: toRadia
 export const TERRAIN_HOP_HEIGHT = 300;
 
 /**
- * The terrain sandbox's start: the first lander hovering 300 m above Tranquility
- * Base, still relative to the ground, upright, facing north, with a full tank.
+ * The terrain sandbox's start: the first lander hovering `height` (300 m) above
+ * `site` (Tranquility Base), still relative to the ground, upright, facing north,
+ * with a full tank.
  */
-export function terrainStart(terrain: Terrain): FlightState {
-  const ground = surfaceToBodyFixed(MOON, { ...TRANQUILITY_BASE, altitude: 0 });
-  const height = terrainHeight(terrain, ground);
+export function terrainStart(
+  terrain: Terrain,
+  site: { readonly latitude: number; readonly longitude: number } = TRANQUILITY_BASE,
+  height = TERRAIN_HOP_HEIGHT,
+): FlightState {
+  const ground = surfaceToBodyFixed(MOON, { ...site, altitude: 0 });
   const place = {
-    ...TRANQUILITY_BASE,
-    altitude: height + TERRAIN_HOP_HEIGHT + CENTER_OF_MASS_HEIGHT,
+    ...site,
+    altitude: terrainHeight(terrain, ground) + height + CENTER_OF_MASS_HEIGHT,
   };
   return {
     position: surfaceToBodyFixed(MOON, place),
@@ -155,7 +159,19 @@ export const TERRAIN_SUN: Vector3 = (() => {
  * real ground, to see and fly the terrain before the descent level.
  */
 export function terrainSandbox(terrain: Terrain): FlightScenario {
-  return { ...ORBIT_SANDBOX, start: terrainStart(terrain) };
+  return { ...orbitSandbox(terrain), start: terrainStart(terrain) };
+}
+
+/**
+ * The orbit sandbox, touching the Moon's terrain when given (5.4c). Without it
+ * (the grid failed to load), there is no ground to touch.
+ */
+export function orbitSandbox(terrain?: Terrain): FlightScenario {
+  if (!terrain) return ORBIT_SANDBOX;
+  return {
+    ...ORBIT_SANDBOX,
+    environment: { ...ORBIT_SANDBOX.environment, surface: { kind: 'terrain', terrain } },
+  };
 }
 
 /** What the viewport draws for one frame, in a world centred on the vehicle. */

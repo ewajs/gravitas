@@ -418,6 +418,19 @@ bit-identical unless a step says otherwise.
         bit-identical; both browser suites. Local checks passed on 2026-11-08;
         see the [ADR 0012 amendment](decisions/0012-landing-outcomes.md) and
         [terrain contact verification](verification/terrain-contact.md).
+  - [x] **5.4 follow-up, terrain detail:** from the owner's review on
+        2026-11-08, flying low in orbit on desktop and iPhone: craters popped in
+        as tiles split, and crater rims zigzagged. Tiles now draw band-limited
+        detail (features fade in with size, rims round off to what the grid can
+        follow) and grow out of their parent's surface over 0.4 s; the finest
+        tiles go one level deeper so the ground under the legs keeps every
+        feature. Contact is unchanged, bit for bit. **Verify:** height changes
+        smoothly with resolution; a tile's morph targets lie on its parent's
+        drawn surface; screenshots before and after; both browser suites. Local
+        checks passed on 2026-11-08; see the ADR
+        [0021](decisions/0021-terrain.md) and
+        [0022](decisions/0022-terrain-rendering.md) amendments and
+        [terrain detail verification](verification/terrain-detail.md).
 - [ ] **5.5 Free landing from orbit:** a second level with its own vehicle. Two
       stacked PRs:
   - [ ] **5.5a Vehicle definitions and a descent vehicle:** a vehicle becomes

@@ -53,8 +53,10 @@ export interface SceneAccents {
   readonly sky: string;
   /** Landing pad ring and markings. */
   readonly pad: string;
-  /** Ring and drop line marking the ground below the vehicle. */
+  /** Ring and drop line marking the ground below the vehicle, and its map marker. */
   readonly marker: string;
+  /** Orbit line and its periapsis and apoapsis marks in the map view. */
+  readonly orbit: string;
 }
 
 /** One complete look: interface colours, type, shape, and scene accents. */
@@ -119,7 +121,7 @@ export const gravitasTheme: Theme = {
   },
   radius: 18,
   panelFilter: 'blur(16px) saturate(140%)',
-  scene: { sky: '#04060b', pad: '#4cc3e0', marker: '#eaf2fa' },
+  scene: { sky: '#04060b', pad: '#4cc3e0', marker: '#eaf2fa', orbit: '#4cc3e0' },
 };
 
 /** Every available theme, by id. One for now; more join this list. */

@@ -12,6 +12,14 @@ export const CHASE = {
   lowPolar: THREE.MathUtils.degToRad(66),
   highAltitude: 60,
   lowAltitude: 5,
+  /**
+   * From orbit there is no pad to look down on: between these altitudes the polar
+   * angle turns toward orbitPolar, showing the horizon and the sky. The flat site
+   * never reaches them.
+   */
+  orbitPolar: THREE.MathUtils.degToRad(76),
+  orbitFrom: 2_000,
+  orbitTo: 10_000,
   /** Exponential easing time constants toward the chase position. */
   azimuthTime: 0.6,
   polarTime: 0.8,
@@ -28,7 +36,14 @@ export function chasePolar(altitude: number): number {
     0,
     1,
   );
-  return THREE.MathUtils.lerp(CHASE.lowPolar, CHASE.highPolar, t);
+  const landing = THREE.MathUtils.lerp(CHASE.lowPolar, CHASE.highPolar, t);
+  if (altitude <= CHASE.orbitFrom) return landing;
+  const orbit = THREE.MathUtils.clamp(
+    (altitude - CHASE.orbitFrom) / (CHASE.orbitTo - CHASE.orbitFrom),
+    0,
+    1,
+  );
+  return THREE.MathUtils.lerp(landing, CHASE.orbitPolar, orbit);
 }
 
 /** Exponential approach toward a target angle along the shorter way round the circle. */

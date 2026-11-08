@@ -53,7 +53,7 @@ it('recolours the sky and pad, not the vehicle that shared the pad paint', () =>
         .join();
     const before = hull();
     expect((art.scene.background as Color).equals(new Color(DEFAULT_ACCENTS.sky))).toBe(true);
-    art.setAccents({ sky: '#04060b', pad: '#4cc3e0', marker: '#eaf2fa' });
+    art.setAccents({ sky: '#04060b', pad: '#4cc3e0', marker: '#eaf2fa', orbit: '#4cc3e0' });
     expect((art.scene.background as Color).equals(new Color('#04060b'))).toBe(true);
     expect(hull()).toBe(before);
   } finally {

@@ -56,7 +56,8 @@ through an altitude, and coast a whole state on rails
 ([ADR 0019](decisions/0019-orbits-and-time-warp.md)). `contactFacts` and the `Surface` seam report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
-with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render,
+with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render, planet (body, pose, sun,
+orbit path, and a chase or map camera; [ADR 0020](decisions/0020-planetary-view.md)),
 camera-reset, leg-compression, and actuator-effect operations. UI exposes
 `FlightHud`, `TouchControls` (on-screen lever, stick, and yaw buttons that emit
 plain values, never pilot input), explicit registration, telemetry/request/input
@@ -135,9 +136,9 @@ resize, and initialization failure without leaking resources.
 
 Engine state is float64 in every frame: at lunar distances one unit in the last
 place is under a nanometre, and a 100 km circular orbit integrated at 60 Hz closes
-to micrometres after a full period. Rendering is float32, so the viewport will
-draw relative to the camera (a floating origin) when planetary distances reach
-the screen (5.3). On-rails coasting uses Kepler's analytic solution
+to micrometres after a full period. Rendering is float32, so the host hands the
+viewport a world centred on the vehicle
+([ADR 0020](decisions/0020-planetary-view.md)). On-rails coasting uses Kepler's analytic solution
 ([ADR 0019](decisions/0019-orbits-and-time-warp.md)).
 
 ## Workers, saves, and reproduction
@@ -155,7 +156,11 @@ Fixed steps alone do not promise bit-identical results across browsers/platforms
 
 Three.js `WebGPURenderer`, WebGL 2 fallback, compatible materials, pinned versions.
 Keep a force-WebGL development/test path. Test both backends; WebGPU-only features
-require an explicit fallback policy before adoption.
+require an explicit fallback policy before adoption. Rendering is float32: around
+a planet the host's world centres on the vehicle, so only the distant body carries
+float32's coarse resolution, and the map is its own body-fixed scene
+([ADR 0020](decisions/0020-planetary-view.md)). Third-party assets and their terms
+are listed in [assets.md](assets.md).
 
 Lit and `@lit/localize`, native platform behavior, CSS custom properties generated
 from a typed theme (`@gravitas/ui/themes`); the page gets the same properties at

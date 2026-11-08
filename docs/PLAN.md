@@ -335,16 +335,34 @@ bit-identical unless a step says otherwise.
       opening's flights bit-identical. Local checks passed on 2026-11-07; see
       [ADR 0019](decisions/0019-orbits-and-time-warp.md) and
       [orbits verification](verification/orbits.md).
-- [ ] **5.3 Planetary-scale view and orbital instruments:** a lit Moon sphere,
-      camera-relative (floating-origin) rendering so float32 GPUs stay steady at
-      planetary distances, an orbit line, an orbit/map camera beside the chase
-      camera; HUD apoapsis, periapsis, time to each, orbital speed, and warp
-      controls on keyboard, gamepad, and touch, explaining why rails are refused.
-      A debug-only orbit sandbox (owner decision on 2026-11-07): the current
-      lander in lunar orbit behind `?debug` or a URL flag, not on the start card,
-      so orbits, warp, and the view can be tried on phones before 5.5.
-      **Verify:** no jitter at orbital distances on both backends; instrument
-      values against engine elements; phone layout tests still clear the centre.
+- [ ] **5.3 Planetary-scale view and orbital instruments:** the Moon seen from
+      orbit, a map of the whole Moon and the orbit, orbital readouts, and warp
+      controls; a debug-only orbit sandbox (owner decision on 2026-11-07) so all of
+      it can be tried on phones before 5.5. Owner decisions on 2026-11-07: NASA's
+      LROC colour map now rather than in 5.4; V switches to the map (gamepad
+      Select/Back, a ⋯ menu entry on phones), M stays mute. Two stacked PRs:
+  - [x] **5.3a Planetary view:** `Viewport.setPlanet` shows a sphere with the
+        LROC colour map instead of the flat site; the host's world centres on the
+        vehicle (+Y away from the centre) so float32 stays steady; a seeded
+        starfield; sunlight from a direction; the chase camera turning toward the
+        horizon above 2 km; a separate body-fixed map scene with its own camera,
+        the orbit line, and vehicle, periapsis, and apoapsis markers; an `orbit`
+        scene accent; the asset register and manual credits. **Verify:** sphere
+        UVs against body-fixed longitudes; star, orbit, and pose unit tests; a
+        browser test of the Moon from orbit, the map with its orbit, and the return
+        to the flat site on both backends; the opening pixel-identical to the
+        previous build with the camera settled, on both backends. Local checks
+        passed on 2026-11-07; see [ADR 0020](decisions/0020-planetary-view.md) and
+        [orbital view verification](verification/orbital-view.md).
+  - [ ] **5.3b Orbital instruments, warp controls, and the sandbox:** the game
+        expresses an orbital flight in a vehicle-centred frame each frame; HUD
+        apoapsis, periapsis, time to each, orbital speed, and altitude; warp on
+        keyboard (`,` and `.`), gamepad (D-pad left and right), and touch (a chip
+        beside pause), with messages for why rails are refused; V, Select/Back,
+        and the ⋯ menu for the map; `?scenario=orbit` puts the current lander in a
+        15 × 100 km orbit, not on the start card. **Verify:** readouts against
+        engine elements in both languages; warp and map on every input device;
+        phone layouts still clear the centre; both backends.
 - [ ] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
       public NASA elevation grid, with everything finer generated from a fixed
       seed, so any spot can be landed on. Owner decision on 2026-11-07: LDEM_4

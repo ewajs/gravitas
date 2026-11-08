@@ -17,12 +17,22 @@ export interface SceneAccents {
   readonly sky: string;
   /** Landing pad ring and markings. */
   readonly pad: string;
-  /** Ring and drop line marking the ground below the vehicle. */
+  /** Ring and drop line marking the ground below the vehicle, and its map marker. */
   readonly marker: string;
+  /** Orbit line and its periapsis and apoapsis marks in the map view. */
+  readonly orbit: string;
 }
 
 /** Accents drawn until a host supplies its own. */
-export const DEFAULT_ACCENTS: SceneAccents = { sky: '#080c14', pad: '#e5e7e5', marker: '#9fd4ff' };
+export const DEFAULT_ACCENTS: SceneAccents = {
+  sky: '#080c14',
+  pad: '#e5e7e5',
+  marker: '#9fd4ff',
+  orbit: '#4cc3e0',
+};
+
+/** Where the Sun is in the flat landing scene; a host may aim it with Viewport.setSunDirection. */
+export const DEFAULT_SUN = new THREE.Vector3(-8, 14, -6);
 
 /** A foot pad and its struts, redrawn as the leg compresses. */
 interface Leg {
@@ -129,25 +139,30 @@ export function createScene(centerOfMassHeight: number) {
   }
   const footEnd = new THREE.Vector3();
 
+  // The flat landing site: ground, pad, scatter, and the below-vehicle marker. It is
+  // hidden while a planet is shown (ADR 0020); a group at the origin draws exactly
+  // as the same objects added to the scene directly.
+  const site = new THREE.Group();
+  scene.add(site);
   // Large enough to stay under the vehicle throughout a local descent.
-  const ground = mesh(new THREE.CircleGeometry(600, 96), material(0x50555a), scene);
+  const ground = mesh(new THREE.CircleGeometry(600, 96), material(0x50555a), site);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = SURFACE_Y;
   ground.castShadow = false;
   // The pad is flush with the ground, as in the physics; only its markings are raised.
-  const pad = mesh(new THREE.CircleGeometry(PAD_RADIUS, 64), material(0x252d35), scene);
+  const pad = mesh(new THREE.CircleGeometry(PAD_RADIUS, 64), material(0x252d35), site);
   pad.rotation.x = -Math.PI / 2;
   pad.position.y = SURFACE_Y + 0.008;
   pad.castShadow = false;
   // Painted like the ascent stage by default, but its own material so a host can recolour it.
   const padPaint = material(DEFAULT_ACCENTS.pad, 0.3, 0.4);
-  const ring = mesh(new THREE.RingGeometry(2.9, 3.15, 64), padPaint, scene);
+  const ring = mesh(new THREE.RingGeometry(2.9, 3.15, 64), padPaint, site);
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = SURFACE_Y + 0.014;
   ring.castShadow = false;
   for (let i = 0; i < 8; i++) {
     const angle = (i * Math.PI) / 4;
-    const mark = mesh(new THREE.BoxGeometry(0.12, 0.006, 0.35), padPaint, scene);
+    const mark = mesh(new THREE.BoxGeometry(0.12, 0.006, 0.35), padPaint, site);
     mark.position.set(Math.sin(angle) * 3.45, SURFACE_Y + 0.014, Math.cos(angle) * 3.45);
     mark.rotation.y = angle;
   }
@@ -168,7 +183,7 @@ export function createScene(centerOfMassHeight: number) {
       field.setMatrixAt(i, placement.matrix);
     }
     field.receiveShadow = true;
-    scene.add(field);
+    site.add(field);
     return field;
   };
   // Inward-biased radius between `min` and `max` metres, at a random bearing.
@@ -215,7 +230,7 @@ export function createScene(centerOfMassHeight: number) {
     depthWrite: false,
   });
   materials.push(markerMaterial);
-  const marker = mesh(new THREE.RingGeometry(1.55, 1.8, 48), markerMaterial, scene);
+  const marker = mesh(new THREE.RingGeometry(1.55, 1.8, 48), markerMaterial, site);
   marker.rotation.x = -Math.PI / 2;
   marker.castShadow = marker.receiveShadow = false;
   const dropMaterial = new THREE.LineBasicNodeMaterial({
@@ -230,17 +245,18 @@ export function createScene(centerOfMassHeight: number) {
   ]);
   geometries.push(dropGeometry);
   const drop = new THREE.Line(dropGeometry, dropMaterial);
-  scene.add(drop);
+  site.add(drop);
 
   const effects = createEffects(vehicle, scene, SURFACE_Y);
 
   const sun = new THREE.DirectionalLight(0xfff1d8, 4);
-  sun.position.set(-8, 14, -6);
+  sun.position.copy(DEFAULT_SUN);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 0.5, far: 35 });
   sun.shadow.normalBias = 0.03;
-  scene.add(sun, new THREE.AmbientLight(0xc9d8f0, 0.4));
+  const ambient = new THREE.AmbientLight(0xc9d8f0, 0.4);
+  scene.add(sun, ambient);
 
   return {
     scene,
@@ -249,6 +265,10 @@ export function createScene(centerOfMassHeight: number) {
     feet: legs.map((leg) => leg.foot),
     /** The vehicle's drawn structure, without effects; tests measure it. */
     artwork,
+    /** The flat landing site, hidden while a planet is shown. */
+    site,
+    sun,
+    ambient,
     effects,
     /** Moves the below-vehicle marker; `altitude` is the feet's height above y = 0. */
     updateMarker(position: THREE.Vector3, altitude: number) {

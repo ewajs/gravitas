@@ -61,3 +61,9 @@ engine as the game.
 
 The game runs in English and Spanish (Argentina); you can switch language
 mid-flight without losing anything.
+
+## Credits
+
+The Moon's colour map is from NASA's Scientific Visualization Studio (CGI Moon
+Kit), built from the Lunar Reconnaissance Orbiter Camera's images. Gravitas's
+code and this manual are MIT-licensed.

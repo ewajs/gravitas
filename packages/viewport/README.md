@@ -1,8 +1,8 @@
 # @gravitas/viewport
 
 Three.js presentation library. It owns its canvas, chase camera, procedural
-artwork and surface detail, actuator effects, pose interpolation, resize observer,
-and GPU resources. The
+artwork and surface detail, a planet with a map view, actuator effects, pose
+interpolation, resize observer, and GPU resources. The
 host owns simulation state, vehicle poses, frame scheduling, and localization.
 
 ```ts
@@ -73,13 +73,40 @@ the screen.
 
 ## Scene accents
 
-`setAccents({ sky, pad, marker })` colours the scene's non-physical marks: the
-background behind the scene, the pad ring and markings, and the ring and drop line
-below the vehicle. Each is a CSS `#rrggbb` colour; anything else throws
+`setAccents({ sky, pad, marker, orbit })` colours the scene's non-physical marks:
+the background behind the scene (and the map), the pad ring and markings, the ring
+and drop line below the vehicle (and its map marker), and the map's orbit line with
+its periapsis and apoapsis marks. Each is a CSS `#rrggbb` colour; anything else throws
 `RangeError`. Hosts typically pass their interface theme's accents (the game passes
 `@gravitas/ui/themes`'s `gravitasTheme.scene`), so viewport never imports UI.
 Physical materials (regolith, rock, foil, flame, dust, sunlight) keep their own
 colours. Callable before `init()`; changes show on the next frame.
+
+## Planets and the map
+
+`setPlanet({ radius, surfaceMap })` shows a spherical body in place of the flat
+landing site (null brings the site back). The colour map is an equirectangular
+image URL, longitude −180° at the left edge and north at the top; it loads
+asynchronously and the body is grey until then.
+
+```ts
+viewport.setPlanet({ radius: 1_737_400, surfaceMap: '/moon/lroc-color-2k.jpg' });
+// Every frame, in the host's vehicle-centred world (+Y away from the centre):
+viewport.setPlanetPose({ centre, orientation }); // body centre; body-fixed → world rotation
+viewport.setSunDirection(towardSun); // any length
+viewport.setVehiclePose(current, previous);
+// When the orbit changes, in body-fixed metres:
+viewport.setOrbitPath({ points, closed: true, periapsis, apoapsis });
+viewport.setCameraMode('map'); // or 'chase'; the map needs a planet shown
+```
+
+Keep the vehicle near the world origin: Three.js draws in float32, which resolves
+only about 0.1 m at a moon's radius but micrometres near the origin. The chase
+camera, heading, and the flat site's conventions then still apply, and above 2 km
+the chase camera turns toward the horizon. The map is a separate scene in
+body-fixed coordinates (north up), with its own camera and orbit controls, a
+starfield, and markers for the vehicle, periapsis, and apoapsis
+([ADR 0020](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0020-planetary-view.md)).
 
 ## Effects
 

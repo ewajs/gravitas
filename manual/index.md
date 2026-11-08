@@ -65,3 +65,9 @@ interactivos que usan el mismo motor que el juego.
 
 El juego funciona en español (Argentina) e inglés; podés cambiar el idioma en
 pleno vuelo sin perder nada.
+
+## Créditos
+
+El mapa de color de la Luna es del Scientific Visualization Studio de la NASA (CGI
+Moon Kit), hecho con imágenes de la cámara del Lunar Reconnaissance Orbiter. El
+código de Gravitas y este manual tienen licencia MIT.

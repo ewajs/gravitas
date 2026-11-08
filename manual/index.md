@@ -69,5 +69,7 @@ pleno vuelo sin perder nada.
 ## Créditos
 
 El mapa de color de la Luna es del Scientific Visualization Studio de la NASA (CGI
-Moon Kit), hecho con imágenes de la cámara del Lunar Reconnaissance Orbiter. El
+Moon Kit), hecho con imágenes de la cámara del Lunar Reconnaissance Orbiter. Las
+alturas de la Luna son del altímetro láser LOLA del mismo orbitador (equipo LOLA
+del Goddard Space Flight Center de la NASA, vía el Planetary Data System). El
 código de Gravitas y este manual tienen licencia MIT.

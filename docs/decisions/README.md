@@ -26,3 +26,4 @@ does not imply implemented code.
 | [0018](0018-gravity-and-frames.md)           | Central-body gravity, a Moon-fixed rotating frame, conversions  | Implemented; not used by the game yet |
 | [0019](0019-orbits-and-time-warp.md)         | Orbits and time warp: physics warp, then Kepler rails           | Implemented; controls arrive in 5.3   |
 | [0020](0020-planetary-view.md)               | Planetary view: vehicle-centred world, separate map, colour map | Implemented; game uses it from 5.3b   |
+| [0021](0021-terrain.md)                      | Terrain: one height function from NASA's grid and seeded detail | Implemented; drawn from 5.4b          |

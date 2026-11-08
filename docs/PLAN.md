@@ -373,8 +373,12 @@ bit-identical unless a step says otherwise.
 - [ ] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
       public NASA elevation grid, with everything finer generated from a fixed
       seed, so any spot can be landed on. Owner decision on 2026-11-07: LDEM_4
-      only, no streamed higher-resolution tiles. Two stacked PRs:
-  - [ ] **5.4a Height model and contact:** a pure engine height function over the
+      only, no streamed higher-resolution tiles. Owner decisions on 2026-11-08:
+      altitude reads height above the ground below while apoapsis and periapsis
+      stay above the mean radius; boulders are bumps in the height function; the
+      opening hop keeps its flat pad; generated ground is deterministic per
+      browser, not bit-identical across browsers. Two stacked PRs:
+  - [x] **5.4a Height model and contact:** a pure engine height function over the
         sphere: the LRO LOLA LDEM_4 grid (about 7.6 km per sample, the whole Moon
         in roughly 2 MB) sampled smoothly, plus procedural detail below its
         resolution (craters following the lunar size–frequency distribution,
@@ -386,13 +390,18 @@ bit-identical unless a step says otherwise.
         asset with a provenance and licence note. **Verify:** sampling against the
         source grid; continuity at the poles and the date line; procedural detail
         identical across runs; contact reference cases on slopes; flat-ground
-        contact unchanged where the curvature is negligible.
+        contact unchanged where the curvature is negligible. Local checks passed on
+        2026-11-08; see [ADR 0021](decisions/0021-terrain.md) and
+        [terrain verification](verification/terrain.md).
   - [ ] **5.4b Terrain rendering:** a level-of-detail sphere built on a cube with
         a quadtree of tiles (detail grows near the camera), meshed from the same
         height function so what is drawn matches what the legs touch near the
         ground; tiles generated and released on demand, in a worker if profiling
-        asks for one; lighting with a low Sun so relief reads, and a Moon colour
-        map. A performance budget set from the 3.3 measurements and held on the
+        asks for one; lighting with a low Sun so relief reads, over the colour map
+        that 5.3a brought. Terrain contact in the orbit sandbox, and a debug-only
+        `?scenario=terrain` start (owner decision on 2026-11-08): the first lander
+        a few hundred metres above Tranquility Base with a full tank, to try the
+        ground on phones before 5.5. A performance budget set from the 3.3 measurements and held on the
         Galaxy A70 class: a first download of a few megabytes and fixed triangle
         and memory ceilings. **Verify:** `npm run measure` against the budget on
         both browsers; no gaps or cracks between tiles; drawn height against the
@@ -417,13 +426,15 @@ bit-identical unless a step says otherwise.
         with level-specific limits on vertical speed, horizontal speed, and tilt
         from the local vertical, and the lander must stay upright once settled, so
         a slope or a boulder field can tip it. Instruments for picking a spot:
-        local slope and roughness under the radar, and a ground-track marker.
-        Manual pages (es/en) and Learn material on orbits and descent.
+        local slope and roughness under the radar, a ground-track marker, and a
+        warning when periapsis is below the highest ground under the orbit. Manual
+        pages (es/en) and Learn material on orbits and descent.
         **Verify:** a scripted pilot flying from orbit to a landing on flat mare
         and failing on a steep crater wall; fuel use against the rocket equation;
         both browser suites.
 
-Polish, woven in between steps (about one step in five):
+Polish (owner decision on 2026-11-08: one polish step at the end of M5, none
+inside the feature PRs):
 
 - [ ] **5.p1 Phone fixes:** whatever the owner's on-device check of v0.3.1 on the
       iPhone 15 Pro and the Galaxy A70 turns up.

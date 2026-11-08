@@ -50,20 +50,21 @@ justified in the PR. Commit the lockfile.
 Use Node 24 (`nvm use`), then `npm ci` at the repository root. npm links the four
 workspaces locally; there is no package publishing or separate library build.
 
-| Command                                   | Does                                                        |
-| ----------------------------------------- | ----------------------------------------------------------- |
-| `npm run dev`                             | Vite development server; append `-- --host` for LAN testing |
-| `npm run check`                           | Format, lint, types, and the test runner; every PR          |
-| `npm run lint`                            | ESLint, including workspace boundaries; warnings fail       |
-| `npm run typecheck`                       | Strict TypeScript in each workspace and build/test config   |
-| `npm test` / `npm run test:watch`         | Vitest in Node; tests live beside source as `*.test.ts`     |
-| `npm run format` / `npm run format:check` | Write/check formatting                                      |
-| `npm run build` / `npm run preview`       | Build/serve game, developer docs, and manual in `dist`      |
-| `npm run build:game`                      | Build only the game (also used by local browser suites)     |
-| `npm run docs`                            | Generate library API references and developer guides        |
-| `npm run manual` / `npm run manual:dev`   | Build (with dead-link check) / serve the bilingual manual   |
-| `npm run measure`                         | Fly a workload on both browsers; report fps/work/draw calls |
-| `npm run icons`                           | Render the mark into favicons, app icons, and social image  |
+| Command                                   | Does                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `npm run dev`                             | Vite development server; append `-- --host` for LAN testing        |
+| `npm run check`                           | Format, lint, types, and the test runner; every PR                 |
+| `npm run lint`                            | ESLint, including workspace boundaries; warnings fail              |
+| `npm run typecheck`                       | Strict TypeScript in each workspace and build/test config          |
+| `npm test` / `npm run test:watch`         | Vitest in Node; beside source as `*.test.ts`, data in `tests/data` |
+| `npm run format` / `npm run format:check` | Write/check formatting                                             |
+| `npm run build` / `npm run preview`       | Build/serve game, developer docs, and manual in `dist`             |
+| `npm run build:game`                      | Build only the game (also used by local browser suites)            |
+| `npm run docs`                            | Generate library API references and developer guides               |
+| `npm run manual` / `npm run manual:dev`   | Build (with dead-link check) / serve the bilingual manual          |
+| `npm run measure`                         | Fly a workload on both browsers; report fps/work/draw calls        |
+| `npm run icons`                           | Render the mark into favicons, app icons, and social image         |
+| `npm run moon-data`                       | Download and check NASA's Moon elevation grid (committed)          |
 
 Vitest covers flight dynamics against independent references, two-body orbits and
 rotating frames against Kepler, vis-viva, and inertial-frame flight, frame

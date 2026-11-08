@@ -1,4 +1,4 @@
-import { contactFacts, MOON } from '@gravitas/engine';
+import { contactFacts, MOON, type Terrain } from '@gravitas/engine';
 import type { Viewport } from '@gravitas/viewport';
 import {
   registerUi,
@@ -29,7 +29,7 @@ import {
   orbitalScene,
   orbitPath,
   orbitTelemetry,
-  sphereAltitude,
+  groundAltitude,
 } from './orbital';
 import { landingReport } from './report';
 import { FIRST_DESCENT } from './scenario';
@@ -42,6 +42,7 @@ import {
 } from './session';
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
 import { flightTelemetry, orbitalFlightTelemetry } from './telemetry';
+import { loadMoonTerrain } from './terrain';
 // The theme's typefaces, self-hosted (OFL). Declared on the page: @font-face rules
 // do not apply inside the HUD's shadow root, but the faces they define do.
 import '@fontsource-variable/inter/wght.css';
@@ -99,9 +100,19 @@ let stopped = false;
 let destroyed = false;
 let lastOutcome = session.outcome.status;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-// In the sandbox, below the mean radius: there is no surface to land on yet, so
-// the flight stays paused until restarted.
+// In the sandbox, at the ground: there is no contact with it yet, so the flight
+// stays paused until restarted.
 let surfaceReached = false;
+// The Moon's terrain, once its elevation grid has downloaded (sandbox only); until
+// then altitude is measured from the mean radius.
+let terrain: Terrain | undefined;
+if (sandbox) {
+  loadMoonTerrain(import.meta.env.BASE_URL)
+    .then((loaded) => {
+      if (!destroyed) terrain = loaded;
+    })
+    .catch((error: unknown) => console.error('Gravitas could not load the Moon terrain.', error));
+}
 // Developer diagnostics only behind an explicit ?debug switch; zero cost otherwise.
 const diagnostics = parameters.has('debug')
   ? new DiagnosticsOverlay(document.querySelector('main')!)
@@ -277,7 +288,7 @@ function publish(): void {
     ? orbitalFlightTelemetry(
         orbitalScene(session.state, session.state, session.time).current,
         session.throttle,
-        Math.max(0, sphereAltitude(session.state)),
+        Math.max(0, groundAltitude(session.state, terrain)),
         localGravity(session.state),
         orbitTelemetry(session.state, session.time),
       )
@@ -309,7 +320,7 @@ function draw(timestamp: number): void {
     const phase = session.phase;
     session.advance(elapsed, inputs.sample());
     if (inputs.activeDevice) useDevice(inputs.activeDevice);
-    if (sandbox && session.phase === 'flying' && sphereAltitude(session.state) <= 0) {
+    if (sandbox && session.phase === 'flying' && groundAltitude(session.state, terrain) <= 0) {
       surfaceReached = true;
       flightAction('pause');
       showNotice('surface');

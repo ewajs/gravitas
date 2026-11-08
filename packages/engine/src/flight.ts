@@ -1,9 +1,11 @@
 import type { Vector3, VehiclePose } from './pose';
 import {
   contactLoads,
+  contactPlanes,
   validateContacts,
   validateSurface,
   type ContactPoint,
+  type GroundPlane,
   type Surface,
 } from './contact';
 import {
@@ -19,10 +21,12 @@ import {
   add,
   addScaled,
   addScaledQuaternion,
+  magnitude,
   multiplyQuaternions,
   normalizeQuaternion,
 } from './math';
 import { angularAcceleration, quaternionRate } from './rotation';
+import { terrainHeight, type Terrain } from './terrain';
 import { bounded, positive, unitQuaternion, vector } from './validation';
 
 /** Physical state owned by the host; all vectors are independent immutable snapshots. */
@@ -89,6 +93,13 @@ export const MAX_FLIGHT_STEP = 1 / 60;
 
 /** Contact springs are stiff: with a surface, RK4 substeps never exceed this, in seconds. */
 export const CONTACT_SUBSTEP = MAX_FLIGHT_STEP / 4;
+
+/**
+ * Terrain contact is sampled only when the ground below the centre of mass is
+ * within the contacts' reach plus the step's travel, allowing the ground nearby to
+ * rise up to this many metres per metre (about 76°) toward them.
+ */
+export const TERRAIN_SLOPE_BOUND = 4;
 
 const ZERO: Vector3 = { x: 0, y: 0, z: 0 };
 
@@ -158,14 +169,14 @@ function derivative(
   v: VehicleParameters,
   environment: FlightEnvironment,
   a: Actuation,
+  ground: Ground | undefined,
 ): FlightState {
   const q = s.orientation;
   const gravity = gravityAcceleration(environment.gravity, s.position);
   const mass = v.dryMass + Math.max(0, s.fuelMass);
-  const contact =
-    environment.surface && v.contacts
-      ? contactLoads(s, v.contacts, environment.surface)
-      : { force: ZERO, torque: ZERO };
+  const contact = ground
+    ? contactLoads(s, ground.contacts, ground.surface, ground.planes)
+    : { force: ZERO, torque: ZERO };
   const torque = add(a.torque, contact.torque);
   // Intermediate RK stages need a unit rotation for thrust, but q-dot uses the raw stage q.
   const normSquared = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
@@ -206,14 +217,56 @@ function inRotatingFrame(s: FlightState, d: FlightState, rotation: FrameRotation
   };
 }
 
+/** The ground contacts may touch during one step; terrain is held as per-point planes. */
+interface Ground {
+  readonly surface: Surface;
+  readonly contacts: readonly ContactPoint[];
+  readonly planes?: readonly GroundPlane[];
+}
+
+/** Whether a vehicle at `s` could reach the terrain within `h` seconds; see TERRAIN_SLOPE_BOUND. */
+function nearTerrain(
+  s: FlightState,
+  contacts: readonly ContactPoint[],
+  terrain: Terrain,
+  h: number,
+): boolean {
+  const reach = contacts.reduce(
+    (longest, point) => Math.max(longest, magnitude(point.position)),
+    0,
+  );
+  const travel = (magnitude(s.velocity) + magnitude(s.angularVelocity) * reach) * h;
+  const spread = reach + travel;
+  const r = magnitude(s.position);
+  if (r - spread > terrain.radius + terrain.maximumHeight) return false;
+  const clearance = r - terrain.radius - terrainHeight(terrain, s.position);
+  return clearance <= spread * (1 + TERRAIN_SLOPE_BOUND);
+}
+
+/** What contact can do this step, or undefined in free flight. */
+function groundFor(
+  s: FlightState,
+  v: VehicleParameters,
+  environment: FlightEnvironment,
+  h: number,
+): Ground | undefined {
+  const { surface } = environment;
+  const contacts = v.contacts;
+  if (!surface || !contacts?.length) return undefined;
+  if (surface.kind === 'flat') return { surface, contacts };
+  if (!nearTerrain(s, contacts, surface.terrain, h)) return undefined;
+  return { surface, contacts, planes: contactPlanes(s, contacts, surface.terrain) };
+}
+
 function rk4(
   s: FlightState,
   v: VehicleParameters,
   environment: FlightEnvironment,
   actuation: Actuation,
   h: number,
+  ground: Ground | undefined,
 ): FlightState {
-  const d = (state: FlightState) => derivative(state, v, environment, actuation);
+  const d = (state: FlightState) => derivative(state, v, environment, actuation, ground);
   const k1 = d(s);
   const k2 = d(advance(s, k1, h / 2));
   const k3 = d(advance(s, k2, h / 2));
@@ -229,11 +282,14 @@ function integrate(
   actuation: Actuation,
   h: number,
 ): FlightState {
-  // Equal substeps when contacts may act; free flight keeps a single step.
-  const substeps =
-    environment.surface && v.contacts?.length ? Math.ceil(h / CONTACT_SUBSTEP - 1e-9) : 1;
+  // Equal substeps when contacts may act; free flight keeps a single step. Terrain
+  // is sampled once under each contact at the start and held as planes.
+  const ground = groundFor(s, v, environment, h);
+  const substeps = ground ? Math.ceil(h / CONTACT_SUBSTEP - 1e-9) : 1;
   let next = s;
-  for (let n = 0; n < substeps; n++) next = rk4(next, v, environment, actuation, h / substeps);
+  for (let n = 0; n < substeps; n++) {
+    next = rk4(next, v, environment, actuation, h / substeps, ground);
+  }
   return {
     ...next,
     // Mass flow is constant within an interval, so the exact update is linear.
@@ -247,6 +303,8 @@ function integrate(
  * splits into a powered interval and an unpowered coast, ending with exactly zero
  * fuel. With an environment surface and vehicle contacts, spring-damper contact
  * forces act at each point and the step is integrated in CONTACT_SUBSTEP pieces.
+ * Terrain is sampled under each contact at the step's start and treated as that
+ * tangent plane for the step, and only when the ground is near (TERRAIN_SLOPE_BOUND).
  * With an environment rotation, the world frame turns relative to inertial space and
  * the Coriolis and centrifugal accelerations act.
  * Rejects invalid inputs or a timestep outside (0, MAX_FLIGHT_STEP].

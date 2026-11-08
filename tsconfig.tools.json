@@ -12,6 +12,7 @@
     "manual/.vitepress/learn/**/*.ts",
     "manual/.vitepress/theme/**/*.ts",
     "manual/.vitepress/shims.d.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "tests/data/**/*.ts"
   ]
 }

@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`hashing > is pinned: the same coordinates and seed always give the same value 1`] = `
+[
+  0,
+  4095856114,
+  1200724404,
+]
+`;

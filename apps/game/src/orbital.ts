@@ -5,6 +5,7 @@ import {
   bodyFixedToSurfaceFrame,
   bodyToWorld,
   conjugate,
+  heightAboveTerrain,
   inertialToBodyFixed,
   magnitude,
   MOON,
@@ -20,6 +21,7 @@ import {
   type Orbit,
   type OrbitalElements,
   type Quaternion,
+  type Terrain,
   type Vector3,
 } from '@gravitas/engine';
 import type { OrbitTelemetry } from '@gravitas/ui';
@@ -96,7 +98,7 @@ export const ORBIT_SANDBOX: FlightScenario = {
   start: sandboxStart(),
   vehicle: LANDER,
   attitude: ATTITUDE,
-  // No surface: contact with a sphere and terrain arrive in 5.4.
+  // No surface yet: the terrain is drawn and touched from 5.4b.
   environment: bodyFixedEnvironment(MOON),
   limits: LANDING_LIMITS,
   orbit: { body: MOON, frame: 'body-fixed', railsFloor: RAILS_FLOOR },
@@ -191,6 +193,16 @@ export function orbitTelemetry(state: FlightState, time: number): OrbitTelemetry
 /** Height of the centre of mass above the mean radius, less the feet's offset, in metres. */
 export function sphereAltitude(state: FlightState): number {
   return magnitude(state.position) - MOON.radius - CENTER_OF_MASS_HEIGHT;
+}
+
+/**
+ * The altitude readout: the feet's height above the ground straight below, like a
+ * landing radar, or above the mean radius until the terrain has loaded.
+ */
+export function groundAltitude(state: FlightState, terrain: Terrain | undefined): number {
+  return terrain
+    ? heightAboveTerrain(terrain, state.position) - CENTER_OF_MASS_HEIGHT
+    : sphereAltitude(state);
 }
 
 /** Gravity at a Moon-fixed position, in metres per second squared. */

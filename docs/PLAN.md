@@ -441,6 +441,32 @@ provenance when assets arrive.
 
 ## Releases
 
+### v0.4.0-preview — Into orbit (2026-11-08)
+
+A midpoint of M5 for trying orbits on real devices. The opening hop is
+unchanged: its scripted flights are bit-identical and its frames pixel-identical
+to v0.3.1. The descent level and terrain arrive before v0.4.0.
+
+- **Gravity and frames (5.1):** central gravity, the Moon's measured mass and
+  rotation, and Moon-fixed, inertial, and local surface frames with conversions.
+  See ADR 0018.
+- **Orbits and time warp (5.2):** orbital elements, Kepler propagation, and
+  session time warp: 2× and 4× with full physics, 10× to 1000× on Kepler rails
+  once the throttle is closed and rotation has stopped. See ADR 0019.
+- **Planetary view (5.3a):** the Moon drawn with NASA's LROC colour map, stars,
+  sunlight with a day–night line, a chase camera that turns to the horizon in
+  orbit, and a map of the whole Moon with the orbit and its high and low points.
+  See ADR 0020 and the new asset register.
+- **Orbit sandbox (5.3b):** `?scenario=orbit`, a developer preview not on the
+  start card: the first lander in a 15 × 100 km orbit, with apoapsis,
+  periapsis, time to each, and orbital speed; warp controls on keyboard (`,` and
+  `.`), gamepad (D-pad), and screen; and the map on V, Back, or the ⋯ menu.
+
+Known limits: there is no ground to land on around the Moon yet (reaching the
+mean radius pauses the flight), and the sandbox's draw cost on phones is
+unmeasured. On-device checks on the owner's iPhone 15 Pro and Galaxy A70 follow
+this release.
+
 ### v0.3.1 — Clear view on phones (2026-11-07)
 
 A phone HUD redesign after the first try on a real iPhone: the centre of the

@@ -16,7 +16,8 @@ changes over cleverness.
 6. The owner reviews and merges. Verify deployed behavior when deployment exists.
 
 Use conventional commit subjects. Tag milestone releases as `v0.N.0`, with a
-short release note in PLAN.md; patch releases cover intervening fixes. The first
+short release note in PLAN.md; patch releases cover intervening fixes. A
+`v0.N.0-preview` tag may mark a milestone's midpoint for on-device testing. The first
 documentation PR does not declare a software release.
 
 ## Code and cognitive ownership

@@ -179,7 +179,10 @@ understate an impact. Leg impact uses the larger of each leg's approach speed
 before and after the tick. Crashes are immediate (hull contact, then leg impact,
 then tipping); `landed` and `rough` wait until the vehicle has been still on all
 legs for `settleTime`. Values exactly at a limit pass. The record is plain data,
-so it serializes and tests with synthetic facts.
+so it serializes and tests with synthetic facts. Speeds and tilt are measured
+against world +Y unless the tick carries `up`, the local vertical as a world unit
+vector: on a body in its fixed frame, the direction away from the centre. `tiltFrom`
+measures tilt against any such vertical.
 
 `rateControlTorque` turns normalized rate requests in [−1, 1] into limited body
 torque. Zero input brakes rotation; it never auto-levels or cancels velocity.

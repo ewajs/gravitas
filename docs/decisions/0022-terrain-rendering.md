@@ -1,7 +1,7 @@
 # 0022. Terrain rendering: a cube-sphere quadtree meshed in a worker
 
-- Status: Implemented in 5.4b (viewport, terrain sandbox). Contact with the drawn
-  ground arrives in 5.4c.
+- Status: Implemented in 5.4b (viewport, terrain sandbox). The sandboxes touch the
+  drawn ground from 5.4c.
 - Date: 2026-11-08
 
 ## Decision
@@ -47,7 +47,8 @@ the legs touch.
 - **A terrain sandbox.** Owner decision on 2026-11-08: `?scenario=terrain` starts
   the first lander 300 m above Tranquility Base, still, upright, with a full
   tank, in a low morning Sun (12° from the east, like Apollo 11's), so the ground
-  can be tried on phones before 5.5. Until 5.4c, reaching the ground pauses.
+  can be tried on phones before 5.5. From 5.4c the lander touches the ground and
+  its touchdowns are judged.
 
 ## Measured
 
@@ -81,5 +82,5 @@ backends hold 60 fps on this machine.
   the Galaxy A70 measurement decides it.
 - Tiles pop to finer detail as they become ready; there is no morphing between
   levels. Revisit if it is distracting on device.
-- Dust, the ground ring, and the drop line still assume the flat site; around a
-  planet they stay off until contact (5.4c).
+- The ground ring and drop line belong to the flat site and stay off around a
+  planet; dust spreads on the terrain from 5.4c.

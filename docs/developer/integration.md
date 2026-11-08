@@ -51,8 +51,13 @@ Above that, the session coasts on rails along the Kepler orbit, which needs a
 on). Input, the floor, ground contact, pause, and restart return to 1×. `time` is
 simulated seconds since the start, including rails, and is the time the engine's
 frame conversions take ([ADR 0019](../decisions/0019-orbits-and-time-warp.md)).
-The opening has no `orbit`, so it offers physics warp only, and the game shows
-no warp control yet (5.3).
+The opening has no `orbit`; the game offers warp and the map only in the orbit
+sandbox (`?scenario=orbit`, `apps/game/src/orbital.ts`). There, each frame,
+`orbitalScene` re-expresses the current and previous Moon-fixed states in a frame
+centred on the vehicle (+Y away from the Moon), and places the Moon and the Sun in
+it for the viewport (`setPlanetPose`, `setSunDirection`); `orbitPath` and
+`orbitTelemetry` feed the map line and the HUD's orbit readouts at the 10 Hz
+publish rate ([ADR 0020](../decisions/0020-planetary-view.md)).
 
 ## 2. Attach input and the HUD
 

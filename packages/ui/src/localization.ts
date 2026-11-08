@@ -26,6 +26,10 @@ export function viewportMessages() {
     ),
     scene: msg('Un módulo lunar y su plataforma de aterrizaje.', { id: 'viewport-scene' }),
     subtitle: msg('Descenso lunar', { id: 'viewport-subtitle' }),
+    orbitScene: msg('Un módulo lunar en órbita alrededor de la Luna.', {
+      id: 'viewport-scene-orbit',
+    }),
+    orbitSubtitle: msg('Órbita lunar · prueba', { id: 'viewport-subtitle-orbit' }),
     controls: msg('W/S cabeceo · A/D alabeo · Q/E guiñada · R/F empuje · P pausa', {
       id: 'viewport-controls',
     }),

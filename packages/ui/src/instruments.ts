@@ -1,19 +1,23 @@
-import { html, nothing, type TemplateResult } from 'lit';
+import { html, nothing, svg, type TemplateResult } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { msg } from '@lit/localize';
 import { clamp, toDegrees } from '@gravitas/engine/math';
-import { numberFormats } from './format';
+import { formatDuration, numberFormats } from './format';
 import { icons } from './icons';
 import type { Locale } from './localization';
 import { RADAR_RADIUS, RADAR_SCALE, radarPoint } from './radar';
-import type { FlightTelemetry } from './types';
+import type { FlightTelemetry, OrbitTelemetry } from './types';
+
+/** From this altitude up, in metres, altitude reads in kilometres. */
+const ALTITUDE_IN_KM = 10_000;
 
 /** Full scale of the safe-sink scale under vertical speed, in m/s. */
 const SINK_SCALE = 10;
 
 /**
  * Two panels for one snapshot: readouts with the safe-sink scale and fuel on the
- * left; the landing radar, pad distance, and throttle on the right. Gauge levels
+ * left; the landing radar, the pad distance (or the orbit, around a body), and
+ * throttle on the right. Gauge levels
  * are CSS custom properties, so styles decide orientation and easing.
  */
 export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult {
@@ -32,7 +36,17 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
   const tooFast = t.safeSink !== undefined && sinking > t.safeSink;
   return html`<div class="panel flight-panel">
       <dl class="headline">
-        ${item('altitude', msg('Altitud', { id: 'altitude' }), decimal.format(t.altitude), 'm')}
+        ${
+          // Kilometres from 10 km up (orbit); metres for anything a landing sees.
+          t.altitude >= ALTITUDE_IN_KM
+            ? item(
+                'altitude',
+                msg('Altitud', { id: 'altitude' }),
+                decimal.format(t.altitude / 1000),
+                'km',
+              )
+            : item('altitude', msg('Altitud', { id: 'altitude' }), decimal.format(t.altitude), 'm')
+        }
         <div class=${tooFast ? 'too-fast' : ''}>
           <dt>
             ${msg('Vel. vertical', { id: 'vertical-speed' })}
@@ -83,14 +97,20 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
     <div class="panel navigation-panel">
       <div class="navigation">
         ${landingRadar(t)}
-        <dl class="pad-readout">
-          ${item(
-            'pad-distance',
-            msg('A la plataforma', { id: 'pad-distance' }),
-            decimal.format(t.padDistance),
-            'm',
-          )}
-        </dl>
+        ${
+          t.orbit
+            ? orbitReadout(t.orbit, locale)
+            : t.padDistance === undefined
+              ? nothing
+              : html`<dl class="pad-readout">
+                  ${item(
+                    'pad-distance',
+                    msg('A la plataforma', { id: 'pad-distance' }),
+                    decimal.format(t.padDistance),
+                    'm',
+                  )}
+                </dl>`
+        }
       </div>
       <div
         class="throttle"
@@ -113,6 +133,56 @@ export function instruments(t: FlightTelemetry, locale: Locale): TemplateResult 
         <span class="gauge-value" data-testid="throttle">${percent.format(t.throttle)}</span>
       </div>
     </div>`;
+}
+
+// Apoapsis and periapsis above the surface in kilometres, the time to each, and the
+// orbital speed. Phones show only the two heights, with short labels.
+function orbitReadout(orbit: OrbitTelemetry, locale: Locale): TemplateResult {
+  const { decimal, whole } = numberFormats(locale);
+  const km = (metres: number) =>
+    Number.isFinite(metres) ? decimal.format(metres / 1000) : msg('escape', { id: 'escape' });
+  const row = (
+    id: string,
+    label: string,
+    short: string,
+    value: string,
+    unit: string,
+    time: number | undefined,
+  ) =>
+    html`<div>
+      <dt>${labelPair(label, short)}</dt>
+      <dd data-testid=${id}>
+        ${value}${unit ? html`<span class="unit"> ${unit}</span>` : nothing}${
+          time === undefined
+            ? nothing
+            : html`<span class="time" data-testid="${id}-time"> · ${formatDuration(time)}</span>`
+        }
+      </dd>
+    </div>`;
+  return html`<dl class="orbit-readout">
+    ${row(
+      'apoapsis',
+      msg('Apoapsis', { id: 'apoapsis' }),
+      msg('Ap', { id: 'apoapsis-short' }),
+      km(orbit.apoapsis),
+      Number.isFinite(orbit.apoapsis) ? 'km' : '',
+      orbit.timeToApoapsis,
+    )}
+    ${row(
+      'periapsis',
+      msg('Periapsis', { id: 'periapsis' }),
+      msg('Pe', { id: 'periapsis-short' }),
+      km(orbit.periapsis),
+      'km',
+      orbit.timeToPeriapsis,
+    )}
+    <div class="secondary">
+      <dt>${msg('Vel. orbital', { id: 'orbital-speed' })}</dt>
+      <dd data-testid="orbital-speed">
+        ${whole.format(orbit.speed)}<span class="unit"> m/s</span>
+      </dd>
+    </div>
+  </dl>`;
 }
 
 // Full and short label: styles show one (the full one stays for assistive technology).
@@ -151,7 +221,8 @@ function sinkScale(safe: number, sinking: number, tooFast: boolean, locale: Loca
 function landingRadar(t: FlightTelemetry): TemplateResult {
   const lean = radarPoint(t.lean, RADAR_SCALE.lean);
   const drift = radarPoint(t.drift, RADAR_SCALE.drift);
-  const pad = radarPoint(t.pad, RADAR_SCALE.pad);
+  // No pad around a body (yet): the radar shows lean and drift only.
+  const pad = t.pad ? radarPoint(t.pad, RADAR_SCALE.pad) : undefined;
   const driftLength = Math.hypot(drift.x, drift.y);
   const angle = toDegrees(Math.atan2(drift.y, drift.x));
   const r = RADAR_RADIUS;
@@ -170,14 +241,18 @@ function landingRadar(t: FlightTelemetry): TemplateResult {
       <circle class="ring" r=${r / 3}></circle>
       <path class="cross" d="M${-r} 0H${r}M0 ${-r}V${r}"></path>
       <path class="forward" d="M0 ${-r - 6} L4 ${-r + 1} L-4 ${-r + 1} Z"></path>
-      <path
-        class="pad ${pad.clamped ? 'far' : ''}"
-        data-testid="radar-pad"
-        data-x=${pad.x.toFixed(1)}
-        data-y=${pad.y.toFixed(1)}
-        style=${at(pad)}
-        d="M0 -6 L6 0 L0 6 L-6 0 Z"
-      ></path>
+      ${
+        pad
+          ? svg`<path
+              class="pad ${pad.clamped ? 'far' : ''}"
+              data-testid="radar-pad"
+              data-x=${pad.x.toFixed(1)}
+              data-y=${pad.y.toFixed(1)}
+              style=${at(pad)}
+              d="M0 -6 L6 0 L0 6 L-6 0 Z"
+            ></path>`
+          : nothing
+      }
       <g
         data-testid="radar-drift"
         data-x=${drift.x.toFixed(1)}
@@ -203,7 +278,13 @@ function landingRadar(t: FlightTelemetry): TemplateResult {
     <figcaption aria-hidden="true">
       <span><span class="swatch lean"></span>${msg('Inclinación', { id: 'tilt' })}</span>
       <span><span class="swatch drift"></span>${msg('Deriva', { id: 'legend-drift' })}</span>
-      <span><span class="swatch pad"></span>${msg('Plataforma', { id: 'legend-pad' })}</span>
+      ${
+        pad
+          ? html`<span
+              ><span class="swatch pad"></span>${msg('Plataforma', { id: 'legend-pad' })}</span
+            >`
+          : nothing
+      }
     </figcaption>
   </figure>`;
 }

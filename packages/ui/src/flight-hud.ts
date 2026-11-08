@@ -11,6 +11,7 @@ import { uiTokens } from './tokens';
 import { TouchControls } from './touch-controls';
 import type {
   AppearanceRequest,
+  FlightNotice,
   FlightPhase,
   FlightRequest,
   FlightTelemetry,
@@ -19,12 +20,16 @@ import type {
   LocaleRequest,
   SoundRequest,
   TouchControlsMode,
+  ViewRequest,
+  WarpRequest,
 } from './types';
 
 /** Optional flight HUD. Receives presentation snapshots; owns no renderer or simulation. */
 export class FlightHud extends LitElement {
   /** Branding supplied by the application. */
   @property() heading = '';
+  /** The flight's subtitle under the heading; the localized "Lunar descent" when empty. */
+  @property() subtitle = '';
   /** Latest immutable telemetry snapshot, never authoritative flight state. */
   @property({ attribute: false }) telemetry?: FlightTelemetry;
   /** Current session phase owned by the application. */
@@ -73,6 +78,20 @@ export class FlightHud extends LitElement {
    */
   @property({ type: Boolean, reflect: true, attribute: 'reduce-transparency' })
   reduceTransparency = false;
+
+  /**
+   * Time-warp factor, shown beside the slower and faster buttons when
+   * `warpAvailable`. The host decides it; the buttons request a change.
+   */
+  @property({ type: Number }) warp = 1;
+  /** Whether this flight offers time warp (flights around a body). */
+  @property({ type: Boolean }) warpAvailable = false;
+  /** Whether this flight offers the map view; a button (⋯ menu on phones) toggles it. */
+  @property({ type: Boolean }) mapAvailable = false;
+  /** The camera the host is showing. */
+  @property() camera: 'chase' | 'map' = 'chase';
+  /** A short message the host shows, then clears; see {@link FlightNotice}. */
+  @property() notice: FlightNotice | '' = '';
 
   /** Whether the phone menu (⋯) is open; mirrors its popover for `aria-expanded`. */
   @state() private menuOpen = false;
@@ -123,6 +142,49 @@ export class FlightHud extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private requestWarp(direction: 1 | -1) {
+    this.dispatchEvent(
+      new CustomEvent<WarpRequest>('warp-request', {
+        detail: { direction },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private toggleView() {
+    this.dispatchEvent(
+      new CustomEvent<ViewRequest>('view-request', {
+        detail: { camera: this.camera === 'map' ? 'chase' : 'map' },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private mapFromMenu() {
+    this.closeMenu();
+    this.toggleView();
+  }
+
+  private noticeText(): string {
+    switch (this.notice) {
+      case 'warp-throttle':
+        return msg('Cerrá el empuje para acelerar más el tiempo.', { id: 'notice-warp-throttle' });
+      case 'warp-rotation':
+        return msg('Frená el giro para acelerar más el tiempo.', { id: 'notice-warp-rotation' });
+      case 'warp-altitude':
+        return msg('Demasiado bajo para acelerar más el tiempo.', { id: 'notice-warp-altitude' });
+      case 'surface':
+        return msg(
+          'Llegaste a la superficie. Aterrizar desde la órbita llega con el terreno; reiniciá para volver a la órbita.',
+          { id: 'notice-surface' },
+        );
+      default:
+        return '';
+    }
   }
 
   private requestAppearance(detail: AppearanceRequest) {
@@ -223,6 +285,21 @@ export class FlightHud extends LitElement {
     const toggle = flying ? msg('Pausar', { id: 'pause' }) : msg('Reanudar', { id: 'resume' });
     const restart = msg('Reiniciar', { id: 'restart' });
     return html`<div class="actions">
+      ${this.warpAvailable ? this.warpStepper() : nothing}
+      ${
+        this.mapAvailable
+          ? html`<button
+              class="icon view"
+              @click=${this.toggleView}
+              aria-pressed=${this.camera === 'map' ? 'true' : 'false'}
+              aria-label=${msg('Mapa', { id: 'map-view' })}
+              title=${msg('Mapa', { id: 'map-view' })}
+              aria-keyshortcuts="V"
+            >
+              ${icons.map()}
+            </button>`
+          : nothing
+      }
       <button
         class="icon"
         @click=${() => this.request(flying ? 'pause' : 'resume')}
@@ -240,6 +317,40 @@ export class FlightHud extends LitElement {
         aria-keyshortcuts="Enter"
       >
         ${icons.restart()}
+      </button>
+    </div>`;
+  }
+
+  // Slower, the current factor, faster. The factor is a live region: a refused or
+  // automatic return to real time is announced.
+  private warpStepper() {
+    const slower = msg('Tiempo más lento', { id: 'warp-slower' });
+    const faster = msg('Tiempo más rápido', { id: 'warp-faster' });
+    return html`<div
+      class="warp"
+      role="group"
+      aria-label=${msg('Aceleración del tiempo', { id: 'warp' })}
+    >
+      <button
+        class="icon"
+        @click=${() => this.requestWarp(-1)}
+        ?disabled=${this.warp <= 1}
+        aria-label=${slower}
+        title=${slower}
+        aria-keyshortcuts=","
+      >
+        ${icons.slower()}
+      </button>
+      <output class="warp-level" data-testid="warp" aria-live="polite">×${this.warp}</output>
+      <button
+        class="icon"
+        @click=${() => this.requestWarp(1)}
+        ?disabled=${this.phase !== 'flying'}
+        aria-label=${faster}
+        title=${faster}
+        aria-keyshortcuts="."
+      >
+        ${icons.faster()}
       </button>
     </div>`;
   }
@@ -300,6 +411,18 @@ export class FlightHud extends LitElement {
               </button>`
             : nothing
         }
+        ${
+          this.mapAvailable
+            ? html`<button
+                class="menu-item"
+                @click=${this.mapFromMenu}
+                aria-pressed=${this.camera === 'map' ? 'true' : 'false'}
+                aria-keyshortcuts="V"
+              >
+                ${icons.map()}<span>${msg('Mapa', { id: 'map-view' })}</span>
+              </button>`
+            : nothing
+        }
         <button class="menu-item" @click=${this.helpFromMenu} aria-haspopup="dialog">
           ${icons.help()}<span>${help}</span>
         </button>
@@ -325,7 +448,7 @@ export class FlightHud extends LitElement {
           </div>
           <p class="mission">
             <span class="dot ${this.phase}" aria-hidden="true"></span>
-            <span id="subtitle">${text.subtitle}</span>
+            <span id="subtitle">${this.subtitle || text.subtitle}</span>
           </p>
         </div>
         ${this.flightActions()}
@@ -371,6 +494,9 @@ export class FlightHud extends LitElement {
               >
                 <p id="phase" role="status" class="${quiet ? 'sr' : ''} ${this.phase}">
                   ${message}
+                </p>
+                <p id="notice" role="status" class="notice ${this.notice ? '' : 'sr'}">
+                  ${this.noticeText()}
                 </p>
                 ${this.phase === 'ready' && this.showControls ? quickCard(this.heading, this.inputDevice) : nothing}
                 ${
@@ -447,6 +573,7 @@ export class FlightHud extends LitElement {
         this.inputDevice,
         () => this.closeHelp(),
         (request) => this.requestAppearance(request),
+        this.warpAvailable,
       )}
     `;
   }

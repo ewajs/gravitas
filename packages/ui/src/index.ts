@@ -4,6 +4,7 @@ export { FlightHud, registerUi } from './flight-hud';
 export { TouchControls } from './touch-controls';
 export type {
   AppearanceRequest,
+  FlightNotice,
   FlightPhase,
   FlightRequest,
   FlightTelemetry,
@@ -13,8 +14,11 @@ export type {
   LeverInput,
   RadarVector,
   LocaleRequest,
+  OrbitTelemetry,
   SoundRequest,
   StickInput,
   TouchControlsMode,
+  ViewRequest,
+  WarpRequest,
   YawInput,
 } from './types';

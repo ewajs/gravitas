@@ -1,15 +1,18 @@
-import { contactFacts } from '@gravitas/engine';
+import { contactFacts, MOON } from '@gravitas/engine';
 import type { Viewport } from '@gravitas/viewport';
 import {
   registerUi,
   setLocale,
   viewportMessages,
   type AppearanceRequest,
+  type FlightNotice,
   type FlightRequest,
   type InputDevice,
   type Locale,
   type LocaleRequest,
   type SoundRequest,
+  type ViewRequest,
+  type WarpRequest,
 } from '@gravitas/ui';
 import { gravitasTheme } from '@gravitas/ui/themes';
 import { FlightAudio } from './audio';
@@ -20,11 +23,25 @@ import { TouchControlsSource } from './touch';
 import { blockPageZoom } from './zoom';
 import { PilotInputs, type InputCommand } from './input';
 import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
+import {
+  localGravity,
+  ORBIT_SANDBOX,
+  orbitalScene,
+  orbitPath,
+  orbitTelemetry,
+  sphereAltitude,
+} from './orbital';
 import { landingReport } from './report';
-import { ENVIRONMENT, FIRST_DESCENT } from './scenario';
-import { FlightSession, isVerdict, type SessionPhase } from './session';
+import { FIRST_DESCENT } from './scenario';
+import {
+  FlightSession,
+  isVerdict,
+  WARP_LEVELS,
+  type RailsBlocker,
+  type SessionPhase,
+} from './session';
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
-import { flightTelemetry } from './telemetry';
+import { flightTelemetry, orbitalFlightTelemetry } from './telemetry';
 // The theme's typefaces, self-hosted (OFL). Declared on the page: @font-face rules
 // do not apply inside the HUD's shadow root, but the faces they define do.
 import '@fontsource-variable/inter/wght.css';
@@ -33,13 +50,18 @@ import './style.css';
 
 /** Instruments refresh at 10 Hz; phase changes publish immediately. */
 const TELEMETRY_INTERVAL_MS = 100;
+/** How long a notice (such as a refused warp) stays, in milliseconds. */
+const NOTICE_MS = 3500;
 
 registerUi();
 const host = document.querySelector<HTMLDivElement>('#viewport')!;
 const hud = document.querySelector('gravitas-flight-hud')!;
 const touchControls = document.querySelector('gravitas-touch-controls')!;
 const parameters = new URLSearchParams(location.search);
-const session = new FlightSession(FIRST_DESCENT);
+// ?scenario=orbit: the orbit sandbox (5.3b), reached only by URL, not the start card.
+const sandbox = parameters.get('scenario') === 'orbit';
+const scenario = sandbox ? ORBIT_SANDBOX : FIRST_DESCENT;
+const session = new FlightSession(scenario);
 // Every input source reports commands to one handler; held input merges per frame.
 const inputs = new PilotInputs([
   new KeyboardControls(window, inputCommand),
@@ -76,12 +98,18 @@ let lastPublished = -Infinity;
 let stopped = false;
 let destroyed = false;
 let lastOutcome = session.outcome.status;
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+// In the sandbox, below the mean radius: there is no surface to land on yet, so
+// the flight stays paused until restarted.
+let surfaceReached = false;
 // Developer diagnostics only behind an explicit ?debug switch; zero cost otherwise.
 const diagnostics = parameters.has('debug')
   ? new DiagnosticsOverlay(document.querySelector('main')!)
   : undefined;
 
 hud.heading = 'Gravitas';
+hud.warpAvailable = sandbox;
+hud.mapAvailable = sandbox;
 hud.muted = settings.muted;
 hud.showControls = !settings.controlsSeen;
 hud.reduceTransparency = settings.reduceTransparency;
@@ -198,12 +226,66 @@ function gamepadConnection(connected: boolean): void {
 
 // Presentation only: how far each foot is pressed into the surface, in artwork order.
 function legCompression(): number[] {
-  return contactFacts(session.state, FEET, ENVIRONMENT.surface!).map((fact) => fact.penetration);
+  const surface = scenario.environment.surface;
+  if (!surface) return [0, 0, 0, 0];
+  return contactFacts(session.state, FEET, surface).map((fact) => fact.penetration);
+}
+
+// Shows a notice for a moment (a refused warp) or until cleared (the surface).
+function showNotice(notice: FlightNotice | ''): void {
+  clearTimeout(noticeTimer);
+  hud.notice = notice;
+  if (notice && notice !== 'surface') noticeTimer = setTimeout(() => (hud.notice = ''), NOTICE_MS);
+}
+
+const BLOCKED: Record<RailsBlocker, FlightNotice | ''> = {
+  'no-orbit': '',
+  'not-flying': '',
+  throttle: 'warp-throttle',
+  rotation: 'warp-rotation',
+  altitude: 'warp-altitude',
+};
+
+// One step faster or slower through WARP_LEVELS; a refused rails warp says why.
+function changeWarp(direction: 1 | -1): void {
+  if (!sandbox || session.phase !== 'flying') return;
+  const next = WARP_LEVELS[WARP_LEVELS.indexOf(session.warp) + direction];
+  if (next === undefined) return;
+  if (session.requestWarp(next)) showNotice('');
+  else showNotice(BLOCKED[session.railsBlocker ?? 'no-orbit']);
+  hud.warp = session.warp;
+}
+
+// The chase camera or the map; only around a body.
+function setCamera(camera: 'chase' | 'map'): void {
+  if (!sandbox || !viewport) return;
+  if (viewport.setCameraMode(camera)) hud.camera = camera;
+}
+
+// The vehicle-centred poses, the Moon, and the Sun for this frame (sandbox only).
+function placeOrbitalScene(): void {
+  if (!viewport) return;
+  const scene = orbitalScene(session.state, session.previous, session.time);
+  viewport.setPlanetPose(scene.planet);
+  viewport.setSunDirection(scene.sun);
+  viewport.setVehiclePose(scene.current, scene.previous);
 }
 
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
-  const telemetry = flightTelemetry(session.state, session.throttle);
+  const telemetry = sandbox
+    ? orbitalFlightTelemetry(
+        orbitalScene(session.state, session.state, session.time).current,
+        session.throttle,
+        Math.max(0, sphereAltitude(session.state)),
+        localGravity(session.state),
+        orbitTelemetry(session.state, session.time),
+      )
+    : flightTelemetry(session.state, session.throttle);
+  if (sandbox) {
+    hud.warp = session.warp;
+    viewport?.setOrbitPath(orbitPath(session.state, session.time) ?? null);
+  }
   hud.phase = session.phase;
   hud.report = landingReport(session);
   hud.telemetry = telemetry;
@@ -227,7 +309,13 @@ function draw(timestamp: number): void {
     const phase = session.phase;
     session.advance(elapsed, inputs.sample());
     if (inputs.activeDevice) useDevice(inputs.activeDevice);
-    viewport?.setVehiclePose(session.state, session.previous);
+    if (sandbox && session.phase === 'flying' && sphereAltitude(session.state) <= 0) {
+      surfaceReached = true;
+      flightAction('pause');
+      showNotice('surface');
+    }
+    if (sandbox) placeOrbitalScene();
+    else viewport?.setVehiclePose(session.state, session.previous);
     viewport?.setLegCompression(legCompression());
     viewport?.setActuators(session.actuation);
     viewport?.render(session.alpha);
@@ -293,6 +381,8 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   }
   // Starting or resuming begins timing at the next frame: wall time before it (such
   // as the first gesture creating the audio context) is never simulated.
+  // Below the surface in the sandbox, only a restart continues.
+  if (action === 'resume' && surfaceReached) return;
   if (action === 'start' || action === 'resume') lastFrame = undefined;
   if (action === 'start') {
     session.start();
@@ -305,8 +395,11 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
   } else if (action === 'restart') {
     session.restart();
     inputs.clear();
+    surfaceReached = false;
+    showNotice('');
     // The vehicle teleports back to the opening; do not ease the camera across it.
-    viewport?.setVehiclePose(session.state);
+    if (sandbox) placeOrbitalScene();
+    else viewport?.setVehiclePose(session.state);
     viewport?.resetCamera();
     lastOutcome = session.outcome.status;
   }
@@ -321,6 +414,9 @@ function inputCommand(command: InputCommand): void {
   if (command === 'toggle-mute') setMuted(!settings.muted);
   else if (command === 'toggle-pause') flightAction('toggle');
   else if (command === 'restart') flightAction('restart');
+  else if (command === 'warp-faster') changeWarp(1);
+  else if (command === 'warp-slower') changeWarp(-1);
+  else if (command === 'toggle-map') setCamera(hud.camera === 'map' ? 'chase' : 'map');
   else {
     // Confirm (the gamepad's A): start, resume, or try again; nothing while flying.
     const confirmed: Record<SessionPhase, FlightRequest['action'] | undefined> = {
@@ -352,6 +448,16 @@ function appearanceRequested(event: Event): void {
 function soundRequested(event: Event): void {
   const muted = (event as CustomEvent<SoundRequest>).detail?.muted;
   if (typeof muted === 'boolean') setMuted(muted);
+}
+
+function warpRequested(event: Event): void {
+  const direction = (event as CustomEvent<WarpRequest>).detail?.direction;
+  if (!stopped && (direction === 1 || direction === -1)) changeWarp(direction);
+}
+
+function viewRequested(event: Event): void {
+  const camera = (event as CustomEvent<ViewRequest>).detail?.camera;
+  if (!stopped && (camera === 'chase' || camera === 'map')) setCamera(camera);
 }
 
 function flightRequested(event: Event): void {
@@ -393,6 +499,9 @@ function destroy(): void {
   hud.removeEventListener('flight-request', flightRequested);
   hud.removeEventListener('sound-request', soundRequested);
   hud.removeEventListener('appearance-request', appearanceRequested);
+  hud.removeEventListener('warp-request', warpRequested);
+  hud.removeEventListener('view-request', viewRequested);
+  clearTimeout(noticeTimer);
   window.removeEventListener('blur', windowBlurred);
   window.removeEventListener('pagehide', pageHidden);
   window.removeEventListener('pointerdown', pointerDown, true);
@@ -434,7 +543,9 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     // The manual is a separate static build under the same base: /manual/ or /manual/en/.
     hud.manualHref = `${import.meta.env.BASE_URL}manual/${locale === 'en' ? 'en/' : ''}`;
     document.documentElement.lang = locale;
-    if (viewport && !stopped) viewport.setLabel(viewportMessages().scene);
+    const messages = viewportMessages();
+    if (sandbox) hud.subtitle = messages.orbitSubtitle;
+    if (viewport && !stopped) viewport.setLabel(sandbox ? messages.orbitScene : messages.scene);
     if (updateUrl) {
       updateSettings({ locale });
       const url = new URL(location.href);
@@ -459,6 +570,8 @@ hud.addEventListener('locale-request', localeRequested);
 hud.addEventListener('flight-request', flightRequested);
 hud.addEventListener('sound-request', soundRequested);
 hud.addEventListener('appearance-request', appearanceRequested);
+hud.addEventListener('warp-request', warpRequested);
+hud.addEventListener('view-request', viewRequested);
 // Capture phase: unlock before any handler, including the first flight key.
 window.addEventListener('keydown', unlockAudio, true);
 window.addEventListener('pointerdown', unlockAudio, true);
@@ -479,12 +592,19 @@ async function start(): Promise<void> {
   viewport = new Viewport({
     container: host,
     centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
-    label: viewportMessages().scene,
+    label: sandbox ? viewportMessages().orbitScene : viewportMessages().scene,
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });
   // Scene marks match the interface; physical materials keep their own colours.
   viewport.setAccents(gravitasTheme.scene);
-  viewport.setVehiclePose(session.state);
+  if (sandbox) {
+    viewport.setPlanet({
+      radius: MOON.radius,
+      surfaceMap: `${import.meta.env.BASE_URL}moon/lroc-color-2k.jpg`,
+    });
+    placeOrbitalScene();
+    viewport.setOrbitPath(orbitPath(session.state, session.time) ?? null);
+  } else viewport.setVehiclePose(session.state);
   await viewport.init();
   if (destroyed) return;
   host.dataset.backend = viewport.backend!;

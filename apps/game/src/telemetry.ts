@@ -7,7 +7,7 @@ import {
   type Vector3,
   type VehiclePose,
 } from '@gravitas/engine';
-import type { FlightTelemetry, RadarVector } from '@gravitas/ui';
+import type { FlightTelemetry, OrbitTelemetry, RadarVector } from '@gravitas/ui';
 import { FEET, LANDER } from './lander';
 import { safeSinkRate } from './rules';
 import { PAD_POSITION, padDistance, SURFACE_GRAVITY } from './scenario';
@@ -59,5 +59,34 @@ export function flightTelemetry(state: FlightState, throttle: number): FlightTel
       y: 0,
       z: PAD_POSITION.z - state.position.z,
     }),
+  };
+}
+
+/**
+ * Presentation snapshot around a body, from the state in the vehicle-centred
+ * frame (+Y away from the centre): speeds are relative to the ground, altitude is
+ * the feet over the reference sphere, hover throttle uses local gravity, and the
+ * orbit replaces the pad. No safe-sink hint: there is no surface model here yet.
+ */
+export function orbitalFlightTelemetry(
+  local: FlightState,
+  throttle: number,
+  altitude: number,
+  gravity: number,
+  orbit: OrbitTelemetry | undefined,
+): FlightTelemetry {
+  const q = local.orientation;
+  const mass = LANDER.dryMass + local.fuelMass;
+  return {
+    altitude,
+    verticalSpeed: local.velocity.y,
+    horizontalSpeed: Math.hypot(local.velocity.x, local.velocity.z),
+    tilt: tiltAngle(q),
+    fuel: local.fuelMass / LANDER.fuelCapacity,
+    throttle,
+    hoverThrottle: (mass * gravity) / LANDER.maxThrust,
+    lean: headingFrame(q, bodyToWorld(q, { x: 0, y: 1, z: 0 })),
+    drift: headingFrame(q, local.velocity),
+    ...(orbit ? { orbit } : {}),
   };
 }

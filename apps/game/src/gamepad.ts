@@ -16,7 +16,10 @@ const LB = 4;
 const RB = 5;
 const LT = 6;
 const RT = 7;
+const BACK = 8;
 const START = 9;
+const DPAD_LEFT = 14;
+const DPAD_RIGHT = 15;
 const RIGHT_X = 2;
 const RIGHT_Y = 3;
 
@@ -153,8 +156,14 @@ export class GamepadControls implements InputSource {
     // Read both before acting: a command may clear this source.
     const start = fresh(START);
     const confirm = fresh(A);
+    const back = fresh(BACK);
+    const slower = fresh(DPAD_LEFT);
+    const faster = fresh(DPAD_RIGHT);
     if (start) this.#onCommand('toggle-pause');
     if (confirm) this.#onCommand('confirm');
+    if (back) this.#onCommand('toggle-map');
+    if (slower) this.#onCommand('warp-slower');
+    if (faster) this.#onCommand('warp-faster');
   }
 
   sample(): PilotInput {

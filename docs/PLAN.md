@@ -335,7 +335,7 @@ bit-identical unless a step says otherwise.
       opening's flights bit-identical. Local checks passed on 2026-11-07; see
       [ADR 0019](decisions/0019-orbits-and-time-warp.md) and
       [orbits verification](verification/orbits.md).
-- [ ] **5.3 Planetary-scale view and orbital instruments:** the Moon seen from
+- [x] **5.3 Planetary-scale view and orbital instruments:** the Moon seen from
       orbit, a map of the whole Moon and the orbit, orbital readouts, and warp
       controls; a debug-only orbit sandbox (owner decision on 2026-11-07) so all of
       it can be tried on phones before 5.5. Owner decisions on 2026-11-07: NASA's
@@ -354,15 +354,22 @@ bit-identical unless a step says otherwise.
         previous build with the camera settled, on both backends. Local checks
         passed on 2026-11-07; see [ADR 0020](decisions/0020-planetary-view.md) and
         [orbital view verification](verification/orbital-view.md).
-  - [ ] **5.3b Orbital instruments, warp controls, and the sandbox:** the game
-        expresses an orbital flight in a vehicle-centred frame each frame; HUD
-        apoapsis, periapsis, time to each, orbital speed, and altitude; warp on
-        keyboard (`,` and `.`), gamepad (D-pad left and right), and touch (a chip
-        beside pause), with messages for why rails are refused; V, Select/Back,
-        and the ⋯ menu for the map; `?scenario=orbit` puts the current lander in a
-        15 × 100 km orbit, not on the start card. **Verify:** readouts against
-        engine elements in both languages; warp and map on every input device;
-        phone layouts still clear the centre; both backends.
+  - [x] **5.3b Orbital instruments, warp controls, and the sandbox:**
+        `?scenario=orbit` puts the first lander, tank full, at apoapsis of a
+        15 × 100 km orbit inclined 20°, in daylight; not on the start card. Each
+        frame the game re-expresses the flight in a vehicle-centred frame for the
+        viewport. The HUD reads apoapsis, periapsis, the time to each, orbital
+        speed, and altitude in kilometres from 10 km, with lean and drift (no pad)
+        on the radar. Time warp: a header stepper, `,` and `.`, and the D-pad, with
+        a short notice when rails are refused (open lever, rotation, too low). The
+        map: V, Back, a header button, and the ⋯ menu on phones. Help lists both.
+        Reaching the mean radius pauses until a restart, as there is no surface
+        yet. **Verify:** sandbox, readout, path, and scene unit tests against
+        vis-viva and Kepler; gamepad command tests; browser tests of readouts,
+        physics and rails warp, a refusal, the map, Help, Spanish, the opening
+        without warp or map, and the phone layout on the iPhone and A70 sizes
+        (clear centre, no overflow); both full browser suites. Local checks passed
+        on 2026-11-07; see [orbit sandbox verification](verification/orbit-sandbox.md).
 - [ ] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
       public NASA elevation grid, with everything finer generated from a fixed
       seed, so any spot can be landed on. Owner decision on 2026-11-07: LDEM_4

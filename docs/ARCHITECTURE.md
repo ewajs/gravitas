@@ -7,7 +7,9 @@ contact, touchdown judging, and the bilingual player manual implemented (M2).
 Actuator effects, sound and settings, diagnostics, and the manual's Learn section
 implemented (M3). Engine central-body gravity, rotating frames, and frame
 conversions implemented (5.1); orbital elements, Kepler propagation, and session
-time warp implemented (5.2). The game does not fly orbits yet. See [the flight model](FLIGHT.md),
+time warp implemented (5.2). The viewport's planetary view (5.3a) and the game's
+orbit sandbox with orbital instruments, warp, and the map (5.3b) implemented;
+the sandbox is reached only by `?scenario=orbit`. See [the flight model](FLIGHT.md),
 [ADR 0001](decisions/0001-stack-and-packages.md) and
 [ADR 0002](decisions/0002-simulation-and-runtime.md) for tradeoffs.
 

@@ -1,4 +1,13 @@
 import * as THREE from 'three/webgpu';
+import {
+  attribute,
+  Fn,
+  mix,
+  normalGeometry,
+  normalLocal,
+  positionGeometry,
+  uniform,
+} from 'three/tsl';
 import type { Terrain, Vector3 } from '@gravitas/engine';
 import {
   faceDirection,
@@ -20,12 +29,17 @@ import type { TerrainWorkerRequest } from './terrain-worker';
 
 /** Split a tile while the camera is closer than this many tile edges. */
 const SPLIT_DISTANCE = 2.5;
-/** Finest level: edges about 10 m, vertices about 33 cm apart on the Moon. */
-const MAXIMUM_LEVEL = 18;
+/**
+ * Finest level: edges about 5 m, vertices about 16 cm apart on the Moon, so the
+ * smallest craters and boulders (1.4 m) are drawn whole where the legs can touch.
+ */
+const MAXIMUM_LEVEL = 19;
 /** Meshes kept, drawn or not, before the least recently used are released. */
 const CAPACITY = 600;
 /** Tiles being meshed at once; more wait their turn, nearest first. */
 const IN_FLIGHT = 4;
+/** A tile replacing its parent on screen grows from the parent's surface over this long. */
+const GROW_SECONDS = 0.4;
 
 interface Node {
   readonly key: TileKey;
@@ -42,6 +56,8 @@ interface Node {
   maximumHeight: number;
   /** Frame number when last visited by selection. */
   used: number;
+  /** When it last replaced its parent on screen, in seconds; it grows in from there. */
+  grown: number;
 }
 
 /** What the terrain did on the last update, for diagnostics and tests. */
@@ -93,8 +109,13 @@ function inlineMesher(terrain: Terrain, deliver: (mesh: TileMesh) => void): Tile
   };
 }
 
-/** Builds the tile quadtree for `terrain`, drawn with `material`. */
-export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
+/**
+ * Builds the tile quadtree for `terrain`, drawn with `material`, which becomes
+ * the tiles' own: its position node is set to grow each new tile out of its
+ * parent's surface (ADR 0022).
+ */
+export function createTerrainTiles(terrain: Terrain, material: THREE.NodeMaterial) {
+  material.positionNode = morph();
   const group = new THREE.Group();
   const index = new THREE.BufferAttribute(tileIndices(), 1);
   const nodes = new Map<string, Node>();
@@ -139,6 +160,7 @@ export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
       minimumHeight: terrain.minimumHeight,
       maximumHeight: terrain.maximumHeight,
       used: 0,
+      grown: -Infinity,
     };
     nodes.set(id, created);
     return created;
@@ -155,6 +177,8 @@ export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
     geometry.setIndex(index);
     geometry.setAttribute('position', new THREE.BufferAttribute(tile.positions, 3));
     geometry.setAttribute('normal', new THREE.BufferAttribute(tile.normals, 3));
+    geometry.setAttribute('coarsePosition', new THREE.BufferAttribute(tile.coarsePositions, 3));
+    geometry.setAttribute('coarseNormal', new THREE.BufferAttribute(tile.coarseNormals, 3));
     geometry.setAttribute('uv', new THREE.BufferAttribute(tile.uvs, 2));
     geometry.computeBoundingSphere();
     const mesh = new THREE.Mesh(geometry, material);
@@ -163,6 +187,8 @@ export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
     mesh.visible = false;
     mesh.matrixAutoUpdate = false;
     mesh.updateMatrix();
+    mesh.name = target.id;
+    mesh.userData.parent = 0;
     group.add(mesh);
     target.mesh = mesh;
     target.minimumHeight = tile.minimumHeight;
@@ -234,13 +260,15 @@ export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
       inView: (centre: Vector3, radius: number) => boolean = () => true,
     ): TerrainStats {
       frame++;
+      const now = performance.now() / 1000;
+      const previous = new Set(drawn);
       const R = terrain.radius;
       const distance = Math.sqrt(camera.x ** 2 + camera.y ** 2 + camera.z ** 2);
       const up = { x: camera.x / distance, y: camera.y / distance, z: camera.z / distance };
       const lowest = R + terrain.minimumHeight;
       // Beyond this angle from the camera's nadir, ground at a given height is below the horizon.
       const horizon = distance > lowest ? Math.acos(lowest / distance) : Math.PI;
-      for (const previous of drawn) previous.mesh!.visible = false;
+      for (const n of drawn) n.mesh!.visible = false;
       drawn = [];
       deepest = 0;
 
@@ -270,11 +298,14 @@ export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
             }
           }
           if (ready) {
+            // Replacing the parent on screen: grow in from it.
+            if (previous.has(n)) for (const child of n.children) child.grown = now;
             for (const child of n.children) visit(child);
             return;
           }
         }
         n.mesh!.visible = true;
+        n.mesh!.userData.parent = Math.max(0, 1 - (now - n.grown) / GROW_SECONDS);
         drawn.push(n);
         deepest = Math.max(deepest, n.key.level);
       };
@@ -307,3 +338,16 @@ export function createTerrainTiles(terrain: Terrain, material: THREE.Material) {
 }
 
 export type TerrainTiles = ReturnType<typeof createTerrainTiles>;
+
+/**
+ * Each vertex between its own place and normal and the parent's surface under it
+ * (a tile's coarse attributes), by the mesh's `parent` share: 1 as the tile
+ * replaces its parent, so nothing pops, falling to 0 over GROW_SECONDS.
+ */
+function morph() {
+  const parent = uniform(0).onObjectUpdate(({ object }) => object?.userData.parent ?? 0);
+  return Fn(() => {
+    normalLocal.assign(mix(normalGeometry, attribute('coarseNormal', 'vec3'), parent).normalize());
+    return mix(positionGeometry, attribute('coarsePosition', 'vec3'), parent);
+  })();
+}

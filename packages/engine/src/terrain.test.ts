@@ -177,6 +177,23 @@ describe('procedural detail', () => {
     }
   });
 
+  it('fades detail in smoothly as the resolution refines: no height jumps', () => {
+    // A tile's grid halves its resolution when it splits; the height under any
+    // point should change gradually across that, not by whole craters at once.
+    let worst = 0;
+    for (const at of spread(60)) {
+      let previous = terrainHeight(detailed, at, 1024);
+      for (let resolution = 1024; resolution > 1; resolution /= 1.02) {
+        const h = terrainHeight(detailed, at, resolution / 1.02);
+        worst = Math.max(worst, Math.abs(h - previous) / resolution);
+        previous = h;
+      }
+    }
+    // Per 2% step, under a hundredth of the resolution; a crater switching on
+    // whole moved it by a tenth or more.
+    expect(worst).toBeLessThan(0.01);
+  });
+
   it('stays within the declared bounds', () => {
     let highest = -Infinity;
     let lowest = Infinity;

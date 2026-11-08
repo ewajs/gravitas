@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createTerrain, terrainHeight, type Vector3 } from '@gravitas/engine';
 import {
+  DETAIL_SPACINGS,
   faceDirection,
   meshTile,
   TILE_SEGMENTS,
   tileChildren,
+  tileId,
   tileIndices,
   tileSpan,
   type TileKey,
@@ -113,7 +115,7 @@ describe('meshing a tile from the terrain', () => {
     const key: TileKey = { face: 4, level: 9, x: 300, y: 260 };
     const tile = meshTile(hilly, key);
     const span = tileSpan(key);
-    const resolution = (3 * ((Math.PI / 2) * R)) / 2 ** key.level / TILE_SEGMENTS;
+    const resolution = (DETAIL_SPACINGS * ((Math.PI / 2) * R)) / 2 ** key.level / TILE_SEGMENTS;
     for (const [i, j] of [
       [0, 0],
       [5, 17],
@@ -168,6 +170,69 @@ describe('meshing a tile from the terrain', () => {
   });
 });
 
+describe('growing a tile out of its parent', () => {
+  const point = (array: Float32Array, n: number, origin: Vector3) => ({
+    x: array[n * 3]! + origin.x,
+    y: array[n * 3 + 1]! + origin.y,
+    z: array[n * 3 + 2]! + origin.z,
+  });
+  const distance = (a: Vector3, b: Vector3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+
+  it('puts every vertex’s morph target on the parent’s drawn surface', () => {
+    // The parent's upper-right quarter: our vertex (i, j) sits on the parent's (16 + i/2, 16 + j/2).
+    const child: TileKey = { face: 4, level: 9, x: 301, y: 261 };
+    const parent: TileKey = { face: 4, level: 8, x: 150, y: 130 };
+    const mine = meshTile(hilly, child);
+    const theirs = meshTile(hilly, parent);
+    const row = TILE_SEGMENTS + 1;
+    const corner = (i: number, j: number) =>
+      point(theirs.positions, (16 + j / 2) * row + (16 + i / 2), theirs.origin);
+    const normal = (array: Float32Array, n: number) => ({
+      x: array[n * 3]!,
+      y: array[n * 3 + 1]!,
+      z: array[n * 3 + 2]!,
+    });
+    for (const [i, j] of [
+      [0, 0],
+      [4, 10],
+      [32, 32],
+      [3, 8],
+      [8, 3],
+      [5, 7],
+      [31, 31],
+    ] as const) {
+      const n = j * row + i;
+      const target = point(mine.coarsePositions, n, mine.origin);
+      let expected: Vector3;
+      if (i % 2 === 0 && j % 2 === 0) {
+        expected = corner(i, j);
+        // The parent's own vertex, shaded as the parent shades it.
+        const m = (16 + j / 2) * row + (16 + i / 2);
+        expect(dot(normal(mine.coarseNormals, n), normal(theirs.normals, m))).toBeGreaterThan(
+          1 - 1e-6,
+        );
+      } else {
+        // Between parent vertices: the midpoint of the parent's edge, or of the
+        // diagonal its quads are split along.
+        const [a, b] =
+          i % 2 && j % 2
+            ? [corner(i - 1, j - 1), corner(i + 1, j + 1)]
+            : i % 2
+              ? [corner(i - 1, j), corner(i + 1, j)]
+              : [corner(i, j - 1), corner(i, j + 1)];
+        expected = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 };
+      }
+      expect(distance(target, expected)).toBeLessThan(0.01);
+    }
+  });
+
+  it('gives a root tile its own surface to grow from', () => {
+    const root = meshTile(hilly, { face: 2, level: 0, x: 0, y: 0 });
+    expect(root.coarsePositions).toEqual(root.positions);
+    expect(root.coarseNormals).toEqual(root.normals);
+  });
+});
+
 describe('the tile quadtree', () => {
   it('starts from six faces and refines toward a camera near the ground', async () => {
     const tiles = createTerrainTiles(level, new MeshStandardNodeMaterial());
@@ -207,5 +272,37 @@ describe('the tile quadtree', () => {
       expect(closest - 2 * across).toBeLessThan(Math.acos(R / (R + 200)));
     }
     tiles.dispose();
+  });
+
+  it('shows a tile that replaces its parent on its parent’s surface, then grows it in', async () => {
+    let now = 1000;
+    const clock = vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const tiles = createTerrainTiles(level, new MeshStandardNodeMaterial());
+    const share = (key: TileKey) => tiles.group.getObjectByName(tileId(key))!.userData.parent;
+    const camera = { x: 0, y: R + 200, z: 0 };
+    let drawn = new Set<string>();
+    let replaced = 0;
+    let stats = tiles.update(camera);
+    for (let round = 0; round < 400 && (stats.pending > 0 || !tiles.ready); round++) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      now += 16;
+      stats = tiles.update(camera);
+      const keys = tiles.drawnKeys();
+      for (const key of keys) {
+        const parent = { face: key.face, level: key.level - 1, x: key.x >> 1, y: key.y >> 1 };
+        if (key.level > 0 && drawn.has(tileId(parent))) {
+          replaced++;
+          expect(share(key)).toBe(1);
+        }
+      }
+      drawn = new Set(keys.map(tileId));
+    }
+    expect(replaced).toBeGreaterThan(20);
+    // Grown in after 0.4 s.
+    now += 400;
+    tiles.update(camera);
+    for (const key of tiles.drawnKeys()) expect(share(key)).toBeCloseTo(0, 9);
+    tiles.dispose();
+    clock.mockRestore();
   });
 });

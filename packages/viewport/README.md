@@ -118,11 +118,12 @@ viewport.setPlanet({ radius: MOON.radius, surfaceMap, terrain }); // terrain fro
 
 The chase view then draws the body as tiles on a cube-sphere quadtree: six faces,
 each split into quarters while the camera is within 2.5 tile edges, down to tiles
-about 10 m across with vertices 33 cm apart. Tiles beyond the horizon or outside
+about 5 m across with vertices 16 cm apart. Tiles beyond the horizon or outside
 the camera's view are not drawn or refined. A worker meshes them from the same
-height function the vehicle touches, leaving out detail narrower than three vertex
-spacings; normals come from the drawn surface, and skirts hide cracks between
-levels. Altitude for the chase camera is measured above this ground, and the
+height function the vehicle touches, band-limited to two vertex spacings so small
+features fade in rather than alias; normals come from the drawn surface, and
+skirts hide cracks between levels. A tile that replaces its parent starts on the
+parent's surface and grows into its own over 0.4 s, so detail never pops in. Altitude for the chase camera is measured above this ground, and the
 camera stays at least 1.5 m above it. The map keeps the smooth sphere
 ([ADR 0022](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0022-terrain-rendering.md)).
 

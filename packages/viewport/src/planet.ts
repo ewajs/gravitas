@@ -133,6 +133,10 @@ export function createPlanet(sky: THREE.Color) {
   const surface = track(
     new THREE.MeshStandardNodeMaterial({ color: 0x8a8a8a, roughness: 1, metalness: 0 }),
   );
+  // The terrain tiles' own copy: they morph between levels in their position node.
+  const ground = track(
+    new THREE.MeshStandardNodeMaterial({ color: 0x8a8a8a, roughness: 1, metalness: 0 }),
+  );
   let texture: THREE.Texture | undefined;
   let textureUrl: string | undefined;
 
@@ -213,7 +217,7 @@ export function createPlanet(sky: THREE.Color) {
       if (view.terrain !== tiles?.terrain) {
         tiles?.dispose();
         tiles?.group.removeFromParent();
-        tiles = view.terrain ? createTerrainTiles(view.terrain, surface) : undefined;
+        tiles = view.terrain ? createTerrainTiles(view.terrain, ground) : undefined;
         terrainStats = null;
         chaseBody.visible = true;
         if (tiles) {
@@ -230,9 +234,11 @@ export function createPlanet(sky: THREE.Color) {
           loaded.anisotropy = 4;
           texture?.dispose();
           texture = loaded;
-          surface.map = loaded;
-          surface.color.set(0xffffff);
-          surface.needsUpdate = true;
+          for (const material of [surface, ground]) {
+            material.map = loaded;
+            material.color.set(0xffffff);
+            material.needsUpdate = true;
+          }
         });
       }
     },

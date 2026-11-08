@@ -84,6 +84,11 @@ const BOULDER_CELLS = [16, 8, 4] as const;
 const BOULDERS_PER_CELL = 2;
 const BOULDER_FIELD_WAVELENGTH = 300;
 const BOULDER_BACKGROUND = 0.1;
+/**
+ * Boulders are steep-sided where crater bowls are gentle, so a coarse grid aliases
+ * them first: at a given resolution they fade in at this many times a crater's size.
+ */
+const BOULDER_SHARPNESS = 1.5;
 // Rolling roughness: fractal gradient noise, amplitude ∝ wavelength^HURST, scaled
 // by the grid's ruggedness: stronger on steep highlands, weaker on flat maria.
 const ROUGHNESS_LONGEST = 4096;
@@ -181,8 +186,11 @@ export function validateTerrain(terrain: Terrain): void {
 
 /**
  * Height of the ground above the reference radius along `direction` (any non-zero
- * vector from the centre), in metres. Features smaller than `resolution` metres are
- * left out, for drawing far ground coarsely; contact uses the default, everything.
+ * vector from the centre), in metres. A `resolution` in metres band-limits the
+ * detail for drawing on a grid that coarse: features fade out as their size falls
+ * from twice the resolution to the resolution, and crater rims round off over a
+ * quarter of it either side, so nothing is sharper than the grid can show. Contact uses the default,
+ * 0: everything, at full sharpness.
  */
 export function terrainHeight(terrain: Terrain, direction: Vector3, resolution = 0): number {
   return evaluate(terrain, direction, resolution).height;
@@ -453,7 +461,7 @@ function addDetail(
   let octave = 0;
   for (const { wavelength, amplitude } of inside.roughness) {
     octave++;
-    if (wavelength < resolution) break;
+    if (wavelength <= resolution) break;
     gradientNoise(
       px / wavelength,
       py / wavelength,
@@ -461,10 +469,11 @@ function addDetail(
       seed ^ (ROUGH_SALT + octave),
       noise,
     );
-    rough += amplitude * noise.value;
-    rx += (amplitude * noise.gx) / wavelength;
-    ry += (amplitude * noise.gy) / wavelength;
-    rz += (amplitude * noise.gz) / wavelength;
+    const weight = amplitude * fade(wavelength, resolution);
+    rough += weight * noise.value;
+    rx += (weight * noise.gx) / wavelength;
+    ry += (weight * noise.gy) / wavelength;
+    rz += (weight * noise.gz) / wavelength;
   }
   out.height += rugged.value * rough;
   out.gx += rugged.value * rx + rough * rugged.gx;
@@ -475,9 +484,20 @@ function addDetail(
   let layer = 0;
   for (let cell = CRATER_CELL_LARGEST; cell >= CRATER_CELL_SMALLEST; cell /= 2) {
     layer++;
-    // The layer's smallest crater, rim to rim, is 0.175 cells across.
-    if (0.5 * FEATURE_REACH * cell < resolution) break;
-    features(px, py, pz, R, cell, seed ^ (CRATER_SALT + layer), CRATERS_PER_CELL, CRATER, out);
+    // The layer's largest crater, rim to rim, is 0.35 cells across.
+    if (FEATURE_REACH * cell <= resolution) break;
+    features(
+      px,
+      py,
+      pz,
+      R,
+      cell,
+      seed ^ (CRATER_SALT + layer),
+      CRATERS_PER_CELL,
+      CRATER,
+      out,
+      resolution,
+    );
   }
 
   // Boulders, scaled by a smooth field so they gather in patches.
@@ -485,8 +505,8 @@ function addDetail(
   let boulderLayer = 0;
   for (const cell of BOULDER_CELLS) {
     boulderLayer++;
-    // The layer's smallest boulder is 0.35 cells across.
-    if (FEATURE_REACH * cell < resolution) break;
+    // The layer's largest boulder is 0.7 cells across (see BOULDER_SHARPNESS).
+    if (2 * FEATURE_REACH * cell <= BOULDER_SHARPNESS * resolution) break;
     features(
       px,
       py,
@@ -497,6 +517,7 @@ function addDetail(
       BOULDERS_PER_CELL,
       BOULDER,
       bumps,
+      resolution,
     );
   }
   if (bumps.height !== 0) {
@@ -510,6 +531,15 @@ function addDetail(
     out.gy += field * bumps.gy + bumps.height * fieldSlope * noise.gy;
     out.gz += field * bumps.gz + bumps.height * fieldSlope * noise.gz;
   }
+}
+
+/**
+ * How much of a feature `size` metres across (a wavelength or a diameter) to draw
+ * at `resolution`: none at or below it, all from twice it, smoothly between; all
+ * at resolution 0.
+ */
+function fade(size: number, resolution: number): number {
+  return resolution > 0 ? smoothstep(resolution, 2 * resolution, size) : 1;
 }
 
 const CRATER = 0;
@@ -531,6 +561,7 @@ function features(
   perCell: number,
   kind: number,
   out: { height: number; gx: number; gy: number; gz: number },
+  resolution: number,
 ): void {
   const fx = px / cell;
   const fy = py / cell;
@@ -577,15 +608,21 @@ function features(
         // Rim to rim, half a reach to a reach; the ejecta blanket reaches twice as far.
         radius = 0.5 * FEATURE_REACH * cell * (0.5 + 0.5 * size);
         if (s >= 2 * radius) continue;
+        const weight = fade(2 * radius, resolution);
+        if (weight === 0) continue;
         // Mostly old and shallow; a few fresh ones nearly as deep as a fifth of their width.
         const depth = radius * (0.08 + 0.32 * character ** 4);
-        height = craterProfile(s / radius, depth, 0.2 * depth, profile);
-        perMetre = s > 0 ? profile.slope / radius / s : 0;
+        height =
+          weight *
+          craterProfile(s / radius, depth, 0.2 * depth, (0.5 * resolution) / radius, profile);
+        perMetre = s > 0 ? (weight * profile.slope) / radius / s : 0;
       } else {
         // A rounded bump, (1 − x²)², as tall as 0.6 to 1.2 of its radius.
         radius = FEATURE_REACH * cell * (0.5 + 0.5 * size);
         if (s >= radius) continue;
-        const tall = radius * (0.6 + 0.6 * character);
+        const weight = fade(2 * radius, BOULDER_SHARPNESS * resolution);
+        if (weight === 0) continue;
+        const tall = weight * radius * (0.6 + 0.6 * character);
         const x2 = (s * s) / (radius * radius);
         const shoulder = 1 - x2;
         height = tall * shoulder * shoulder;
@@ -613,9 +650,17 @@ function farthest(index: number, cell: number): number {
  * A simple bowl crater at x = distance / crater radius: a parabolic floor `depth`
  * below the surroundings rising to a rim `rim` above them, then an ejecta blanket
  * falling as x⁻³ and fading out by x = 2. The rim crest is rounded (a smooth
- * minimum) so normals turn continuously. Writes d(height)/dx to `out.slope`.
+ * minimum) so normals turn continuously, over at least `soften` either side of it
+ * (in crater radii; 0 for the natural crest), short of reaching the floor.
+ * Writes d(height)/dx to `out.slope`.
  */
-function craterProfile(x: number, depth: number, rim: number, out: { slope: number }): number {
+function craterProfile(
+  x: number,
+  depth: number,
+  rim: number,
+  soften: number,
+  out: { slope: number },
+): number {
   const inner = -depth + (depth + rim) * x * x;
   const innerSlope = 2 * (depth + rim) * x;
   if (x < 0.5) {
@@ -634,7 +679,13 @@ function craterProfile(x: number, depth: number, rim: number, out: { slope: numb
   const inverseCube = 1 / (x * x * x);
   const outer = rim * inverseCube * window;
   const outerSlope = rim * inverseCube * ((-3 * window) / x + windowSlope);
-  const k = 0.6 * rim;
+  // The smooth minimum blends where the wall and the ejecta differ by under k: a
+  // band about k / (their slope difference at the rim) either side of the crest.
+  // It stays clear of x = 0.5, where the two differ by 7.75 rim + 0.75 depth.
+  const k = Math.max(
+    0.6 * rim,
+    Math.min(soften * (2 * depth + 5 * rim), 7.75 * rim + 0.75 * depth),
+  );
   const blend = clamp(0.5 + (0.5 * (outer - inner)) / k, 0, 1);
   out.slope = outerSlope + (innerSlope - outerSlope) * blend;
   return outer + (inner - outer) * blend - k * blend * (1 - blend);

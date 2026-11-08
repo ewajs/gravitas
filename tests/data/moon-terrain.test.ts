@@ -85,15 +85,15 @@ describe('the shipped elevation grid', () => {
 describe('the drawn ground against the touched ground (5.4b)', () => {
   it('stays within centimetres under the legs: finest tiles at Tranquility Base', () => {
     const site = direction(0.674, 23.473);
-    // The finest tiles (level 18, 0.33 m between vertices) around the site, on +X's face.
+    // The finest tiles (level 19, 0.16 m between vertices) around the site, on +X’s face.
     const s = (4 / Math.PI) * Math.atan(-site.z / site.x);
     const t = (4 / Math.PI) * Math.atan(site.y / site.x);
-    const n = 2 ** 18;
+    const n = 2 ** 19;
     const errors: number[] = [];
     for (let k = 0; k < 6; k++) {
       const key = {
         face: 0,
-        level: 18,
+        level: 19,
         x: Math.floor(((s + 1) / 2) * n) + (k % 3) - 1,
         y: Math.floor(((t + 1) / 2) * n) + Math.floor(k / 3),
       };
@@ -125,7 +125,7 @@ describe('the drawn ground against the touched ground (5.4b)', () => {
     errors.sort((x, y) => x - y);
     const p95 = errors[Math.floor(errors.length * 0.95)]!;
     const worst = errors[errors.length - 1]!;
-    // Measured 2026-11-08: p95 4.8 mm, worst 5.4 cm (across a small boulder's crown).
+    // Measured 2026-11-08 at level 19: p95 2.5 mm, worst 2.3 cm.
     expect(p95).toBeLessThan(0.01);
     expect(worst).toBeLessThan(0.08);
   });

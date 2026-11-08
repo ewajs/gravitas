@@ -25,5 +25,11 @@ scope.onmessage = ({ data }) => {
   }
   if (!terrain) return;
   const mesh = meshTile(terrain, data.key);
-  scope.postMessage(mesh, [mesh.positions.buffer, mesh.normals.buffer, mesh.uvs.buffer]);
+  scope.postMessage(mesh, [
+    mesh.positions.buffer,
+    mesh.normals.buffer,
+    mesh.coarsePositions.buffer,
+    mesh.coarseNormals.buffer,
+    mesh.uvs.buffer,
+  ]);
 };

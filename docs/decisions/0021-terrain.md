@@ -53,9 +53,15 @@ is drawn is what the legs touch.
   and in any order. Safari and Chrome may differ in the last bits of `atan2`
   and `pow`, so heights can differ by far less than a millimetre between
   browsers. Owner decision on 2026-11-08: that is enough until replays exist.
-- **Coarse detail on request.** A `resolution` argument leaves out features
-  smaller than it, for drawing far ground in 5.4b; contact always uses
-  everything. At infinite resolution the height is exactly the grid's.
+- **Coarse detail on request.** A `resolution` argument band-limits the detail
+  for drawing far ground in 5.4b; contact always uses everything, at resolution 0. At infinite resolution the height is exactly the grid's. Amended after
+  5.4c: features fade in smoothly as their size grows from the resolution to
+  twice it (boulders, steep-sided, from 1.5 times that), roughness octaves
+  likewise by wavelength, and crater rims round off over half the resolution
+  either side of the crest. A hard cutoff switched whole layers of craters on at
+  once and drew rims sharper than a grid can follow; the height now changes by
+  under a hundredth of the resolution per 2% step of it. At resolution 0 the
+  ground is bit-identical to before.
 - **Contact on terrain.** `Surface` gains `{ kind: 'terrain', terrain }`, valid
   when the world frame is the body-fixed frame centred on the body. Each step,
   `stepFlight` samples the ground once under each contact point and holds that

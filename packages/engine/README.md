@@ -157,8 +157,9 @@ const environment = { ...bodyFixedEnvironment(MOON), surface: { kind: 'terrain',
 
 Heights are metres above the body's reference radius, along any direction from
 its centre in body-fixed axes. `terrainHeight(terrain, direction, resolution)`
-leaves out features smaller than `resolution` metres, for drawing far ground; at
-`Infinity` it is the grid alone. On terrain, `stepFlight` samples the ground once
+band-limits the detail for drawing on a grid `resolution` metres coarse: features
+fade out as they shrink from twice it to it, and crater rims round off; at
+`Infinity` it is the grid alone, and at 0 (the default, for contact) everything. On terrain, `stepFlight` samples the ground once
 under each contact per step and holds its tangent plane, and only near the
 ground (`TERRAIN_SLOPE_BOUND`); far above, a step is the same as free flight
 ([ADR 0021](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0021-terrain.md)).

@@ -30,6 +30,10 @@ export function viewportMessages() {
       id: 'viewport-scene-orbit',
     }),
     orbitSubtitle: msg('Órbita lunar · prueba', { id: 'viewport-subtitle-orbit' }),
+    terrainScene: msg('Un módulo lunar sobre la superficie de la Luna.', {
+      id: 'viewport-scene-terrain',
+    }),
+    terrainSubtitle: msg('Superficie lunar · prueba', { id: 'viewport-subtitle-terrain' }),
     controls: msg('W/S cabeceo · A/D alabeo · Q/E guiñada · R/F empuje · P pausa', {
       id: 'viewport-controls',
     }),

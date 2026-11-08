@@ -63,7 +63,8 @@ boulders, and roughness, which contact, normals, and altitude share
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render, planet (body, pose, sun,
-orbit path, and a chase or map camera; [ADR 0020](decisions/0020-planetary-view.md)),
+orbit path, and a chase or map camera; [ADR 0020](decisions/0020-planetary-view.md);
+terrain tiles meshed in a worker from the engine's height function, [ADR 0022](decisions/0022-terrain-rendering.md)),
 camera-reset, leg-compression, and actuator-effect operations. UI exposes
 `FlightHud`, `TouchControls` (on-screen lever, stick, and yaw buttons that emit
 plain values, never pilot input), explicit registration, telemetry/request/input

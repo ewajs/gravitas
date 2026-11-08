@@ -9,3 +9,4 @@ export {
 export type { MapAccents, OrbitPath, PlanetPose, PlanetView } from './planet';
 export type { Actuators } from './effects';
 export type { SceneAccents } from './scene';
+export type { TerrainStats } from './terrain';

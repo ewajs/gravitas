@@ -393,7 +393,7 @@ bit-identical unless a step says otherwise.
         contact unchanged where the curvature is negligible. Local checks passed on
         2026-11-08; see [ADR 0021](decisions/0021-terrain.md) and
         [terrain verification](verification/terrain.md).
-  - [ ] **5.4b Terrain rendering:** a level-of-detail sphere built on a cube with
+  - [x] **5.4b Terrain rendering:** a level-of-detail sphere built on a cube with
         a quadtree of tiles (detail grows near the camera), meshed from the same
         height function so what is drawn matches what the legs touch near the
         ground; tiles generated and released on demand, in a worker if profiling
@@ -405,7 +405,17 @@ bit-identical unless a step says otherwise.
         Galaxy A70 class: a first download of a few megabytes and fixed triangle
         and memory ceilings. **Verify:** `npm run measure` against the budget on
         both browsers; no gaps or cracks between tiles; drawn height against the
-        engine height under the legs; both backends.
+        engine height under the legs; both backends. Local checks passed on 2026-11-08; see
+        [ADR 0022](decisions/0022-terrain-rendering.md) and
+        [terrain view verification](verification/terrain-view.md). The planet
+        budget awaits the owner and the A70.
+  - [ ] **5.4c Terrain contact and touchdowns anywhere:** split from 5.4b on
+        2026-11-08. Both sandboxes gain contact with the terrain; the touchdown
+        judge measures vertical speed and tilt against the local vertical
+        instead of world +Y; the results card works without a pad; dust, the
+        ground ring, and the drop line follow the terrain. **Verify:** scripted
+        landings on level mare and on a slope in the terrain sandbox; the opening
+        bit-identical; both browser suites.
 - [ ] **5.5 Free landing from orbit:** a second level with its own vehicle. Two
       stacked PRs:
   - [ ] **5.5a Vehicle definitions and a descent vehicle:** a vehicle becomes

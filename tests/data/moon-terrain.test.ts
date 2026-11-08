@@ -1,15 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { sampleTerrain, terrainHeight, type Vector3 } from '@gravitas/engine';
+import { MOON, sampleTerrain, terrainHeight, type Vector3 } from '@gravitas/engine';
+import { meshTile, tileIndices } from '../../packages/viewport/src/terrain-tiles';
 import { decodeHeightGrid, moonTerrain } from '../../apps/game/src/terrain';
 
-// The shipped Moon (5.4a): NASA's LDEM_4 as written by `npm run moon-data`.
+// The shipped Moon (5.4a): NASA's LDEM_4 as written by `npm run moon-data`, and the
+// tiles drawn from it (5.4b).
 
 const bytes = readFileSync(new URL('../../apps/game/public/moon/ldem-4.bin', import.meta.url));
 const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 const grid = decodeHeightGrid(buffer);
 const moon = moonTerrain(buffer);
+const MOON_RADIUS = MOON.radius;
 
 function direction(latitude: number, longitude: number): Vector3 {
   const φ = (latitude * Math.PI) / 180;
@@ -76,5 +79,54 @@ describe('the shipped elevation grid', () => {
       expect(h).toBeLessThan(moon.maximumHeight);
       expect(h).toBeGreaterThan(moon.minimumHeight);
     }
+  });
+});
+
+describe('the drawn ground against the touched ground (5.4b)', () => {
+  it('stays within centimetres under the legs: finest tiles at Tranquility Base', () => {
+    const site = direction(0.674, 23.473);
+    // The finest tiles (level 18, 0.33 m between vertices) around the site, on +X's face.
+    const s = (4 / Math.PI) * Math.atan(-site.z / site.x);
+    const t = (4 / Math.PI) * Math.atan(site.y / site.x);
+    const n = 2 ** 18;
+    const errors: number[] = [];
+    for (let k = 0; k < 6; k++) {
+      const key = {
+        face: 0,
+        level: 18,
+        x: Math.floor(((s + 1) / 2) * n) + (k % 3) - 1,
+        y: Math.floor(((t + 1) / 2) * n) + Math.floor(k / 3),
+      };
+      const tile = meshTile(moon, key);
+      const indices = tileIndices();
+      const vertex = (index: number) => ({
+        x: tile.positions[index * 3]! + tile.origin.x,
+        y: tile.positions[index * 3 + 1]! + tile.origin.y,
+        z: tile.positions[index * 3 + 2]! + tile.origin.z,
+      });
+      // Points spread over the surface triangles: drawn radius against the engine's.
+      for (let triangle = 0; triangle < 32 * 32 * 2; triangle += 3) {
+        const [a, b, c] = [0, 1, 2].map((k2) => vertex(indices[triangle * 3 + k2]!));
+        for (const [u, v] of [
+          [1 / 3, 1 / 3],
+          [0.6, 0.2],
+          [0.1, 0.7],
+        ] as const) {
+          const p = {
+            x: a!.x + u * (b!.x - a!.x) + v * (c!.x - a!.x),
+            y: a!.y + u * (b!.y - a!.y) + v * (c!.y - a!.y),
+            z: a!.z + u * (b!.z - a!.z) + v * (c!.z - a!.z),
+          };
+          const drawn = Math.hypot(p.x, p.y, p.z);
+          errors.push(Math.abs(drawn - MOON_RADIUS - terrainHeight(moon, p)));
+        }
+      }
+    }
+    errors.sort((x, y) => x - y);
+    const p95 = errors[Math.floor(errors.length * 0.95)]!;
+    const worst = errors[errors.length - 1]!;
+    // Measured 2026-11-08: p95 4.8 mm, worst 5.4 cm (across a small boulder's crown).
+    expect(p95).toBeLessThan(0.01);
+    expect(worst).toBeLessThan(0.08);
   });
 });

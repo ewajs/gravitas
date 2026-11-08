@@ -7,6 +7,8 @@ export const templates = {
   'viewport-subtitle': 'Lunar descent',
   'viewport-scene-orbit': 'A lunar lander in orbit around the Moon.',
   'viewport-subtitle-orbit': 'Lunar orbit · sandbox',
+  'viewport-scene-terrain': "A lunar lander above the Moon's surface.",
+  'viewport-subtitle-terrain': 'Lunar surface · sandbox',
   'viewport-controls': 'W/S pitch · A/D roll · Q/E yaw · R/F throttle · P pause',
   'view-options': 'View options',
   language: 'Language',
@@ -131,7 +133,7 @@ export const templates = {
   'notice-warp-rotation': 'Stop rotating to speed up time further.',
   'notice-warp-altitude': 'Too low to speed up time further.',
   'notice-surface':
-    'You reached the ground. Landing from orbit comes with the descent level; restart to return to orbit.',
+    'You reached the ground. Touching it comes with the next step; restart to start over.',
   'help-warp': 'Time: slower / faster',
   'help-map': 'Map and orbit',
   'pad-dpad-left-right': 'D-pad ← / →',

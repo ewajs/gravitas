@@ -108,6 +108,24 @@ body-fixed coordinates (north up), with its own camera and orbit controls, a
 starfield, and markers for the vehicle, periapsis, and apoapsis
 ([ADR 0020](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0020-planetary-view.md)).
 
+### Terrain
+
+Pass the engine's terrain to draw real ground instead of a smooth sphere:
+
+```ts
+viewport.setPlanet({ radius: MOON.radius, surfaceMap, terrain }); // terrain from createTerrain
+```
+
+The chase view then draws the body as tiles on a cube-sphere quadtree: six faces,
+each split into quarters while the camera is within 2.5 tile edges, down to tiles
+about 10 m across with vertices 33 cm apart. Tiles beyond the horizon or outside
+the camera's view are not drawn or refined. A worker meshes them from the same
+height function the vehicle touches, leaving out detail narrower than three vertex
+spacings; normals come from the drawn surface, and skirts hide cracks between
+levels. Altitude for the chase camera is measured above this ground, and the
+camera stays at least 1.5 m above it. The map keeps the smooth sphere
+([ADR 0022](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0022-terrain-rendering.md)).
+
 ## Effects
 
 `setActuators({ throttle, attitude })` shows what the vehicle's actuators did:
@@ -138,7 +156,9 @@ centre-of-mass height. It is not terrain data or contact geometry.
 ## Diagnostics
 
 `renderStats` returns `{ drawCalls, triangles }` for the last rendered frame, or
-`null` before initialization. The game's `?debug` overlay shows it.
+`null` before initialization. `terrainStats` returns `{ drawn, cached, pending,
+deepest }` for a planet's terrain tiles, or `null` without one. The game's `?debug`
+overlay shows both.
 
 ## Lifecycle
 

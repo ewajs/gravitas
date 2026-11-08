@@ -78,7 +78,7 @@ standalone on iOS, in landscape; it still needs a connection. The layout respect
 landscape screens the start card shows without the instruments behind it, and
 the results card has two columns.
 
-## Orbit sandbox (developer preview)
+## Orbit and terrain sandboxes (developer previews)
 
 `?scenario=orbit` opens a sandbox that is not on the start card: the first lander
 with a full tank in a 15 × 100 km lunar orbit inclined 20°, starting at apoapsis
@@ -89,9 +89,14 @@ periapsis, the time to each, and the orbital speed; time warp goes from 2× to
 height above the Moon's real ground straight below (NASA's elevation grid with
 seeded detail, about 2 MB, loaded with the sandbox), while apoapsis and periapsis
 are measured from the mean radius. The lander carries about 670 m/s of velocity
-change, enough to lower its orbit but not to land, and the ground is not drawn or
-touched yet: reaching it pauses the flight until a restart. Terrain drawing and
-contact arrive in 5.4b, and the descent level in 5.5.
+change, enough to lower its orbit but not to land. The chase view draws the
+Moon's real ground, finer near the camera; the map keeps a smooth sphere.
+
+`?scenario=terrain` opens a second developer sandbox: the same lander hovering
+300 m above Tranquility Base (Apollo 11's site) with a full tank, in a low
+morning Sun, with physics time warp up to 4×. In both sandboxes the ground is not
+touched yet: reaching it pauses the flight until a restart. Contact arrives in
+5.4c, and the descent level in 5.5.
 
 ## Landing rules
 

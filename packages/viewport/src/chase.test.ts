@@ -22,6 +22,11 @@ describe('chase framing', () => {
   it('is steep high up and flatter near the ground', () => {
     expect(chasePolar(200)).toBeCloseTo(CHASE.highPolar, 12);
     expect(chasePolar(0)).toBeCloseTo(CHASE.lowPolar, 12);
+    // From orbit the camera turns toward the horizon; the flat site never gets this high.
+    expect(chasePolar(CHASE.orbitFrom)).toBe(chasePolar(200));
+    expect(chasePolar(100_000)).toBeCloseTo(CHASE.orbitPolar, 12);
+    expect(chasePolar(6_000)).toBeGreaterThan(CHASE.highPolar);
+    expect(chasePolar(6_000)).toBeLessThan(CHASE.orbitPolar);
     expect(chasePolar(32.5)).toBeCloseTo((CHASE.highPolar + CHASE.lowPolar) / 2, 12);
   });
 

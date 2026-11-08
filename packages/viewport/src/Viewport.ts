@@ -1,15 +1,18 @@
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { VehiclePose } from '@gravitas/engine';
+import type { Vector3, VehiclePose } from '@gravitas/engine';
 import { CHASE, ChaseRig } from './chase';
 import { NO_ACTUATORS, type Actuators } from './effects';
+import { createPlanet, type OrbitPath, type PlanetPose, type PlanetView } from './planet';
 import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
-import { createScene, type SceneAccents } from './scene';
+import { createScene, DEFAULT_SUN, type SceneAccents } from './scene';
 
 /** Backend request. Auto permits Three.js's built-in WebGL 2 fallback. */
 export type BackendRequest = 'auto' | 'webgl2';
 /** Backend actually initialized, rather than the requested preference. */
 export type RenderBackend = 'webgpu' | 'webgl2';
+/** `chase` follows the vehicle; `map` shows the whole body and the orbit (planet shown only). */
+export type CameraMode = 'chase' | 'map';
 /** Host element, accessible canvas description, and optional backend override. */
 export interface ViewportOptions {
   /** Sized host element that receives the canvas after initialization. */
@@ -25,13 +28,32 @@ export interface ViewportOptions {
 const MAX_PIXEL_RATIO = 2;
 // Lens shift: draw the vehicle above centre so more of the surface ahead is visible.
 const VIEW_SHIFT = 0.12;
+// The flat site needs 1.5 km of view; a planet needs its far horizon and orbit.
+const LOCAL_FAR = 1500;
+const PLANET_FAR = 2e7;
+// Map camera distance limits and default, in body radii from the centre.
+const MAP_DISTANCE = { min: 1.15, max: 12, start: 3.2 } as const;
+// How far entering the map raises the view toward the orbit's normal (1 would be 45°).
+const MAP_TILT = 0.8;
+// Ambient light: generous over the flat site, dim around a planet so its night side reads.
+const LOCAL_AMBIENT = 0.4;
+const PLANET_AMBIENT = 0.06;
+// Distance of the chase scene's sun from the vehicle; it only aims the light and shadows.
+const SUN_DISTANCE = 20;
+const ORIGIN = new THREE.Vector3();
 
 /** Owns rendering resources; the host owns poses and frame scheduling. */
 export class Viewport {
   readonly #options: ViewportOptions;
   readonly #art: ReturnType<typeof createScene>;
   // Near plane well inside the 6 m minimum zoom; it sets depth precision for surface decals.
-  readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.5, 1500);
+  readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.5, LOCAL_FAR);
+  readonly #planet: ReturnType<typeof createPlanet>;
+  readonly #mapCamera = new THREE.PerspectiveCamera(45, 1, 1e4, 1e8);
+  readonly #sunDirection = DEFAULT_SUN.clone().normalize();
+  #mapControls: OrbitControls | undefined;
+  #cameraMode: CameraMode = 'chase';
+  #sunAimed = false;
   readonly #previous = poseBuffer();
   readonly #current = poseBuffer();
   #rig: ChaseRig | undefined;
@@ -61,6 +83,8 @@ export class Viewport {
       throw new RangeError('centerOfMassHeight must be finite and positive');
     }
     this.#art = createScene(options.centerOfMassHeight);
+    this.#planet = createPlanet(this.#art.scene.background as THREE.Color);
+    this.#art.scene.add(this.#planet.chaseGroup);
     this.#current.position.copy(this.#art.vehicle.position);
     this.#previous.position.copy(this.#art.vehicle.position);
     this.#options = options;
@@ -154,11 +178,109 @@ export class Viewport {
    */
   setAccents(accents: SceneAccents): void {
     this.#assertNotDisposed();
-    const values = [accents.sky, accents.pad, accents.marker];
+    const values = [accents.sky, accents.pad, accents.marker, accents.orbit];
     if (!values.every((value) => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value))) {
       throw new RangeError('Scene accents must be #rrggbb colours');
     }
-    this.#art.setAccents({ sky: accents.sky, pad: accents.pad, marker: accents.marker });
+    this.#art.setAccents({ ...accents });
+    this.#planet.setAccents({ orbit: accents.orbit, vehicle: accents.marker });
+  }
+
+  /**
+   * Shows a spherical body instead of the flat landing site, or the site again with
+   * null. With a planet, the host's world should centre on the vehicle with +Y up
+   * (away from the body's centre), so float32 rendering stays steady (ADR 0020).
+   * Callable before init(); the colour map loads asynchronously.
+   */
+  setPlanet(view: PlanetView | null): void {
+    this.#assertNotDisposed();
+    if (view) {
+      if (!(Number.isFinite(view.radius) && view.radius > 0)) {
+        throw new RangeError('Planet radius must be finite and positive');
+      }
+      if (view.surfaceMap !== undefined && typeof view.surfaceMap !== 'string') {
+        throw new RangeError('surfaceMap must be a URL string');
+      }
+    }
+    this.#planet.show(view ? { ...view } : null);
+    this.#art.site.visible = !view;
+    this.#art.ambient.intensity = view ? PLANET_AMBIENT : LOCAL_AMBIENT;
+    this.#camera.far = view ? PLANET_FAR : LOCAL_FAR;
+    this.#camera.updateProjectionMatrix();
+    if (!view) {
+      this.#planet.setOrbit(null);
+      this.#cameraMode = 'chase';
+      this.#syncControls();
+    }
+  }
+
+  /**
+   * Places the shown body in the host's world: its centre in metres and the
+   * rotation from its body-fixed axes to the world. Call whenever the host's
+   * world moves, typically every frame.
+   */
+  setPlanetPose(pose: PlanetPose): void {
+    this.#assertNotDisposed();
+    const { centre, orientation: q } = pose;
+    if (![centre.x, centre.y, centre.z, q.x, q.y, q.z, q.w].every(Number.isFinite)) {
+      throw new RangeError('Planet pose must be finite');
+    }
+    if (Math.abs(Math.hypot(q.x, q.y, q.z, q.w) - 1) > 1e-6) {
+      throw new RangeError('Planet orientation must be a unit quaternion');
+    }
+    this.#planet.setPose({ centre: { ...centre }, orientation: { ...q } });
+  }
+
+  /**
+   * Aims sunlight: a direction toward the Sun in world coordinates, any length.
+   * The flat site has a fixed default; a planet's terminator follows this.
+   */
+  setSunDirection(direction: Vector3): void {
+    this.#assertNotDisposed();
+    const length = Math.hypot(direction.x, direction.y, direction.z);
+    if (!(Number.isFinite(length) && length > 0)) {
+      throw new RangeError('Sun direction must be finite and non-zero');
+    }
+    this.#sunDirection.set(direction.x, direction.y, direction.z).divideScalar(length);
+    this.#sunAimed = true;
+  }
+
+  /**
+   * Draws an orbit in the map view, in the body's body-fixed metres, with optional
+   * periapsis and apoapsis marks; null removes it.
+   */
+  setOrbitPath(path: OrbitPath | null): void {
+    this.#assertNotDisposed();
+    if (path) {
+      const points = [...path.points, path.periapsis, path.apoapsis].filter(
+        (point): point is Vector3 => point !== undefined,
+      );
+      if (path.points.length < 2) throw new RangeError('An orbit path needs at least two points');
+      if (!points.every((p) => [p.x, p.y, p.z].every(Number.isFinite))) {
+        throw new RangeError('Orbit path points must be finite');
+      }
+    }
+    this.#planet.setOrbit(path);
+  }
+
+  /** Current camera; see {@link CameraMode}. */
+  get cameraMode(): CameraMode {
+    return this.#cameraMode;
+  }
+
+  /**
+   * Switches between the chase camera and the map. The map needs a planet shown;
+   * returns whether the requested mode applies. Entering the map looks down on the
+   * vehicle from a few body radii.
+   */
+  setCameraMode(mode: CameraMode): boolean {
+    this.#assertNotDisposed();
+    if (mode !== 'chase' && mode !== 'map') throw new RangeError('Unknown camera mode');
+    if (mode === 'map' && !this.#planet.visible) return false;
+    if (mode === 'map' && this.#cameraMode !== 'map') this.#aimMap();
+    this.#cameraMode = mode;
+    this.#syncControls();
+    return true;
   }
 
   /** Updates the accessible canvas description without resetting camera or GPU resources. */
@@ -190,12 +312,20 @@ export class Viewport {
     this.#art.effects.update(
       this.#actuators,
       this.#art.vehicle.position,
-      altitude,
+      // Dust needs the flat site's ground plane; around a planet there is none yet (5.4).
+      this.#planet.visible ? Infinity : altitude,
       Math.min(dt, CHASE.maxFrameTime),
       this.#reducedMotion?.matches ?? false,
     );
+    this.#aimSun();
     this.#controls?.update();
-    this.#renderer.render(this.#art.scene, this.#camera);
+    if (this.#planet.visible) {
+      this.#planet.setVehicle(this.#art.vehicle.position);
+      this.#mapControls?.update();
+      this.#planet.followCameras(this.#camera, this.#mapCamera);
+    }
+    if (this.#cameraMode === 'map') this.#renderer.render(this.#planet.map, this.#mapCamera);
+    else this.#renderer.render(this.#art.scene, this.#camera);
     return true;
   }
 
@@ -244,8 +374,13 @@ export class Viewport {
       this.#controls.addEventListener('start', this.#orbitStarted);
       this.#controls.addEventListener('end', this.#orbitEnded);
       this.#controls.update();
+      // The map's own controls orbit the body; only one set listens at a time.
+      this.#mapControls = new OrbitControls(this.#mapCamera, canvas);
+      this.#mapControls.enablePan = false;
+      this.#syncControls();
       this.#resize();
       await renderer.compileAsync(this.#art.scene, this.#camera);
+      await renderer.compileAsync(this.#planet.map, this.#mapCamera);
       if (this.#disposed)
         throw new DOMException('Viewport disposed during initialization', 'AbortError');
       if (this.#deviceFailure) throw this.#deviceFailure;
@@ -270,9 +405,52 @@ export class Viewport {
   readonly #orbitStarted = () => this.#rig?.setUserActive(true);
   readonly #orbitEnded = () => this.#rig?.setUserActive(false);
 
-  // Upright foot clearance over the flat y = 0 surface; framing only, not contact.
+  // Upright foot clearance over the flat y = 0 surface, or over a shown planet's
+  // reference sphere; framing only, not contact.
   #altitude(): number {
-    return this.#art.vehicle.position.y - this.#options.centerOfMassHeight;
+    const position = this.#art.vehicle.position;
+    if (!this.#planet.visible) return position.y - this.#options.centerOfMassHeight;
+    const centre = this.#planet.chaseGroup.children[0]!.position;
+    return position.distanceTo(centre) - this.#planet.radius - this.#options.centerOfMassHeight;
+  }
+
+  // The chase scene's sun sits along the sun direction from the vehicle, so the
+  // vehicle's shadow camera stays around it; the map's sun follows the same
+  // direction. Until a host aims it, the flat site keeps its default light.
+  #aimSun(): void {
+    if (!this.#sunAimed && !this.#planet.visible) return;
+    const sun = this.#art.sun;
+    const around = this.#planet.visible ? this.#art.vehicle.position : ORIGIN;
+    const distance = this.#planet.visible ? SUN_DISTANCE : DEFAULT_SUN.length();
+    sun.target.position.copy(around);
+    sun.position.copy(this.#sunDirection).multiplyScalar(distance).add(around);
+    sun.target.updateMatrixWorld();
+    this.#planet.setSun(this.#sunDirection);
+  }
+
+  // Looks at the vehicle from MAP_DISTANCE.start radii, raised toward the orbit's
+  // normal so the orbit reads as an ellipse rather than edge-on.
+  #aimMap(): void {
+    const radius = this.#planet.radius;
+    const vehicle = this.#planet.vehicleOnMap();
+    const direction =
+      vehicle.lengthSq() > 0 ? vehicle.clone().normalize() : new THREE.Vector3(1, 0, 0);
+    direction.addScaledVector(this.#planet.orbitNormal(), MAP_TILT).normalize();
+    this.#mapCamera.position.copy(direction).multiplyScalar(radius * MAP_DISTANCE.start);
+    this.#mapCamera.up.set(0, 1, 0);
+    this.#mapCamera.lookAt(0, 0, 0);
+    if (this.#mapControls) {
+      this.#mapControls.target.set(0, 0, 0);
+      this.#mapControls.minDistance = radius * MAP_DISTANCE.min;
+      this.#mapControls.maxDistance = radius * MAP_DISTANCE.max;
+      this.#mapControls.update();
+    }
+  }
+
+  // Only the active camera's pointer controls respond.
+  #syncControls(): void {
+    if (this.#controls) this.#controls.enabled = this.#cameraMode === 'chase';
+    if (this.#mapControls) this.#mapControls.enabled = this.#cameraMode === 'map';
   }
 
   #devicePixelRatio(): number {
@@ -291,6 +469,8 @@ export class Viewport {
     this.#camera.aspect = width / height;
     this.#camera.setViewOffset(width, height, 0, height * VIEW_SHIFT, width, height);
     this.#camera.updateProjectionMatrix();
+    this.#mapCamera.aspect = width / height;
+    this.#mapCamera.updateProjectionMatrix();
     this.#renderer.setPixelRatio(ratio);
     this.#renderer.setSize(width, height, false);
   }
@@ -301,6 +481,7 @@ export class Viewport {
     this.#controls?.removeEventListener('start', this.#orbitStarted);
     this.#controls?.removeEventListener('end', this.#orbitEnded);
     this.#controls?.dispose();
+    this.#mapControls?.dispose();
     this.#renderer?.domElement.remove();
   }
 
@@ -316,6 +497,7 @@ export class Viewport {
   #releaseResources(): Promise<void> {
     return (this.#releasing ??= (async () => {
       this.#art.dispose();
+      this.#planet.dispose();
       // Three's dispose() re-awaits init(), so a rejected init cannot be disposed that way.
       if (this.#renderer?.initialized) await this.#renderer.dispose();
     })());

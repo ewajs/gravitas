@@ -324,3 +324,34 @@ test('effects flicker normally and hold still when reduced motion is requested',
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await steadyBurn()).toBe(true);
 });
+
+test('a planet replaces the flat site: the Moon from orbit, then the map with its orbit', async ({
+  page,
+}, info) => {
+  const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
+  expect(await page.evaluate((b) => window.fixture.mount(b), backend as 'webgl2' | 'auto')).toBe(
+    info.project.name,
+  );
+  // The flat site alone: grey ground fills the view, and the map is refused.
+  const flat = await page.evaluate(() => window.fixture.samplePlanet());
+  expect(flat.grey).toBeGreaterThan(0.8);
+  expect(await page.evaluate(() => window.fixture.setCameraMode('map'))).toBe(false);
+  await page.evaluate(() => window.fixture.showPlanet(true));
+  await page.waitForLoadState('networkidle');
+  // From 100 km the camera eases toward the horizon: Moon below, dark starry sky above.
+  await expect
+    .poll(() => page.evaluate(() => window.fixture.samplePlanet().grey), { timeout: 10_000 })
+    .toBeLessThan(0.7);
+  expect((await page.evaluate(() => window.fixture.samplePlanet())).grey).toBeGreaterThan(0.3);
+  await page.screenshot({ path: info.outputPath('orbit-chase.png') });
+  // The map shows the whole Moon and the cyan orbit around it.
+  expect(await page.evaluate(() => window.fixture.setCameraMode('map'))).toBe(true);
+  const map = await page.evaluate(() => window.fixture.samplePlanet());
+  await page.screenshot({ path: info.outputPath('orbit-map.png') });
+  expect(map.grey).toBeGreaterThan(0.05);
+  expect(map.cyan).toBeGreaterThan(0.0005);
+  // Hiding the planet returns the flat site and the chase camera.
+  await page.evaluate(() => window.fixture.hidePlanet());
+  await expect.poll(() => page.evaluate(() => window.fixture.sample().gold)).toBeGreaterThan(50);
+  expect((await page.evaluate(() => window.fixture.samplePlanet())).grey).toBeGreaterThan(0.8);
+});

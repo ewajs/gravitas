@@ -131,7 +131,7 @@ export const templates = {
   'notice-warp-rotation': 'Stop rotating to speed up time further.',
   'notice-warp-altitude': 'Too low to speed up time further.',
   'notice-surface':
-    'You reached the surface. Landing from orbit arrives with the terrain; restart to return to orbit.',
+    'You reached the ground. Landing from orbit comes with the descent level; restart to return to orbit.',
   'help-warp': 'Time: slower / faster',
   'help-map': 'Map and orbit',
   'pad-dpad-left-right': 'D-pad ← / →',

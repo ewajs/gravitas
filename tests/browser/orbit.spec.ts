@@ -41,7 +41,9 @@ test('the sandbox: orbit readouts, physics and rails warp, refusals, the map, an
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.getByTestId('apoapsis')).toContainText('100.0 km');
   await expect(page.getByTestId('periapsis')).toContainText('15.0 km');
-  await expect(page.getByTestId('altitude')).toContainText('100.0 km');
+  // Altitude is above the real ground below: the start is over a mare about 2 km
+  // below the mean radius, so it reads 102.0 km once the terrain has loaded.
+  await expect(page.getByTestId('altitude')).toContainText('102.0 km');
   await expect(page.getByTestId('pad-distance')).toHaveCount(0);
   expect(await first(page, 'orbital-speed')).toBeGreaterThan(1500);
   await page.screenshot({ path: info.outputPath('sandbox-chase.png') });

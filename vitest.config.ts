@@ -8,6 +8,7 @@ export default defineConfig({
       'apps/*/src/**/*.test.ts',
       'manual/.vitepress/learn/**/*.test.ts',
       'manual/.vitepress/theme/**/*.test.ts',
+      'tests/data/**/*.test.ts',
     ],
   },
 });

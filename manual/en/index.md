@@ -65,5 +65,7 @@ mid-flight without losing anything.
 ## Credits
 
 The Moon's colour map is from NASA's Scientific Visualization Studio (CGI Moon
-Kit), built from the Lunar Reconnaissance Orbiter Camera's images. Gravitas's
+Kit), built from the Lunar Reconnaissance Orbiter Camera's images. The Moon's
+heights come from the same orbiter's LOLA laser altimeter (the LOLA team at
+NASA's Goddard Space Flight Center, via the Planetary Data System). Gravitas's
 code and this manual are MIT-licensed.

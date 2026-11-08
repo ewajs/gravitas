@@ -1,6 +1,17 @@
 import type { Vector3, VehiclePose } from './pose';
-import { add, addScaled, conjugate, cross, dot, magnitude, normalizeQuaternion } from './math';
+import {
+  add,
+  addScaled,
+  conjugate,
+  cross,
+  dot,
+  magnitude,
+  normalizeQuaternion,
+  scale,
+  subtract,
+} from './math';
 import { bodyToWorld } from './orientation';
+import { sampleTerrain, validateTerrain, type Terrain } from './terrain';
 import { finite, nonNegative, positive, vector } from './validation';
 
 /** Level ground at a constant world height, in metres. */
@@ -10,8 +21,26 @@ export interface FlatSurface {
   readonly height: number;
 }
 
-/** Ground the vehicle can touch. A union so later terrain kinds can join the same seam. */
-export type Surface = FlatSurface;
+/**
+ * A body's terrain (see createTerrain). The world frame must be the body's fixed
+ * frame with the centre at the origin, such as bodyFixedEnvironment's.
+ */
+export interface TerrainSurface {
+  readonly kind: 'terrain';
+  readonly terrain: Terrain;
+}
+
+/** Ground the vehicle can touch. */
+export type Surface = FlatSurface | TerrainSurface;
+
+/**
+ * The ground under one contact point as a plane: a point on it and its outward
+ * unit normal. Terrain is treated as this tangent plane near each point.
+ */
+export interface GroundPlane {
+  readonly point: Vector3;
+  readonly normal: Vector3;
+}
 
 /**
  * A body point that can touch the surface, modelled as a one-sided spring-damper
@@ -64,21 +93,37 @@ export interface ContactMotion extends VehiclePose {
   readonly angularVelocity: Vector3;
 }
 
-interface SurfaceSample {
-  readonly height: number;
-  readonly normal: Vector3;
-}
-
-// The one place engine learns about the ground. A future terrain kind (or a
-// collision library's query) supplies height and normal here.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- flat ground ignores position; terrain will not
-function surfaceBelow(surface: Surface, _x: number, _z: number): SurfaceSample {
-  return { height: surface.height, normal: { x: 0, y: 1, z: 0 } };
-}
+const UP: Vector3 = { x: 0, y: 1, z: 0 };
 
 export function validateSurface(surface: Surface): void {
-  if (surface.kind !== 'flat') throw new RangeError('Unknown surface kind');
-  finite(surface.height, 'surface height');
+  if (surface.kind === 'flat') finite(surface.height, 'surface height');
+  else if (surface.kind === 'terrain') validateTerrain(surface.terrain);
+  else throw new RangeError('Unknown surface kind');
+}
+
+/** The terrain's tangent plane straight below (or above) a world point. */
+export function terrainPlane(terrain: Terrain, position: Vector3): GroundPlane {
+  const ground = sampleTerrain(terrain, position);
+  const r = magnitude(position);
+  return {
+    point: scale(position, (terrain.radius + ground.height) / r),
+    normal: ground.normal,
+  };
+}
+
+/**
+ * The terrain's plane under every contact point of a vehicle in `motion`; the
+ * flight step samples these once and holds them while its substeps run.
+ */
+export function contactPlanes(
+  motion: VehiclePose,
+  contacts: readonly ContactPoint[],
+  terrain: Terrain,
+): readonly GroundPlane[] {
+  const q = normalizeQuaternion(motion.orientation);
+  return contacts.map((point) =>
+    terrainPlane(terrain, add(motion.position, bodyToWorld(q, point.position))),
+  );
 }
 
 export function validateContacts(contacts: readonly ContactPoint[]): void {
@@ -95,23 +140,36 @@ export function validateContacts(contacts: readonly ContactPoint[]): void {
   }
 }
 
-/** Per-point evaluation shared by forces and facts. */
+/**
+ * Per-point evaluation shared by forces and facts. Terrain uses `planes` when
+ * given (one per contact) and otherwise samples the ground under each point.
+ */
 function evaluate(
   motion: ContactMotion,
   contacts: readonly ContactPoint[],
   surface: Surface,
+  planes: readonly GroundPlane[] | undefined,
   visit: (point: ContactPoint, fact: ContactFact, force: Vector3, arm: Vector3) => void,
 ): void {
   // RK stages may carry a slightly non-unit quaternion; geometry uses its rotation.
   const q = normalizeQuaternion(motion.orientation);
   const omega = bodyToWorld(q, motion.angularVelocity);
-  for (const point of contacts) {
+  for (let index = 0; index < contacts.length; index++) {
+    const point = contacts[index]!;
     const arm = bodyToWorld(q, point.position);
     const position = add(motion.position, arm);
     const velocity = add(motion.velocity, cross(omega, arm));
-    const ground = surfaceBelow(surface, position.x, position.z);
-    const n = ground.normal;
-    const penetration = Math.max(0, (ground.height - position.y) * n.y);
+    let n: Vector3;
+    let penetration: number;
+    if (surface.kind === 'flat') {
+      n = UP;
+      penetration = Math.max(0, (surface.height - position.y) * n.y);
+    } else {
+      // Depth below the ground's tangent plane, measured along its normal.
+      const plane = planes?.[index] ?? terrainPlane(surface.terrain, position);
+      n = plane.normal;
+      penetration = Math.max(0, dot(subtract(plane.point, position), n));
+    }
     const normalVelocity = dot(velocity, n);
     // Velocity along the surface: the normal component removed.
     const tangent = addScaled(velocity, n, -normalVelocity);
@@ -145,15 +203,19 @@ function evaluate(
   }
 }
 
-/** Total contact force (world N) and torque about the centre of mass (body N m). */
+/**
+ * Total contact force (world N) and torque about the centre of mass (body N m).
+ * On terrain, `planes` (one per contact, from contactPlanes) replace sampling.
+ */
 export function contactLoads(
   motion: ContactMotion,
   contacts: readonly ContactPoint[],
   surface: Surface,
+  planes?: readonly GroundPlane[],
 ): { readonly force: Vector3; readonly torque: Vector3 } {
   const force = { x: 0, y: 0, z: 0 };
   const torque = { x: 0, y: 0, z: 0 };
-  evaluate(motion, contacts, surface, (_point, fact, f, arm) => {
+  evaluate(motion, contacts, surface, planes, (_point, fact, f, arm) => {
     if (fact.normalForce === 0) return;
     force.x += f.x;
     force.y += f.y;
@@ -185,6 +247,6 @@ export function contactFacts(
   vector(motion.velocity, 'velocity');
   vector(motion.angularVelocity, 'angularVelocity');
   const facts: ContactFact[] = [];
-  evaluate(motion, contacts, surface, (_point, fact) => facts.push(fact));
+  evaluate(motion, contacts, surface, undefined, (_point, fact) => facts.push(fact));
   return facts;
 }

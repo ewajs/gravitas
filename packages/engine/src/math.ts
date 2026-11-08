@@ -28,6 +28,25 @@ export function modulo(value: number, divisor: number): number {
 }
 
 /**
+ * Hermite step from 0 at `edge0` to 1 at `edge1`, flat at both ends:
+ * 3t² − 2t³ with t clamped to [0, 1]. Requires `edge0` ≠ `edge1`.
+ * @group Math
+ */
+export function smoothstep(edge0: number, edge1: number, value: number): number {
+  const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * The derivative of {@link smoothstep} with respect to `value`: 0 outside the edges.
+ * @group Math
+ */
+export function smoothstepSlope(edge0: number, edge1: number, value: number): number {
+  const t = (value - edge0) / (edge1 - edge0);
+  return t <= 0 || t >= 1 ? 0 : (6 * t * (1 - t)) / (edge1 - edge0);
+}
+
+/**
  * Converts an angle in degrees to radians, the engine's angle unit.
  * @group Math
  */

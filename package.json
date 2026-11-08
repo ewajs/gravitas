@@ -29,7 +29,8 @@
     "manual": "vitepress build manual",
     "manual:dev": "vitepress dev manual",
     "measure": "npm run build:game && playwright test -c playwright.measure.config.ts",
-    "icons": "node scripts/icons.ts"
+    "icons": "node scripts/icons.ts",
+    "moon-data": "node scripts/moon-data.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

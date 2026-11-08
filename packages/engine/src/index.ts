@@ -1,9 +1,10 @@
-/** Pure flight dynamics under uniform or central-body gravity, in fixed or rotating frames, two-body orbits and on-rails coasting, with surface contact, touchdown judging, body-rate assistance, orientation helpers, and shared vector and angle math. @module */
+/** Pure flight dynamics under uniform or central-body gravity, in fixed or rotating frames, two-body orbits and on-rails coasting, a body's terrain from an elevation grid and seeded detail, with surface contact, touchdown judging, body-rate assistance, orientation helpers, and shared vector and angle math. @module */
 export type { Vector3, Quaternion, VehiclePose } from './pose';
 export {
   stepFlight,
   MAX_FLIGHT_STEP,
   CONTACT_SUBSTEP,
+  TERRAIN_SLOPE_BOUND,
   type FlightState,
   type FlightCommand,
   type VehicleParameters,
@@ -65,6 +66,8 @@ export {
   rotationAbout,
   scale,
   signedAngle,
+  smoothstep,
+  smoothstepSlope,
   subtract,
   toDegrees,
   toRadians,
@@ -82,10 +85,24 @@ export {
 } from './touchdown';
 export {
   contactFacts,
+  contactPlanes,
   FRICTION_SLIP_SCALE,
+  terrainPlane,
   type ContactFact,
   type ContactMotion,
   type ContactPoint,
   type FlatSurface,
+  type GroundPlane,
   type Surface,
+  type TerrainSurface,
 } from './contact';
+export {
+  createTerrain,
+  heightAboveTerrain,
+  sampleTerrain,
+  terrainHeight,
+  type HeightGrid,
+  type Terrain,
+  type TerrainOptions,
+  type TerrainSample,
+} from './terrain';

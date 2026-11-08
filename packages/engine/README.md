@@ -122,8 +122,8 @@ in radians). `propagateKepler` solves Kepler's problem for any conic.
 
 ## Surface contact
 
-Give the environment a `surface` (`{ kind: 'flat', height: 0 }`) and the vehicle
-`contacts`, and `stepFlight` adds contact forces. Each `ContactPoint` is a body
+Give the environment a `surface` (`{ kind: 'flat', height: 0 }`, or a body's
+terrain, below) and the vehicle `contacts`, and `stepFlight` adds contact forces. Each `ContactPoint` is a body
 point with a one-sided spring (`stiffness`), separate compression and rebound
 damping, and Coulomb `friction`. `kind` marks legs, which are meant to touch,
 and hull points, which mean structure hit the ground. Steps with a surface run as
@@ -136,9 +136,32 @@ const facts = contactFacts(state, vehicle.contacts!, environment.surface!);
 
 `contactFacts` reports what each point is doing: penetration, push, approach and
 slip speeds, world position. It decides nothing; the host turns facts into
-outcomes. All ground knowledge goes through one internal seam, so terrain or a
-collision library can supply height and normal later
+outcomes
 ([ADR 0011](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0011-contact-model.md)).
+
+## Terrain
+
+A body's ground is one height function over its sphere: a coarse elevation grid
+(latitude–longitude, pixel-registered, like NASA's LOLA LDEM products) sampled
+smoothly, plus craters, boulders, and roughness generated from a seed below the
+grid's resolution. The same seed gives the same ground every time.
+
+```ts
+import { createTerrain, sampleTerrain, heightAboveTerrain } from '@gravitas/engine';
+
+const terrain = createTerrain({ radius: MOON.radius, grid, seed: 0x6c756e61 });
+const ground = sampleTerrain(terrain, position); // { height, normal, slope }
+const altitude = heightAboveTerrain(terrain, position);
+const environment = { ...bodyFixedEnvironment(MOON), surface: { kind: 'terrain', terrain } };
+```
+
+Heights are metres above the body's reference radius, along any direction from
+its centre in body-fixed axes. `terrainHeight(terrain, direction, resolution)`
+leaves out features smaller than `resolution` metres, for drawing far ground; at
+`Infinity` it is the grid alone. On terrain, `stepFlight` samples the ground once
+under each contact per step and holds its tangent plane, and only near the
+ground (`TERRAIN_SLOPE_BOUND`); far above, a step is the same as free flight
+([ADR 0021](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0021-terrain.md)).
 
 ## Judging a touchdown
 
@@ -171,8 +194,8 @@ and hosts use the same ones instead of their own copies: `add`, `subtract`,
 `scale`, `addScaled`, `dot`, `cross`, `magnitude`, and `signedAngle` for vectors;
 `normalizeQuaternion`, `conjugate`, `multiplyQuaternions`, `addScaledQuaternion`,
 and `rotationAbout` for rotations; and `clamp`, `modulo` (a remainder that is
-never negative, for wrapping angles and times), `toRadians`, and `toDegrees` for
-numbers. They return new objects but, unlike the simulation functions, do not
+never negative, for wrapping angles and times), `smoothstep` and its derivative
+`smoothstepSlope`, `toRadians`, and `toDegrees` for numbers. They return new objects but, unlike the simulation functions, do not
 validate (NaN in gives NaN out), because they run in every integration stage.
 Engine angles are radians; convert degrees only at the edges. The main entry
 re-exports them, and `@gravitas/engine/math` exposes them alone for hosts that

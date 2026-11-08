@@ -85,10 +85,13 @@ with a full tank in a 15 × 100 km lunar orbit inclined 20°, starting at apoaps
 over the Moon's daylight side. It is for trying orbits, time warp, and the map on
 real devices before the descent level (5.5). The readouts show apoapsis,
 periapsis, the time to each, and the orbital speed; time warp goes from 2× to
-1000×; V (Back on a gamepad, the ⋯ menu on phones) shows the map. The lander
-carries about 670 m/s of velocity change, enough to lower its orbit but not to
-land, and there is no surface contact yet: reaching the mean radius pauses the
-flight until a restart. Terrain and landing arrive in 5.4 and 5.5.
+1000×; V (Back on a gamepad, the ⋯ menu on phones) shows the map. Altitude is the
+height above the Moon's real ground straight below (NASA's elevation grid with
+seeded detail, about 2 MB, loaded with the sandbox), while apoapsis and periapsis
+are measured from the mean radius. The lander carries about 670 m/s of velocity
+change, enough to lower its orbit but not to land, and the ground is not drawn or
+touched yet: reaching it pauses the flight until a restart. Terrain drawing and
+contact arrive in 5.4b, and the descent level in 5.5.
 
 ## Landing rules
 

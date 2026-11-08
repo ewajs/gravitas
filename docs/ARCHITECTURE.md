@@ -55,7 +55,11 @@ anywhere on or around a spherical body
 ([ADR 0018](decisions/0018-gravity-and-frames.md)). Its orbit functions turn states
 into classical elements and back, solve Kepler's problem, find the next descent
 through an altitude, and coast a whole state on rails
-([ADR 0019](decisions/0019-orbits-and-time-warp.md)). `contactFacts` and the `Surface` seam report surface contact
+([ADR 0019](decisions/0019-orbits-and-time-warp.md)). `createTerrain` makes a
+body's ground one height function, NASA's elevation grid plus seeded craters,
+boulders, and roughness, which contact, normals, and altitude share
+([ADR 0021](decisions/0021-terrain.md)). `contactFacts` and the `Surface` seam
+(flat ground or terrain) report surface contact
 ([ADR 0011](decisions/0011-contact-model.md)). The pure
 `updateTouchdown`/`classifyTouchdown` reducer judges touchdowns from those facts
 with host-supplied limits ([ADR 0012](decisions/0012-landing-outcomes.md)). Viewport exposes lifecycle, pose, interpolated-render, planet (body, pose, sun,

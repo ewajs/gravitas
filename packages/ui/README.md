@@ -114,6 +114,21 @@ and `aria-keyshortcuts`. Opening Help while
 `phase` is `flying` emits a `pause` request first. The host applies requests to its
 session and sets `phase`. Flight controls (keyboard, gamepad) belong to the host.
 
+## Orbits, time warp, and the map
+
+For flights around a body the host sets `warpAvailable` and `mapAvailable`. During
+a flight the header then shows a time-warp stepper (slower, the current `warp`
+factor, faster) and a map toggle; on phones the map is in the ⋯ menu instead. The
+stepper emits `warp-request` (`WarpRequest`, `direction` ±1) and the toggle
+`view-request` (`ViewRequest`, `camera`), and the host answers by setting `warp`
+and `camera`. A refused warp is explained with `notice` (`FlightNotice`), a short
+status line the host clears. Telemetry with an `orbit` (`OrbitTelemetry`) shows
+apoapsis and periapsis with the time to each and the orbital speed in place of
+the pad distance; phones show only the two heights in the radar card. Without
+`pad` the radar shows lean and drift only. Altitude reads in kilometres from
+10 km. `subtitle` replaces the default "Lunar descent" line, and Help lists the
+warp and map controls when warp is available.
+
 ## Touch controls
 
 `<gravitas-touch-controls>` (`TouchControls`, registered by `registerUi()`) is a

@@ -88,7 +88,9 @@ Kepler's equation in universal variables. `coastOnRails` does the same for a who
 flight state: the orbit by Kepler, rotation by Euler's torque-free equations, fuel
 unchanged, in the Moon-fixed or inertial frame.
 
-The session offers warp in two kinds. **Physics warp** (2×, 4×) runs the same 60 Hz
+In the orbit sandbox (`?scenario=orbit`), the HUD's stepper, `,` and `.`, or the
+D-pad step through the levels; a refused step says why (open lever, rotation, too
+low). V, Back, or the map entry switch to the map. The session offers warp in two kinds. **Physics warp** (2×, 4×) runs the same 60 Hz
 steps faster, so everything works and results equal real time's. **Rails warp**
 (10×, 100×, 1000×) coasts by `coastOnRails`, once per frame. It needs the lever
 closed, rotation under 0.1°/s, and height above the scenario's rails floor. Input
@@ -182,6 +184,8 @@ and applied to every 60 Hz tick in that frame:
 | Z / X | Full throttle / cut, once per press | Applied at the next tick                |
 | P     | Start, pause, or resume             | Immediate; pausing releases held keys   |
 | Enter | Restart from the opening            | Immediate; returns to the ready phase   |
+| , / . | Slower / faster time warp (orbit)   | One level per press; see below          |
+| V     | Chase view / map (orbit)            | Immediate                               |
 
 Opposite keys cancel.
 
@@ -198,6 +202,8 @@ read.
 | RT / LT     | Raise / lower the lever, by pressure | Lever speed = RT − LT after a 5% dead zone, × 0.5 of range per s |
 | A           | Start, resume, or try again          | Immediate, once per press; ignored while Help is open            |
 | Start       | Start, pause, or resume (like P)     | Immediate, once per press; ignored while Help is open            |
+| D-pad ← / → | Slower / faster time warp (orbit)    | Once per press, like , and .                                     |
+| Back        | Chase view / map (orbit)             | Once per press, like V                                           |
 
 Stick deflection beyond the dead zone is rescaled from zero and shaped by
 `0.5 t + 0.5 t³`, so half deflection asks for 31% of `maxRate` and full deflection

@@ -38,7 +38,8 @@ test('the terrain sandbox: tiles over Tranquility Base, finer near the ground, t
     "A lunar lander above the Moon's surface.",
   );
   const hud = page.locator('gravitas-flight-hud');
-  await expect(hud.getByTestId('altitude')).toContainText(/^29\d\.\d m$|^300\.0 m$/);
+  // 300 m up, give or take the first frames' fall.
+  await expect(hud.getByTestId('altitude')).toContainText(/\b(29\d\.\d|300\.0) m\b/);
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   const high = await settledTerrain(page);
   // 300 m up, tiles of about 40 m (level 16) or finer are drawn near the lander.

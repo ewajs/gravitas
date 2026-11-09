@@ -60,7 +60,8 @@ function fly(
   return session;
 }
 
-describe('touchdowns on the Moon’s terrain', () => {
+// Minutes of simulated flight on the real terrain: allow a slow runner its time.
+describe('touchdowns on the Moon’s terrain', { timeout: 30_000 }, () => {
   it('lands on the level mare at Tranquility Base: landed, with no pad', () => {
     const session = fly(new FlightSession(terrainSandbox(moon)), localVerticalPilot(moon), 240);
     expect(session.phase).toBe('complete');

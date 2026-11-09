@@ -11,7 +11,7 @@ import { Viewport } from '@gravitas/viewport';
 const viewport = new Viewport({
   container,
   label: 'A lunar lander and its landing pad.', // Supplied by host localization.
-  centerOfMassHeight: 1.5, // Metres above the artwork's level feet; from the host's vehicle.
+  vehicle: model, // A VehicleModel: plain data the host's vehicle definition carries.
   backend: 'auto', // Or 'webgl2' to explicitly select the fallback backend.
 });
 viewport.setVehiclePose(startPose);
@@ -24,8 +24,11 @@ viewport.render(remainderFraction); // Blend in [0, 1]; the host schedules frame
 // What the actuators did this tick: plume, light, thruster puffs, dust.
 viewport.setActuators({ throttle: 0.6, attitude: { x: -1, y: 0, z: 0 } });
 
-// Presentation of contact: each foot's penetration, in foot order.
+// Presentation of contact: each foot's penetration, in the model's leg order.
 viewport.setLegCompression([0.03, 0.03, 0.03, 0.03]);
+
+// Another vehicle (a mission change): drawn at the current pose; pose it next.
+viewport.setVehicle(otherModel);
 
 // After a discontinuity such as a restart:
 viewport.setVehiclePose(startPose);
@@ -39,10 +42,22 @@ await viewport.dispose();
 
 Poses are metres in a right-handed Y-up world, with normalized body-to-world
 quaternions. A pose locates the vehicle's **centre of mass**, matching engine
-flight state. The illustrative vehicle faces -Z and is authored from the centre of
-its feet's contact plane. Viewport offsets it by the required, positive
-`centerOfMassHeight`, so rotations pivot about the centre of mass. The host owns
-that physical value; the mesh dimensions are artwork, not physical parameters.
+flight state. The vehicle faces -Z and is authored from the centre of its feet's
+contact plane; the viewport offsets it by the model's `centerOfMassHeight`, so
+rotations pivot about the centre of mass.
+
+### Vehicle models
+
+A `VehicleModel` (from `@gravitas/viewport/model`, which loads no Three.js)
+describes a vehicle's look as plain data, in metres from the feet's contact
+plane: named finishes (a `#rrggbb` colour, metalness, roughness); parts that are
+cylinders (with a number of sides, open for a bell), boxes, or spheres; a foot pad
+shared by the legs; each leg's foot and struts, in the host's foot order; the
+engine's bell, plume radius, and plume length; and the radius and height of the
+four attitude-thruster quads. `validateVehicleModel` names the first problem; the
+viewport validates every model it is given. The mesh dimensions are artwork, not
+physical parameters; the game checks that a model's legs match its vehicle's leg
+contacts ([ADR 0023](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0023-vehicle-definitions.md)).
 
 `setVehiclePose(current, previous?)` validates and copies both poses without
 mutating caller data. `render(alpha)` draws the vehicle at `alpha` between them:

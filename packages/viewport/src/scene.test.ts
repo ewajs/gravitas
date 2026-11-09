@@ -1,9 +1,10 @@
 import { expect, it } from 'vitest';
 import { Box3, Color, type Mesh, type MeshStandardMaterial } from 'three/webgpu';
 import { createScene, DEFAULT_ACCENTS } from './scene';
+import { TEST_MODEL } from './test-model';
 
 it('places level feet on the pad while transforms use the supplied centre of mass', () => {
-  const art = createScene(1.5);
+  const art = createScene(TEST_MODEL);
   // Precise bounds use vertices; transformed local boxes overstate the angled struts.
   // Measure the structure only: effects such as the plume hang below the bell.
   const bounds = () => {
@@ -24,7 +25,7 @@ it('places level feet on the pad while transforms use the supplied centre of mas
 });
 
 it('draws compressed legs: feet stay on the surface and struts follow them', () => {
-  const art = createScene(1.5);
+  const art = createScene(TEST_MODEL);
   const bounds = () => {
     art.vehicle.updateMatrixWorld(true);
     return new Box3().setFromObject(art.artwork, true);
@@ -45,7 +46,7 @@ it('draws compressed legs: feet stay on the surface and struts follow them', () 
 });
 
 it('recolours the sky and pad, not the vehicle that shared the pad paint', () => {
-  const art = createScene(1.5);
+  const art = createScene(TEST_MODEL);
   try {
     const hull = () =>
       art.artwork.children

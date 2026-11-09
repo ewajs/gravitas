@@ -11,6 +11,14 @@ export interface AttitudeSettings {
   readonly responseTime: number;
 }
 
+/** Throws a RangeError unless every rate is positive and the response at least one step. */
+export function validateAttitude(settings: AttitudeSettings): void {
+  positive(settings.responseTime, 'responseTime');
+  if (settings.responseTime < MAX_FLIGHT_STEP)
+    throw new RangeError('responseTime must be at least MAX_FLIGHT_STEP');
+  for (const axis of ['x', 'y', 'z'] as const) positive(settings.maxRate[axis], 'maxRate');
+}
+
 /**
  * Converts normalized body-axis rate requests in [-1, 1] to bounded torque (Nm).
  * Zero input brakes rotation, never levels the vehicle or cancels linear velocity.

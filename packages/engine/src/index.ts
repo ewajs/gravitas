@@ -2,6 +2,7 @@
 export type { Vector3, Quaternion, VehiclePose } from './pose';
 export {
   stepFlight,
+  validateVehicle,
   MAX_FLIGHT_STEP,
   CONTACT_SUBSTEP,
   TERRAIN_SLOPE_BOUND,
@@ -49,7 +50,7 @@ export {
   type OrbitalState,
   type OrbitFrame,
 } from './orbits';
-export { rateControlTorque, type AttitudeSettings } from './attitude';
+export { rateControlTorque, validateAttitude, type AttitudeSettings } from './attitude';
 export { bodyToWorld, headingAngle, tiltAngle, tiltFrom } from './orientation';
 export {
   add,

@@ -21,6 +21,7 @@ import {
 } from './orbital';
 import { FlightSession, type PilotInput } from './session';
 import { headingFrame, orbitalFlightTelemetry } from './telemetry';
+import { FIRST_LANDER } from './lander';
 
 const R = MOON.radius;
 const mu = MOON.gravitationalParameter;
@@ -29,14 +30,14 @@ const idle: PilotInput = { rates: { x: 0, y: 0, z: 0 }, throttleChange: 0 };
 describe('the orbit sandbox', () => {
   it('starts upright at apoapsis, 100 km up, facing along its ground track, tank full', () => {
     const start = sandboxStart();
-    expect(sphereAltitude(start) + 1.5).toBeCloseTo(100_000, 3);
+    expect(sphereAltitude(start, FIRST_LANDER) + 1.5).toBeCloseTo(100_000, 3);
     const scene = orbitalScene(start, start, 0);
     expect(tiltAngle(scene.current.orientation)).toBeCloseTo(0, 9);
     // Drift points straight ahead on the radar: the lander faces where it is going.
     const drift = headingFrame(scene.current.orientation, scene.current.velocity);
     expect(drift.x).toBeCloseTo(0, 6);
     expect(drift.y).toBeGreaterThan(1500);
-    expect(start.fuelMass).toBe(ORBIT_SANDBOX.vehicle.fuelCapacity);
+    expect(start.fuelMass).toBe(ORBIT_SANDBOX.vehicle.parameters.fuelCapacity);
     // Rails are possible all the way round: the periapsis clears the floor.
     expect(SANDBOX_ORBIT.periapsis - R).toBeGreaterThan(RAILS_FLOOR);
   });
@@ -128,7 +129,7 @@ describe('orbital telemetry', () => {
     const start = sandboxStart();
     const local = orbitalScene(start, start, 0).current;
     const orbit = orbitTelemetry(start, 0);
-    const t = orbitalFlightTelemetry(local, 0, 99_998.5, 1.6, orbit);
+    const t = orbitalFlightTelemetry(local, 0, 99_998.5, 1.6, orbit, FIRST_LANDER);
     expect(t.altitude).toBe(99_998.5);
     expect(t.verticalSpeed).toBeCloseTo(0, 6);
     expect(t.horizontalSpeed).toBeGreaterThan(1500);

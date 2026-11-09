@@ -16,7 +16,13 @@ import {
   type GravityField,
   type VehicleParameters,
 } from '@gravitas/engine';
-import { ATTITUDE, CENTER_OF_MASS_HEIGHT, CONTACTS, LANDER } from '../../../apps/game/src/lander';
+import { FIRST_LANDER } from '../../../apps/game/src/lander';
+
+// The opening's lander, whose numbers every Learn model uses.
+const LANDER = FIRST_LANDER.parameters;
+const ATTITUDE = FIRST_LANDER.attitude;
+const CONTACTS = FIRST_LANDER.parameters.contacts!;
+const CENTER_OF_MASS_HEIGHT = FIRST_LANDER.model.centerOfMassHeight;
 
 /** A plotted point. */
 export type Point = readonly [x: number, y: number];

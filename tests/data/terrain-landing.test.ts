@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { bodyToWorld, magnitude, scale, toRadians } from '@gravitas/engine';
-import { LANDER } from '../../apps/game/src/lander';
+import { DESCENT_VEHICLE } from '../../apps/game/src/descent-vehicle';
+import { FIRST_LANDER } from '../../apps/game/src/lander';
 import {
   groundAltitude,
   localGravity,
@@ -26,21 +27,22 @@ const STEEP_WALL = { latitude: toRadians(0.675385), longitude: toRadians(23.4779
 
 /**
  * Throttle only, in the local frame: sinks at a tenth of the altitude (at least
- * 0.8 m/s), like verticalPilot in the opening.
+ * 0.8 m/s), like verticalPilot in the opening, flying the session's vehicle.
  */
 function localVerticalPilot(terrain: Terrain) {
   return (session: FlightSession): PilotInput => {
     const s = session.state;
+    const vehicle = session.scenario.vehicle;
     const up = scale(s.position, 1 / magnitude(s.position));
     const climb = s.velocity.x * up.x + s.velocity.y * up.y + s.velocity.z * up.z;
-    const altitude = groundAltitude(s, terrain);
+    const altitude = groundAltitude(s, terrain, vehicle);
     const sink = -Math.max(0.8, altitude / 10);
     const bodyUp = bodyToWorld(s.orientation, { x: 0, y: 1, z: 0 });
     const cosTilt = bodyUp.x * up.x + bodyUp.y * up.y + bodyUp.z * up.z;
-    const mass = LANDER.dryMass + s.fuelMass;
+    const mass = vehicle.parameters.dryMass + s.fuelMass;
     const target =
       (mass * (localGravity(s) + 1.5 * (sink - climb))) /
-      (LANDER.maxThrust * Math.max(0.5, cosTilt));
+      (vehicle.parameters.maxThrust * Math.max(0.5, cosTilt));
     const change = target > session.throttle + 0.02 ? 1 : target < session.throttle - 0.02 ? -1 : 0;
     return { rates: { x: 0, y: 0, z: 0 }, throttleChange: change };
   };
@@ -77,7 +79,24 @@ describe('touchdowns on the Moon’s terrain', () => {
     expect(touchdown!.horizontalSpeed).toBeLessThan(0.1);
     expect(touchdown!.tilt).toBeLessThan(toRadians(1));
     // Resting on its feet on the ground.
-    expect(Math.abs(groundAltitude(session.state, moon))).toBeLessThan(0.2);
+    expect(Math.abs(groundAltitude(session.state, moon, FIRST_LANDER))).toBeLessThan(0.2);
+  });
+
+  it('lands the descent vehicle there too, gently and level, on its own legs', () => {
+    const session = fly(
+      new FlightSession(terrainSandbox(moon, DESCENT_VEHICLE)),
+      localVerticalPilot(moon),
+      240,
+    );
+    expect(session.phase).toBe('complete');
+    expect(session.outcome.status).toBe('landed');
+    const touchdown = session.outcome.status === 'landed' ? session.outcome.touchdown : undefined;
+    expect(touchdown!.verticalSpeed).toBeLessThan(1.2);
+    expect(touchdown!.tilt).toBeLessThan(toRadians(1));
+    // Resting at its own centre-of-mass height: feet on the ground.
+    expect(Math.abs(groundAltitude(session.state, moon, DESCENT_VEHICLE))).toBeLessThan(0.2);
+    // A 300 m descent from a hover uses a small share of its tank.
+    expect(session.state.fuelMass).toBeGreaterThan(0.8 * DESCENT_VEHICLE.parameters.fuelCapacity);
   });
 
   it('fails on a 40° crater wall: the same gentle descent tips over or slides', () => {

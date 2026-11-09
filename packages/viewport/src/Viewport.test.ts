@@ -1,14 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import { Viewport } from './Viewport';
+import { TEST_MODEL } from './test-model';
 
 // Construction and argument validation need no DOM or GPU; rendering is browser-tested.
-const options = { container: {} as HTMLElement, label: 'Test', centerOfMassHeight: 1.5 };
+const options = { container: {} as HTMLElement, label: 'Test', vehicle: TEST_MODEL };
 
 describe('viewport arguments', () => {
-  it('rejects a non-positive or non-finite centre-of-mass height', () => {
+  it('rejects a vehicle model that does not validate', () => {
     for (const centerOfMassHeight of [0, -1, NaN]) {
-      expect(() => new Viewport({ ...options, centerOfMassHeight })).toThrow(RangeError);
+      const vehicle = { ...TEST_MODEL, centerOfMassHeight };
+      expect(() => new Viewport({ ...options, vehicle })).toThrow(RangeError);
     }
+    const viewport = new Viewport(options);
+    expect(() => viewport.setVehicle({ ...TEST_MODEL, strutFinish: 'chrome' })).toThrow(RangeError);
+    void viewport.dispose();
+  });
+
+  it('takes one leg compression per leg of the current vehicle', () => {
+    const viewport = new Viewport(options);
+    expect(() => viewport.setLegCompression([0, 0, 0, 0])).not.toThrow();
+    expect(() => viewport.setLegCompression([0, 0, 0])).toThrow(RangeError);
+    const tripod = { ...TEST_MODEL, legs: TEST_MODEL.legs.slice(0, 3) };
+    viewport.setVehicle(tripod);
+    expect(() => viewport.setLegCompression([0, 0.1, 0])).not.toThrow();
+    expect(() => viewport.setLegCompression([0, 0, 0, 0])).toThrow(RangeError);
+    void viewport.dispose();
   });
 
   it('rejects actuator values outside their ranges', () => {

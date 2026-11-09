@@ -28,7 +28,8 @@ import {
 } from '@gravitas/engine';
 import type { OrbitTelemetry } from '@gravitas/ui';
 import type { OrbitPath, PlanetPose } from '@gravitas/viewport';
-import { ATTITUDE, CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
+import { FIRST_LANDER } from './lander';
+import type { VehicleDefinition } from './vehicle';
 import { LANDING_LIMITS } from './rules';
 import type { FlightScenario } from './session';
 
@@ -73,14 +74,14 @@ function sunBehind(elements: OrbitalElements): Vector3 {
 
 /**
  * The sandbox's start: on SANDBOX_ORBIT at apoapsis, upright, facing along its
- * track over the ground, with a full tank. Moon-fixed, at time 0.
+ * track over the ground, with `vehicle`'s tank full. Moon-fixed, at time 0.
  */
-export function sandboxStart(): FlightState {
+export function sandboxStart(vehicle: VehicleDefinition = FIRST_LANDER): FlightState {
   const inertial: FlightState = {
     ...stateFromOrbit(SANDBOX_ORBIT, mu),
     orientation: { x: 0, y: 0, z: 0, w: 1 },
     angularVelocity: { x: 0, y: 0, z: 0 },
-    fuelMass: LANDER.fuelCapacity,
+    fuelMass: vehicle.parameters.fuelCapacity,
   };
   const fixed = inertialToBodyFixed(inertial, MOON, 0);
   const frame = surfaceFrame(MOON, bodyFixedToSurface(MOON, fixed.position));
@@ -98,8 +99,7 @@ export function sandboxStart(): FlightState {
 /** Everything a flight session needs for the orbit sandbox. */
 export const ORBIT_SANDBOX: FlightScenario = {
   start: sandboxStart(),
-  vehicle: LANDER,
-  attitude: ATTITUDE,
+  vehicle: FIRST_LANDER,
   // No surface: orbitSandbox adds the terrain once it has loaded.
   environment: bodyFixedEnvironment(MOON),
   limits: LANDING_LIMITS,
@@ -113,19 +113,20 @@ export const TRANQUILITY_BASE = { latitude: toRadians(0.674), longitude: toRadia
 export const TERRAIN_HOP_HEIGHT = 300;
 
 /**
- * The terrain sandbox's start: the first lander hovering `height` (300 m) above
- * `site` (Tranquility Base), still relative to the ground, upright, facing north,
- * with a full tank.
+ * The terrain sandbox's start: `vehicle` (the first lander) with its feet `height`
+ * (300 m) above `site` (Tranquility Base), still relative to the ground, upright,
+ * facing north, with a full tank.
  */
 export function terrainStart(
   terrain: Terrain,
   site: { readonly latitude: number; readonly longitude: number } = TRANQUILITY_BASE,
   height = TERRAIN_HOP_HEIGHT,
+  vehicle: VehicleDefinition = FIRST_LANDER,
 ): FlightState {
   const ground = surfaceToBodyFixed(MOON, { ...site, altitude: 0 });
   const place = {
     ...site,
-    altitude: terrainHeight(terrain, ground) + height + CENTER_OF_MASS_HEIGHT,
+    altitude: terrainHeight(terrain, ground) + height + vehicle.model.centerOfMassHeight,
   };
   return {
     position: surfaceToBodyFixed(MOON, place),
@@ -133,7 +134,7 @@ export function terrainStart(
     orientation: surfaceFrame(MOON, place).orientation,
     velocity: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 },
-    fuelMass: LANDER.fuelCapacity,
+    fuelMass: vehicle.parameters.fuelCapacity,
   };
 }
 
@@ -155,22 +156,36 @@ export const TERRAIN_SUN: Vector3 = (() => {
 })();
 
 /**
- * The terrain sandbox (`?scenario=terrain`, 5.4b): the first lander low over the
- * real ground, to see and fly the terrain before the descent level.
+ * The terrain sandbox (`?scenario=terrain`, 5.4b): `vehicle` (the first lander)
+ * low over the real ground, to see and fly the terrain before the descent level.
  */
-export function terrainSandbox(terrain: Terrain): FlightScenario {
-  return { ...orbitSandbox(terrain), start: terrainStart(terrain) };
+export function terrainSandbox(
+  terrain: Terrain,
+  vehicle: VehicleDefinition = FIRST_LANDER,
+): FlightScenario {
+  return {
+    ...orbitSandbox(terrain, vehicle),
+    start: terrainStart(terrain, TRANQUILITY_BASE, TERRAIN_HOP_HEIGHT, vehicle),
+  };
 }
 
 /**
- * The orbit sandbox, touching the Moon's terrain when given (5.4c). Without it
- * (the grid failed to load), there is no ground to touch.
+ * The orbit sandbox flying `vehicle` (the first lander), touching the Moon's
+ * terrain when given (5.4c). Without it (the grid failed to load), there is no
+ * ground to touch.
  */
-export function orbitSandbox(terrain?: Terrain): FlightScenario {
-  if (!terrain) return ORBIT_SANDBOX;
+export function orbitSandbox(
+  terrain?: Terrain,
+  vehicle: VehicleDefinition = FIRST_LANDER,
+): FlightScenario {
+  const base =
+    vehicle === FIRST_LANDER
+      ? ORBIT_SANDBOX
+      : { ...ORBIT_SANDBOX, vehicle, start: sandboxStart(vehicle) };
+  if (!terrain) return base;
   return {
-    ...ORBIT_SANDBOX,
-    environment: { ...ORBIT_SANDBOX.environment, surface: { kind: 'terrain', terrain } },
+    ...base,
+    environment: { ...base.environment, surface: { kind: 'terrain', terrain } },
   };
 }
 
@@ -262,19 +277,23 @@ export function orbitTelemetry(state: FlightState, time: number): OrbitTelemetry
   };
 }
 
-/** Height of the centre of mass above the mean radius, less the feet's offset, in metres. */
-export function sphereAltitude(state: FlightState): number {
-  return magnitude(state.position) - MOON.radius - CENTER_OF_MASS_HEIGHT;
+/** Height of `vehicle`'s level feet above the mean radius, in metres. */
+export function sphereAltitude(state: FlightState, vehicle: VehicleDefinition): number {
+  return magnitude(state.position) - MOON.radius - vehicle.model.centerOfMassHeight;
 }
 
 /**
- * The altitude readout: the feet's height above the ground straight below, like a
+ * The altitude readout: `vehicle`'s feet above the ground straight below, like a
  * landing radar, or above the mean radius until the terrain has loaded.
  */
-export function groundAltitude(state: FlightState, terrain: Terrain | undefined): number {
+export function groundAltitude(
+  state: FlightState,
+  terrain: Terrain | undefined,
+  vehicle: VehicleDefinition,
+): number {
   return terrain
-    ? heightAboveTerrain(terrain, state.position) - CENTER_OF_MASS_HEIGHT
-    : sphereAltitude(state);
+    ? heightAboveTerrain(terrain, state.position) - vehicle.model.centerOfMassHeight
+    : sphereAltitude(state, vehicle);
 }
 
 /** Gravity at a Moon-fixed position, in metres per second squared. */

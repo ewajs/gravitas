@@ -22,7 +22,6 @@ import { GamepadControls } from './gamepad';
 import { TouchControlsSource } from './touch';
 import { blockPageZoom } from './zoom';
 import { PilotInputs, type InputCommand } from './input';
-import { CENTER_OF_MASS_HEIGHT, FEET } from './lander';
 import {
   localGravity,
   ORBIT_SANDBOX,
@@ -47,6 +46,7 @@ import {
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
 import { flightTelemetry, orbitalFlightTelemetry } from './telemetry';
 import { loadMoonTerrain } from './terrain';
+import { legContacts } from './vehicle';
 // The theme's typefaces, self-hosted (OFL). Declared on the page: @font-face rules
 // do not apply inside the HUD's shadow root, but the faces they define do.
 import '@fontsource-variable/inter/wght.css';
@@ -243,8 +243,9 @@ function gamepadConnection(connected: boolean): void {
 // Presentation only: how far each foot is pressed into the surface, in artwork order.
 function legCompression(): number[] {
   const surface = session.scenario.environment.surface;
-  if (!surface) return [0, 0, 0, 0];
-  return contactFacts(session.state, FEET, surface).map((fact) => fact.penetration);
+  const feet = legContacts(session.scenario.vehicle);
+  if (!surface) return feet.map(() => 0);
+  return contactFacts(session.state, feet, surface).map((fact) => fact.penetration);
 }
 
 // Shows a notice for a moment (a refused warp) or until cleared (the surface).
@@ -300,11 +301,12 @@ function publish(): void {
     ? orbitalFlightTelemetry(
         orbitalScene(session.state, session.state, session.time, sunDirection).current,
         session.throttle,
-        Math.max(0, groundAltitude(session.state, terrain)),
+        Math.max(0, groundAltitude(session.state, terrain, session.scenario.vehicle)),
         localGravity(session.state),
         orbitTelemetry(session.state, session.time),
+        session.scenario.vehicle,
       )
-    : flightTelemetry(session.state, session.throttle);
+    : flightTelemetry(session.state, session.throttle, session.scenario.vehicle);
   if (sandbox) {
     hud.warp = session.warp;
     viewport?.setOrbitPath(orbitPath(session.state, session.time) ?? null);
@@ -337,7 +339,7 @@ function draw(timestamp: number): void {
       sandbox &&
       !session.scenario.environment.surface &&
       session.phase === 'flying' &&
-      groundAltitude(session.state, terrain) <= 0
+      groundAltitude(session.state, terrain, session.scenario.vehicle) <= 0
     ) {
       surfaceReached = true;
       flightAction('pause');
@@ -623,7 +625,7 @@ async function start(): Promise<void> {
   if (destroyed) return;
   viewport = new Viewport({
     container: host,
-    centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
+    vehicle: session.scenario.vehicle.model,
     label: sceneLabel(),
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });
@@ -642,6 +644,8 @@ async function start(): Promise<void> {
     session = new FlightSession(
       terrainSandboxMode ? terrainSandbox(terrain!) : orbitSandbox(terrain),
     );
+    // The viewport draws the session's vehicle.
+    viewport.setVehicle(session.scenario.vehicle.model);
     publish();
   }
   if (sandbox) {

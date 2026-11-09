@@ -9,7 +9,7 @@ import {
   type FlightState,
   type OrbitalElements,
 } from '@gravitas/engine';
-import { ATTITUDE, LANDER } from './lander';
+import { FIRST_LANDER } from './lander';
 import { idlePilot } from './pilots';
 import { LANDING_LIMITS } from './rules';
 import { FIRST_DESCENT } from './scenario';
@@ -52,8 +52,7 @@ const inOrbit = (changes: Partial<FlightState> = {}, railsFloor = 20_000): Fligh
     MOON,
     0,
   ),
-  vehicle: LANDER,
-  attitude: ATTITUDE,
+  vehicle: FIRST_LANDER,
   environment: bodyFixedEnvironment(MOON),
   limits: LANDING_LIMITS,
   orbit: { body: MOON, frame: 'body-fixed', railsFloor },

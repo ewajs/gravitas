@@ -1,5 +1,4 @@
 import type { LandingCheck, LandingReport } from '@gravitas/ui';
-import { LANDER } from './lander';
 import { LANDING_LIMITS, PAD_RADIUS } from './rules';
 import { padDistance } from './scenario';
 import { isVerdict, type FlightSession } from './session';
@@ -39,7 +38,7 @@ export function landingReport(
     verdict,
     ...(outcome.status === 'crashed' ? { cause: outcome.cause } : {}),
     checks,
-    fuel: s.fuelMass / LANDER.fuelCapacity,
+    fuel: s.fuelMass / session.scenario.vehicle.parameters.fuelCapacity,
     flightTime: session.flightTime,
   };
 }

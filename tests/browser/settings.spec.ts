@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { test, expect } from './test';
 
 const url = (project: string, query = '') =>
-  `http://127.0.0.1:4173/gravitas/?backend=${project === 'webgl2' ? 'webgl2' : 'auto'}${query}`;
+  `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${project === 'webgl2' ? 'webgl2' : 'auto'}${query}`;
 const ready = (page: Page, project: string) =>
   expect(page.locator('#viewport')).toHaveAttribute('data-backend', project);
 

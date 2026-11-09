@@ -16,7 +16,9 @@ async function open(page: Page, project: string) {
     Object.defineProperty(navigator, 'getGamepads', { value: () => pads, configurable: true });
   });
   const backend = project === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=en`,
+  );
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', project);
 }
 

@@ -99,7 +99,20 @@ scene dims and a results card rises into the middle:
 - each `LandingCheck` with a check or cross icon and screen-reader text, its value
   and limit (speeds in m/s, tilt in degrees, distance in m);
 - fuel left and flight time as labelled tiles;
-- Try again (emits `restart`), and the manual when `manualHref` is set.
+- Try again (emits `restart`), Missions (emits `missions`) when the host offers
+  missions, and the manual when `manualHref` is set.
+
+## Mission picker
+
+Set `hud.missions` to the missions the host offers (`MissionChoice`: an id,
+`quick-landing` or `orbit-landing`, and whether it is a preview; the HUD owns
+their names and descriptions) and `hud.picking` to show the picker in place of the
+start card, Start, and instruments. Each mission is a button that emits
+`CustomEvent<MissionRequest>` named `mission-request`; arrows move between them.
+Opening the picker focuses `hud.missionFocus` (else the first), and changing it
+moves focus, so a host can drive the picker from a gamepad. With missions
+offered, a Missions button beside Restart (in the ⋯ menu on phones) and on the
+results card emits the `missions` flight request.
 
 The host decides every value; the HUD only explains.
 
@@ -108,7 +121,8 @@ The host decides every value; the HUD only explains.
 The HUD decides nothing about the flight. Its buttons emit
 `CustomEvent<FlightRequest>` named `flight-request`, which bubbles across the
 shadow root. Start appears below the phase message while ready. During a flight,
-icon buttons beside the view options pause or resume and restart; after a verdict,
+icon buttons beside the view options pause or resume, restart, and (with missions)
+return to the picker; after a verdict,
 Try again is on the results card. Icon buttons have accessible names, tooltips,
 and `aria-keyshortcuts`. Opening Help while
 `phase` is `flying` emits a `pause` request first. The host applies requests to its

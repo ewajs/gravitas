@@ -2,7 +2,7 @@ import { test, expect } from './test';
 import type { FlightHud } from '@gravitas/ui';
 
 function appUrl(project: string) {
-  return `http://127.0.0.1:4173/gravitas/?backend=${project === 'webgl2' ? 'webgl2' : 'auto'}`;
+  return `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${project === 'webgl2' ? 'webgl2' : 'auto'}`;
 }
 
 test('locale switching preserves the canvas, camera, and readouts while translating all visible UI', async ({

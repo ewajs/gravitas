@@ -16,7 +16,7 @@ test('Help links to the manual in the current language, and the manual links bac
   page,
 }, info) => {
   test.skip(info.project.name !== 'webgl2', 'Static pages; one backend is enough.');
-  await page.goto('http://127.0.0.1:4173/gravitas/?backend=webgl2');
+  await page.goto('http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=webgl2');
   await page.getByRole('button', { name: 'Ayuda', exact: true }).click();
   const spanish = page.getByRole('link', { name: 'Abrir el manual (pestaña nueva)' });
   // The game's relative base makes this ./manual/; check where it actually resolves.

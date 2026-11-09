@@ -115,8 +115,25 @@ export interface OrbitTelemetry {
 
 /** A player action the host may apply to its flight session. */
 export interface FlightRequest {
-  /** Start from ready, pause or resume flight, or restart from the scenario's start. */
-  readonly action: 'start' | 'pause' | 'resume' | 'restart';
+  /**
+   * Start from ready, pause or resume flight, restart from the scenario's start,
+   * or leave the flight for the mission picker.
+   */
+  readonly action: 'start' | 'pause' | 'resume' | 'restart' | 'missions';
+}
+
+/** The missions a host can offer on the mission picker; the HUD owns their copy. */
+export type MissionId = 'quick-landing' | 'orbit-landing';
+
+/** One mission on the picker; a preview is playable but not finished. */
+export interface MissionChoice {
+  readonly id: MissionId;
+  readonly preview?: boolean;
+}
+
+/** Event detail for `mission-request`: the player chose a mission on the picker. */
+export interface MissionRequest {
+  readonly mission: MissionId;
 }
 
 /**

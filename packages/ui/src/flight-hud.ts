@@ -5,6 +5,7 @@ import { confirmKey, helpDialog, quickCard } from './help';
 import { icons } from './icons';
 import { instruments } from './instruments';
 import { type Locale, viewportMessages } from './localization';
+import { missionPicker } from './missions';
 import { reportCard, verdictTitle } from './report-card';
 import { hudStyles } from './styles';
 import { uiTokens } from './tokens';
@@ -18,6 +19,9 @@ import type {
   InputDevice,
   LandingReport,
   LocaleRequest,
+  MissionChoice,
+  MissionId,
+  MissionRequest,
   SoundRequest,
   TouchControlsMode,
   ViewRequest,
@@ -92,6 +96,18 @@ export class FlightHud extends LitElement {
   @property() camera: 'chase' | 'map' = 'chase';
   /** A short message the host shows, then clears; see {@link FlightNotice}. */
   @property() notice: FlightNotice | '' = '';
+  /**
+   * The missions the host offers. With any, the results card, the flight actions,
+   * and the phone menu offer a way back to the picker.
+   */
+  @property({ attribute: false }) missions: readonly MissionChoice[] = [];
+  /** Show the mission picker in place of the flight's cards and instruments. */
+  @property({ type: Boolean }) picking = false;
+  /**
+   * The mission a gamepad has moved to on the picker; the HUD focuses it. Keyboard
+   * and touch players move focus themselves.
+   */
+  @property() missionFocus: MissionId | '' = '';
 
   /** Whether the phone menu (⋯) is open; mirrors its popover for `aria-expanded`. */
   @state() private menuOpen = false;
@@ -122,6 +138,29 @@ export class FlightHud extends LitElement {
         composed: true,
       }),
     );
+  }
+
+  private requestMission(mission: MissionId) {
+    this.dispatchEvent(
+      new CustomEvent<MissionRequest>('mission-request', {
+        detail: { mission },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  // Up and down move between missions, like a list.
+  private missionKey(event: KeyboardEvent) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const buttons = [
+      ...this.renderRoot.querySelectorAll<HTMLButtonElement>('button.mission-choice'),
+    ];
+    const at = buttons.indexOf((this.renderRoot as ShadowRoot).activeElement as HTMLButtonElement);
+    const next = buttons[at + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (!next) return;
+    event.preventDefault();
+    next.focus();
   }
 
   private request(action: FlightRequest['action']) {
@@ -242,6 +281,10 @@ export class FlightHud extends LitElement {
     this.closeMenu();
     this.request('restart');
   }
+  private missionsFromMenu() {
+    this.closeMenu();
+    this.request('missions');
+  }
 
   /** @internal */
   protected firstUpdated(): void {
@@ -253,10 +296,20 @@ export class FlightHud extends LitElement {
   protected updated(changed: Map<PropertyKey, unknown>): void {
     // The menu belongs to the touch layout; leaving it (a key press) closes the menu.
     if (changed.has('touchLayout') && !this.touchLayout) this.closeMenu();
+    // Opening the picker focuses a mission (the gamepad's, else the first), so
+    // Enter or A chooses it; a gamepad's moves follow.
+    const opened = changed.has('picking') || changed.has('status');
+    if (this.picking && this.status === 'ready' && (opened || changed.has('missionFocus'))) {
+      const selector = this.missionFocus
+        ? `[data-mission="${this.missionFocus}"]`
+        : 'button.mission-choice';
+      this.renderRoot.querySelector<HTMLButtonElement>(selector)?.focus();
+    }
   }
 
   private phaseMessage() {
     const device = this.inputDevice;
+    if (this.picking) return msg('Elegí una misión', { id: 'missions-title' });
     switch (this.phase) {
       case 'ready':
         return device === 'touch'
@@ -280,10 +333,11 @@ export class FlightHud extends LitElement {
 
   // Icon buttons beside the view options while a flight is under way.
   private flightActions() {
-    if (this.phase !== 'flying' && this.phase !== 'paused') return nothing;
+    if (this.picking || (this.phase !== 'flying' && this.phase !== 'paused')) return nothing;
     const flying = this.phase === 'flying';
     const toggle = flying ? msg('Pausar', { id: 'pause' }) : msg('Reanudar', { id: 'resume' });
     const restart = msg('Reiniciar', { id: 'restart' });
+    const missions = msg('Misiones', { id: 'missions' });
     return html`<div class="actions">
       ${this.warpAvailable ? this.warpStepper() : nothing}
       ${
@@ -318,6 +372,18 @@ export class FlightHud extends LitElement {
       >
         ${icons.restart()}
       </button>
+      ${
+        this.missions.length
+          ? html`<button
+              class="icon missions-button"
+              @click=${() => this.request('missions')}
+              aria-label=${missions}
+              title=${missions}
+            >
+              ${icons.missions()}
+            </button>`
+          : nothing
+      }
     </div>`;
   }
 
@@ -412,6 +478,13 @@ export class FlightHud extends LitElement {
             : nothing
         }
         ${
+          underway && this.missions.length
+            ? html`<button class="menu-item" @click=${this.missionsFromMenu}>
+                ${icons.missions()}<span>${msg('Misiones', { id: 'missions' })}</span>
+              </button>`
+            : nothing
+        }
+        ${
           this.mapAvailable
             ? html`<button
                 class="menu-item"
@@ -434,11 +507,14 @@ export class FlightHud extends LitElement {
     const text = viewportMessages();
     const mute = msg('Silenciar', { id: 'mute' });
     const help = msg('Ayuda', { id: 'help' });
-    const underway = this.phase === 'flying' || this.phase === 'paused';
+    const underway = !this.picking && (this.phase === 'flying' || this.phase === 'paused');
     // The live region always exists, so later messages are announced. It is only
     // visually hidden when empty, and after a verdict, when the card shows the title.
     const message = this.phaseMessage();
-    const quiet = !message || this.phase === 'complete';
+    const quiet = !message || this.phase === 'complete' || this.picking;
+    // While the picker shows, the flight's start card, Start, and instruments wait.
+    const ready = this.phase === 'ready' && !this.picking;
+    const card = ready && this.showControls;
     return html`
       <header class=${underway ? 'underway' : ''}>
         <div class="brand">
@@ -489,18 +565,16 @@ export class FlightHud extends LitElement {
       ${this.status !== 'ready' ? html`<p id="status" class="status" role=${this.status === 'failed' ? 'alert' : 'status'}>${this.status === 'failed' ? text.failed : text.loading}</p>` : nothing}
       ${
         this.status === 'ready'
-          ? html`<div
-                class="overlay ${this.phase === 'ready' && this.showControls ? 'with-card' : ''}"
-              >
+          ? html`<div class="overlay ${card ? 'with-card' : ''}">
                 <p id="phase" role="status" class="${quiet ? 'sr' : ''} ${this.phase}">
                   ${message}
                 </p>
                 <p id="notice" role="status" class="notice ${this.notice ? '' : 'sr'}">
                   ${this.noticeText()}
                 </p>
-                ${this.phase === 'ready' && this.showControls ? quickCard(this.heading, this.inputDevice) : nothing}
+                ${card ? quickCard(this.heading, this.inputDevice) : nothing}
                 ${
-                  this.phase === 'ready'
+                  ready
                     ? html`<p class="turn-hint">
                         ${icons.rotate(30)}<span
                           >${msg('Girá el teléfono para volar: en horizontal entran los dos pulgares.', { id: 'turn-hint' })}</span
@@ -509,7 +583,7 @@ export class FlightHud extends LitElement {
                     : nothing
                 }
                 ${
-                  this.phase === 'ready'
+                  ready
                     ? html`<div class="actions">
                         <button
                           class="primary"
@@ -527,16 +601,16 @@ export class FlightHud extends LitElement {
                 }
               </div>
               ${
-                this.telemetry
+                this.telemetry && !this.picking
                   ? html`<section
-                      class="instruments ${this.phase === 'ready' && this.showControls ? 'behind-card' : ''}"
+                      class="instruments ${card ? 'behind-card' : ''}"
                       aria-label=${msg('Instrumentos de vuelo', { id: 'instruments' })}
                     >
                       ${instruments(this.telemetry, this.locale)}
                     </section>`
                   : nothing
               }
-              <p id="controls" ?hidden=${this.inputDevice === 'touch'}>
+              <p id="controls" ?hidden=${this.inputDevice === 'touch' || this.picking}>
                 ${
                   this.inputDevice === 'gamepad'
                     ? msg('Stick derecho: inclinar · LB/RB: girar · RT/LT: empuje · Start: pausa', {
@@ -546,9 +620,23 @@ export class FlightHud extends LitElement {
                 }
               </p>
               ${
-                this.phase === 'complete' && this.report
+                this.phase === 'complete' && this.report && !this.picking
                   ? html`<div class="results">
-                      ${reportCard(this.report, this.locale, this.manualHref, { keyboard: 'Enter', gamepad: 'A', touch: '' }[this.inputDevice], () => this.request('restart'))}
+                      ${reportCard(
+                        this.report,
+                        this.locale,
+                        this.manualHref,
+                        { keyboard: 'Enter', gamepad: 'A', touch: '' }[this.inputDevice],
+                        () => this.request('restart'),
+                        this.missions.length ? () => this.request('missions') : undefined,
+                      )}
+                    </div>`
+                  : nothing
+              }
+              ${
+                this.picking
+                  ? html`<div class="results picker" @keydown=${this.missionKey}>
+                      ${missionPicker(this.missions, this.missionFocus, (id) => this.requestMission(id))}
                     </div>`
                   : nothing
               }`

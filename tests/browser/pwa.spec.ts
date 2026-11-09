@@ -18,7 +18,7 @@ interface Manifest {
 
 test('the game can be installed: manifest, icons, and iOS tags', async ({ page }, info) => {
   test.skip(info.project.name !== 'webgl2', 'Static files; one backend is enough.');
-  await page.goto(`${game}?backend=webgl2`);
+  await page.goto(`${game}?scenario=quick-landing&backend=webgl2`);
   const head = page.locator('head');
   const href = await head.locator('link[rel="manifest"]').getAttribute('href');
   const manifestUrl = new URL(href!, page.url()).href;

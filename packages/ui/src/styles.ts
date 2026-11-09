@@ -691,6 +691,62 @@ export const hudStyles = css`
     background: var(--gravitas-backdrop);
     animation: fade 240ms ease-out both;
   }
+  /* Missions: the picker over the dimmed scene, one button per mission. */
+  .missions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(480px, 100%);
+    max-block-size: 100%;
+    overflow-y: auto;
+    background: var(--gravitas-track);
+  }
+  .missions h2 {
+    margin: 0;
+  }
+  .missions ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  button.mission-choice {
+    display: grid;
+    gap: 4px;
+    inline-size: 100%;
+    min-height: 0;
+    padding: 14px 16px;
+    border-radius: var(--gravitas-radius);
+    text-align: start;
+  }
+  button.mission-choice.focused,
+  button.mission-choice:hover {
+    border-color: var(--gravitas-accent);
+  }
+  .mission-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: 600 16px var(--gravitas-font-display);
+  }
+  .mission-goal {
+    font-size: 14px;
+    white-space: normal;
+  }
+  .mission-facts {
+    font-size: 12px;
+    color: var(--gravitas-muted);
+  }
+  .preview {
+    padding: 2px 8px;
+    border: 1px solid var(--gravitas-warn);
+    border-radius: 999px;
+    color: var(--gravitas-warn);
+    font: 500 10px var(--gravitas-font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
   .report {
     display: flex;
     flex-direction: column;
@@ -787,9 +843,14 @@ export const hudStyles = css`
   .totals dd {
     font-size: 18px;
   }
+  /* Try again, Missions, and the manual: one row even on the narrowest phone. */
   .card-actions {
     display: flex;
     gap: 10px;
+  }
+  .card-actions button,
+  .card-actions .button {
+    padding-inline: 12px;
   }
   .card-actions .primary {
     flex: 1;

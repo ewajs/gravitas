@@ -4,7 +4,20 @@
 landing verdicts with explanations (2.2), and the bilingual player manual (2.3). This
 document distinguishes shipped behavior from future direction.
 
-## Current build: first descent
+## Current build: two missions
+
+The game opens on a mission picker (5.5b): **Quick landing**, the first descent
+below, and **Landing from orbit**, a preview until 5.5c finishes it. Click, tap,
+or press Enter on one (arrows move between them; a gamepad's D-pad moves and A
+chooses). During a flight the Missions button beside Restart (in the ⋯ menu on
+phones), and Missions on the results card, return to the picker; the flight is
+left where it was. Landing from orbit starts the descent vehicle (2 km/s of
+velocity change, ADR 0023) on the orbit sandbox's 15 × 100 km orbit over the
+Moon's real terrain, with time warp and the map; with no pad, a safe touchdown
+is "Landed!". Its own limits, instruments for choosing a spot, and manual pages
+arrive in 5.5c.
+
+### Quick landing: the first descent
 
 The lander starts 80 m up, facing the pad 30 m ahead, sinking and drifting toward
 it. It waits until the player presses P or Start. Then the player flies with the
@@ -80,7 +93,9 @@ the results card has two columns.
 
 ## Orbit and terrain sandboxes (developer previews)
 
-`?scenario=orbit` opens a sandbox that is not on the start card: the first lander
+Developer shortcuts skip the picker: `?scenario=quick-landing` and
+`?scenario=orbit-landing` open those missions, and two sandboxes are reached only
+this way. `?scenario=orbit` opens a sandbox that is not on the picker: the first lander
 with a full tank in a 15 × 100 km lunar orbit inclined 20°, starting at apoapsis
 over the Moon's daylight side. It is for trying orbits, time warp, and the map on
 real devices before the descent level (5.5). The readouts show apoapsis,

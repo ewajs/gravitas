@@ -5,8 +5,10 @@ primera misión: posar un módulo lunar sobre una plataforma, suave y en pie.
 
 ## En un minuto
 
-1. Abrí el juego y leé la tarjeta **Cómo volar**.
-2. Pulsá **P** (o **Comenzar**). El módulo arranca a 80 m de altura, cayendo y
+1. Abrí el juego y elegí **Aterrizaje rápido**. La otra misión, **Aterrizaje
+   desde órbita**, es una vista previa: un módulo de descenso en órbita lunar, para
+   posarlo donde elijas.
+2. Leé la tarjeta **Cómo volar** y pulsá **P** (o **Comenzar**). El módulo arranca a 80 m de altura, cayendo y
    derivando hacia la plataforma, que está adelante y abajo.
 3. Mantené **R** para subir el empuje y frenar la caída; **F** lo baja.
 4. Inclinate con **W/A/S/D** para corregir la deriva: en el radar, inclinate
@@ -15,7 +17,7 @@ primera misión: posar un módulo lunar sobre una plataforma, suave y en pie.
 
 Al final vas a ver un resultado que explica qué pasó: velocidades al tocar,
 inclinación, distancia a la plataforma y combustible restante. **Enter** o
-**Reintentar** empieza de nuevo.
+**Reintentar** empieza de nuevo; **Misiones** vuelve a la lista de misiones.
 
 ## En el teléfono
 

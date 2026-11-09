@@ -5,15 +5,18 @@ mission: set a lunar lander down on a pad, gently and upright.
 
 ## In one minute
 
-1. Open the game and read the **How to fly** card.
-2. Press **P** (or **Start**). The lander begins 80 m up, falling and drifting
+1. Open the game and choose **Quick landing**. The other mission, **Landing from
+   orbit**, is a preview: a descent vehicle in lunar orbit, to set down wherever
+   you choose.
+2. Read the **How to fly** card and press **P** (or **Start**). The lander begins 80 m up, falling and drifting
    toward the pad, which is ahead and below.
 3. Hold **R** to raise the throttle and slow the fall; **F** lowers it.
 4. Lean with **W/A/S/D** to correct drift: on the radar, lean **against the arrow**.
 5. Touch down slowly, nearly upright, and stay still for a second.
 
 At the end you get a result that explains what happened: speeds at touchdown,
-tilt, distance from the pad, and fuel left. **Enter** or **Try again** starts over.
+tilt, distance from the pad, and fuel left. **Enter** or **Try again** starts over;
+**Missions** goes back to the list of missions.
 
 ## On a phone
 

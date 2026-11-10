@@ -2,6 +2,8 @@ import type { Vector3, VehiclePose } from './pose';
 import {
   contactLoads,
   contactPlanes,
+  nextAnchors,
+  type ContactAnchor,
   validateContacts,
   validateSurface,
   type ContactPoint,
@@ -40,6 +42,12 @@ export interface FlightState extends VehiclePose {
   readonly angularVelocity: Vector3;
   /** Remaining propellant in the shared main/attitude tank, in kilograms. */
   readonly fuelMass: number;
+  /**
+   * Where each touching contact point grips the ground, one entry per vehicle
+   * contact (see ContactAnchor); absent while nothing touches. stepFlight returns
+   * it; pass the state back unchanged so a vehicle at rest holds its ground.
+   */
+  readonly contactAnchors?: readonly ContactAnchor[];
 }
 
 /** Fixed physical properties supplied by the host; no particular mission is built in. */
@@ -175,7 +183,7 @@ function derivative(
   const gravity = gravityAcceleration(environment.gravity, s.position);
   const mass = v.dryMass + Math.max(0, s.fuelMass);
   const contact = ground
-    ? contactLoads(s, ground.contacts, ground.surface, ground.planes)
+    ? contactLoads(s, ground.contacts, ground.surface, ground.planes, ground.anchors)
     : { force: ZERO, torque: ZERO };
   const torque = add(a.torque, contact.torque);
   // Intermediate RK stages need a unit rotation for thrust, but q-dot uses the raw stage q.
@@ -222,6 +230,8 @@ interface Ground {
   readonly surface: Surface;
   readonly contacts: readonly ContactPoint[];
   readonly planes?: readonly GroundPlane[];
+  /** Where touching points grip the ground, held through the step. */
+  readonly anchors?: readonly ContactAnchor[];
 }
 
 /** Whether a vehicle at `s` could reach the terrain within `h` seconds; see TERRAIN_SLOPE_BOUND. */
@@ -253,9 +263,10 @@ function groundFor(
   const { surface } = environment;
   const contacts = v.contacts;
   if (!surface || !contacts?.length) return undefined;
-  if (surface.kind === 'flat') return { surface, contacts };
+  const anchors = s.contactAnchors?.length === contacts.length ? { anchors: s.contactAnchors } : {};
+  if (surface.kind === 'flat') return { surface, contacts, ...anchors };
   if (!nearTerrain(s, contacts, surface.terrain, h)) return undefined;
-  return { surface, contacts, planes: contactPlanes(s, contacts, surface.terrain) };
+  return { surface, contacts, planes: contactPlanes(s, contacts, surface.terrain), ...anchors };
 }
 
 function rk4(
@@ -286,14 +297,18 @@ function integrate(
   // is sampled once under each contact at the start and held as planes.
   const ground = groundFor(s, v, environment, h);
   const substeps = ground ? Math.ceil(h / CONTACT_SUBSTEP - 1e-9) : 1;
+  // The ground holds the anchors for the whole interval; rk4's results carry none.
   let next = s;
   for (let n = 0; n < substeps; n++) {
     next = rk4(next, v, environment, actuation, h / substeps, ground);
   }
+  const anchors =
+    ground && nextAnchors(next, ground.contacts, ground.surface, ground.planes, ground.anchors);
   return {
     ...next,
     // Mass flow is constant within an interval, so the exact update is linear.
     fuelMass: Math.max(0, s.fuelMass - actuation.massFlow * h),
+    ...(anchors ? { contactAnchors: anchors } : {}),
   };
 }
 

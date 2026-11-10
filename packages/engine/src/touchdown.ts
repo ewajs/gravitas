@@ -62,6 +62,9 @@ export const NO_TOUCHDOWN: TouchdownRecord = {
 };
 
 /** Which touchdown limit a rough landing exceeded. */
+/** Loaded legs that make a stable stance; a vehicle with fewer legs needs them all. */
+const STABLE_STANCE = 3;
+
 export type TouchdownCheck = 'verticalSpeed' | 'horizontalSpeed' | 'tilt';
 
 /** Judgement of a record; `landed`, `rough`, and `crashed` are final. */
@@ -143,8 +146,9 @@ export function updateTouchdown(
     Math.max(leg.approachSpeed, approachBefore.get(leg.id) ?? 0),
   );
   const { before, after } = tick;
+  // A stable stance: on uneven ground, stiff legs stand on three of four.
   const still =
-    loadedLegs.length === legs.length &&
+    loadedLegs.length >= Math.min(STABLE_STANCE, legs.length) &&
     legs.length > 0 &&
     magnitude(after.velocity) < limits.restSpeed &&
     magnitude(after.angularVelocity) < limits.restAngularSpeed;

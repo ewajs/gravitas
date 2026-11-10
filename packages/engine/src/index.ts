@@ -89,6 +89,7 @@ export {
   contactPlanes,
   FRICTION_SLIP_SCALE,
   terrainPlane,
+  type ContactAnchor,
   type ContactFact,
   type ContactMotion,
   type ContactPoint,

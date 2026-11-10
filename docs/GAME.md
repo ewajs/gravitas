@@ -118,13 +118,13 @@ its own limits arrive in 5.5.
 
 Defined in `apps/game/src/rules.ts` and judged by engine's touchdown reducer:
 
-| Verdict            | When                                                                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| Landed on the pad  | First leg contact at ≤ 2 m/s down, ≤ 1 m/s sideways, ≤ 10° tilt; then still on all legs for 1 s; centre over the pad (≤ 3.8 m) |
-| Landed off the pad | The same, but the centre of mass ends more than 3.8 m from the pad centre: safe, but off target                                |
-| Landed!            | The same where there is no pad (the sandboxes)                                                                                 |
-| Too rough          | Settled and intact, but the first contact broke a speed or tilt limit                                                          |
-| Crash              | Any hull point touches, a leg strikes faster than 5 m/s, or the lander tilts past 60° on the ground                            |
+| Verdict            | When                                                                                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Landed on the pad  | First leg contact at ≤ 2 m/s down, ≤ 1 m/s sideways, ≤ 10° tilt; then still on at least three legs for 1 s; centre over the pad (≤ 3.8 m) |
+| Landed off the pad | The same, but the centre of mass ends more than 3.8 m from the pad centre: safe, but off target                                           |
+| Landed!            | The same where there is no pad (the sandboxes)                                                                                            |
+| Too rough          | Settled and intact, but the first contact broke a speed or tilt limit                                                                     |
+| Crash              | Any hull point touches, a leg strikes faster than 5 m/s, or the lander tilts past 60° on the ground                                       |
 
 Speeds and tilt are read just before the first leg touches. Values exactly at a
 limit pass. A touch-and-go that stays clear of the ground for a second starts

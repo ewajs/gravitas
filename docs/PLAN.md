@@ -491,6 +491,35 @@ provenance when assets arrive.
 
 ## Releases
 
+### v0.4.0-preview.2 — Terrain and missions (2026-11-10)
+
+A second midpoint of M5, for trying the real Moon and the new vehicle on phones.
+The opening is unchanged: its scripted flights are bit-identical to
+v0.4.0-preview. The level's own limits and instruments (5.5c) and the polish step
+arrive before v0.4.0.
+
+- **The Moon's terrain (5.4a):** one height function for the whole Moon, from
+  NASA's LOLA elevation grid (about 7.6 km per sample, 2 MB) plus seeded craters,
+  boulders, and roughness; the legs touch it. See ADR 0021.
+- **Terrain rendering (5.4b):** the ground drawn as a cube-sphere quadtree of
+  tiles meshed in a worker, finer near the camera, down to 16 cm between
+  vertices under the legs, and a `?scenario=terrain` sandbox low over
+  Tranquility Base. Detail fades in with size and new tiles grow out of their
+  parents, so craters neither pop in nor alias on their rims. See ADR 0022.
+- **Landing anywhere (5.4c):** touchdowns judged against the local vertical; with
+  no pad, a safe landing is "Landed!". See the ADR 0012 amendment.
+- **Vehicles as data (5.5a):** each vehicle is one validated definition of its
+  physics, rate assist, and model. The first lander is unchanged; the new descent
+  vehicle carries 2.0 km/s on a 15 kN engine. See ADR 0023.
+- **Mission picker (5.5b):** the game opens on two missions, Quick landing (the
+  opening) and Landing from orbit (the descent vehicle in a 15 × 100 km orbit
+  over the real terrain, a preview), chosen by click, tap, keys, or gamepad; a
+  Missions button returns to the picker.
+
+Known limits: Landing from orbit still uses the opening's start card and landing
+limits; a lander resting on a slope creeps downhill (about 3 cm/s on 10°); the
+planet drawing budget awaits the Galaxy A70 measurement.
+
 ### v0.4.0-preview — Into orbit (2026-11-08)
 
 A midpoint of M5 for trying orbits on real devices. The opening hop is

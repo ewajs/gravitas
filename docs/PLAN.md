@@ -370,7 +370,7 @@ bit-identical unless a step says otherwise.
         without warp or map, and the phone layout on the iPhone and A70 sizes
         (clear centre, no overflow); both full browser suites. Local checks passed
         on 2026-11-07; see [orbit sandbox verification](verification/orbit-sandbox.md).
-- [ ] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
+- [x] **5.4 Moon terrain:** the real Moon's large-scale shape from one small
       public NASA elevation grid, with everything finer generated from a fixed
       seed, so any spot can be landed on. Owner decision on 2026-11-07: LDEM_4
       only, no streamed higher-resolution tiles. Owner decisions on 2026-11-08:
@@ -459,6 +459,16 @@ bit-identical unless a step says otherwise.
         return to it; the opening's flights bit-identical; both browser suites.
         Local checks passed on 2026-11-09; see the
         [mission picker verification](verification/missions.md).
+  - [x] **5.5 groundwork, static friction:** owner decision on 2026-11-10, before
+        the level lands on slopes. Touching contact points grip anchors carried
+        in the flight state, so a lander at rest stays at rest below the friction
+        angle instead of creeping; settling needs a stable three-leg stance.
+        **Verify:** rest on 10° and 25° without moving, sliding at 35° and with
+        low friction at the Coulomb rate; the opening bit-identical until first
+        contact with the same verdicts; both browser suites. Local checks passed
+        on 2026-11-10; see the [ADR 0011](decisions/0011-contact-model.md) and
+        [0012](decisions/0012-landing-outcomes.md) amendments and
+        [static friction verification](verification/static-friction.md).
   - [ ] **5.5c The level:** land from orbit, finished, from the picker: start in
         lunar orbit in the descent vehicle, deorbit, and land anywhere on the
         Moon. No pad; the verdict uses the existing limits-based classifier
@@ -517,7 +527,8 @@ arrive before v0.4.0.
   Missions button returns to the picker.
 
 Known limits: Landing from orbit still uses the opening's start card and landing
-limits; a lander resting on a slope creeps downhill (about 3 cm/s on 10°); the
+limits; a lander resting on a slope creeps downhill (about 3 cm/s on 10°; fixed
+after this release by static friction); the
 planet drawing budget awaits the Galaxy A70 measurement.
 
 ### v0.4.0-preview — Into orbit (2026-11-08)

@@ -1,6 +1,6 @@
 # 0011. Own penalty contact model behind a surface seam; no Rapier yet
 
-- Status: Implemented in 2.1.
+- Status: Implemented in 2.1. Amended on 2026-11-10: static friction.
 - Date: 2026-11-07
 
 ## Decision
@@ -64,8 +64,40 @@ project now:
 - Contact stiffness sets the substep size. Much stiffer points, or much smaller
   effective masses, need smaller substeps; tests pin current values.
 - Regularized friction creeps imperceptibly under sideways load (slip scale
-  0.1 m/s). On flat ground with no sideways force it rests exactly.
+  0.1 m/s). On flat ground with no sideways force it rests exactly. (Replaced by
+  static friction; see the amendment.)
 - **Revisit Rapier** for terrain heightfields or meshes, as a _collision-query_
   backend behind `surfaceBelow` with our dynamics kept. Revisit it fully for
   many interacting bodies, joints, or construction, inside a local recentred
   coordinate region, with our 64-bit integrator still handling orbits.
+
+## Amendment (2026-11-10): static friction
+
+Terrain showed the creep: a lander resting on a 10° slope slid downhill at about
+3 cm/s, because regularized friction only pushes back in proportion to slip.
+Owner decision on 2026-11-10: fix it before the level that lands on slopes.
+
+- **Anchors.** Each touching contact point grips the ground at an anchor, a
+  world point. Friction is a spring-damper from the point to its anchor along the
+  surface, with the point's own stiffness and compression damping, capped at μN.
+  Under the cap the point holds, so a vehicle at rest stays at rest on any slope
+  below the friction angle (31° for μ = 0.6). At the cap the anchor is dragged to
+  μN / k from the point, so the point slides against exactly μN: Coulomb friction.
+- **State.** Anchors are the contact model's memory, so they live in the state:
+  `FlightState.contactAnchors`, one entry per contact point, null for a clear
+  point, absent when nothing touches. `stepFlight` holds them through a step and
+  returns the next ones; hosts pass the state back as they already do. A point
+  touching for the first time has no anchor until its step ends and gets the old
+  regularized friction for that step.
+- **What changed in flight.** Nothing before first contact: the opening's four
+  scripted flights are bit-identical while airborne, and their verdicts and
+  touchdown values are the same. After contact, slides end a few centimetres
+  differently (the off-pad vertical descent stops 4 cm shorter and settles four
+  ticks sooner). A resting step costs 21 µs instead of 16 µs.
+- **A stable stance.** Held feet no longer creep into the ground's hollows, so on
+  uneven terrain a stiff-legged lander stands on three legs, as a real one does.
+  Settling now needs three loaded legs, not all of them (ADR 0012).
+
+Alternatives: a smaller slip scale (creep shrinks but never stops, and the
+equations stiffen); anchors kept by the host beside the state (the state would no
+longer determine the next step).

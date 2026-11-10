@@ -1,6 +1,7 @@
 import { Viewport, type BackendRequest } from '@gravitas/viewport';
 import type { VehiclePose } from '@gravitas/engine';
 import { WebGPURenderer } from 'three/webgpu';
+import { FIRST_LANDER } from '../../../apps/game/src/lander';
 
 const host = document.querySelector<HTMLDivElement>('#host')!;
 const rendererInit = WebGPURenderer.prototype.init;
@@ -29,7 +30,7 @@ const fixture = {
       container: host,
       label: 'Test lander',
       backend,
-      centerOfMassHeight: 1.5,
+      vehicle: FIRST_LANDER.model,
     });
     await viewport.init();
     draw();
@@ -155,7 +156,7 @@ const fixture = {
       container: host,
       label: 'Pending test',
       backend,
-      centerOfMassHeight: 1.5,
+      vehicle: FIRST_LANDER.model,
     });
     outcome = 'pending';
     pendingInit = viewport.init().then(
@@ -185,7 +186,7 @@ const fixture = {
       container: host,
       label: 'Failed test',
       backend: 'webgl2',
-      centerOfMassHeight: 1.5,
+      vehicle: FIRST_LANDER.model,
     });
     try {
       await viewport.init();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MOON, sampleTerrain } from '@gravitas/engine';
 import { groundAltitude, sandboxStart, sphereAltitude } from './orbital';
+import { FIRST_LANDER } from './lander';
 import { decodeHeightGrid, LDEM_4, moonTerrain } from './terrain';
 
 /** A synthetic LDEM_4-shaped file: little-endian 16-bit values in half metres. */
@@ -36,10 +37,15 @@ describe('the elevation grid file', () => {
 describe('the altitude readout', () => {
   it('is height above the ground below once the terrain is in, the mean radius before', () => {
     const start = sandboxStart();
-    expect(groundAltitude(start, undefined)).toBe(sphereAltitude(start));
+    expect(groundAltitude(start, undefined, FIRST_LANDER)).toBe(
+      sphereAltitude(start, FIRST_LANDER),
+    );
     // On a level grid, the feet are 100 km up less the seeded relief right below.
     const terrain = moonTerrain(file(() => 0));
     const relief = sampleTerrain(terrain, start.position).height;
-    expect(groundAltitude(start, terrain)).toBeCloseTo(sphereAltitude(start) - relief, 6);
+    expect(groundAltitude(start, terrain, FIRST_LANDER)).toBeCloseTo(
+      sphereAltitude(start, FIRST_LANDER) - relief,
+      6,
+    );
   });
 });

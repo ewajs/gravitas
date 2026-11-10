@@ -17,14 +17,13 @@ import {
   type TouchdownLimits,
   type TouchdownOutcome,
   type TouchdownRecord,
-  type AttitudeSettings,
   type CelestialBody,
   type FlightEnvironment,
   type FlightState,
   type OrbitFrame,
   type Vector3,
-  type VehicleParameters,
 } from '@gravitas/engine';
+import type { VehicleDefinition } from './vehicle';
 
 /** Fixed simulation step in seconds (60 Hz), independent of display refresh rate. */
 export const FIXED_STEP = MAX_FLIGHT_STEP;
@@ -99,8 +98,8 @@ export interface PilotInput {
 /** Everything a session needs; values come from the app's vehicle and scenario. */
 export interface FlightScenario {
   readonly start: FlightState;
-  readonly vehicle: VehicleParameters;
-  readonly attitude: AttitudeSettings;
+  /** What flies: its physics, rate assist, and model (ADR 0023). */
+  readonly vehicle: VehicleDefinition;
   /** Gravity and the surface the vehicle's contact points can touch. */
   readonly environment: FlightEnvironment;
   /** Thresholds that judge the touchdown. */
@@ -329,7 +328,8 @@ export class FlightSession {
       }
     }
     this.#accumulator += elapsedSeconds * this.#warp;
-    const { vehicle, attitude, environment, limits } = this.#scenario;
+    const { environment, limits } = this.#scenario;
+    const { parameters: vehicle, attitude } = this.#scenario.vehicle;
     let steps = 0;
     while (this.#accumulator >= FIXED_STEP && steps < MAX_STEPS_PER_FRAME * this.#warp) {
       // Decided per tick: a verdict can land mid-frame, and from then on the engine
@@ -418,7 +418,14 @@ export class FlightSession {
       dt = untilFloor;
       this.#warp = 1;
     }
-    const next = coastOnRails(this.#state, this.#scenario.vehicle.inertia, body, frame, time, dt);
+    const next = coastOnRails(
+      this.#state,
+      this.#scenario.vehicle.parameters.inertia,
+      body,
+      frame,
+      time,
+      dt,
+    );
     this.#state = this.#previous = next;
     this.#railsTime += dt;
     this.#accumulator = 0;

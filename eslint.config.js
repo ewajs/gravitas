@@ -98,6 +98,14 @@ export default [
               },
             },
             {
+              // Vehicle models as plain data, with their checks, without loading Three.js.
+              from: { element: { type: 'game' } },
+              allow: {
+                to: { element: { type: 'viewport', fileInternalPath: 'src/vehicle-model.ts' } },
+                dependency: { source: '@gravitas/viewport/model' },
+              },
+            },
+            {
               from: { element: { type: 'viewport' } },
               allow: { to: { module: { origin: 'external', source: 'three' } } },
             },

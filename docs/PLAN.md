@@ -431,9 +431,10 @@ bit-identical unless a step says otherwise.
         [0021](decisions/0021-terrain.md) and
         [0022](decisions/0022-terrain-rendering.md) amendments and
         [terrain detail verification](verification/terrain-detail.md).
-- [ ] **5.5 Free landing from orbit:** a second level with its own vehicle. Two
-      stacked PRs:
-  - [ ] **5.5a Vehicle definitions and a descent vehicle:** a vehicle becomes
+- [ ] **5.5 Free landing from orbit:** a second level with its own vehicle. Three
+      stacked PRs (owner decision on 2026-11-09: a mission picker instead of a URL
+      switch for the new vehicle):
+  - [x] **5.5a Vehicle definitions and a descent vehicle:** a vehicle becomes
         plain, validated data (mass properties, main engine thrust and specific
         impulse, attitude thrusters, legs and hull contact points, centre of
         mass, and the viewport's model description) that the engine, the
@@ -444,10 +445,21 @@ bit-identical unless a step says otherwise.
         vehicles need; no staging, vehicle selector, editor, or tabled throttle
         realism. **Verify:** definition validation unit tests; opening flights
         bit-identical with the first lander as data; the descent vehicle's hover
-        throttle, mass flow, and delta-v against the rocket equation.
-  - [ ] **5.5b The level:** chosen from the start card beside the opening hop:
-        start in lunar orbit in the descent vehicle, deorbit, and land anywhere on
-        the Moon. No pad; the verdict uses the existing limits-based classifier
+        throttle, mass flow, and delta-v against the rocket equation. Local checks
+        passed on 2026-11-09; see [ADR 0023](decisions/0023-vehicle-definitions.md)
+        and [vehicle definitions verification](verification/vehicles.md).
+  - [ ] **5.5b Mission picker:** owner decision on 2026-11-09. A screen at the
+        start offers two missions: the quick landing (the opening hop) and land
+        from orbit (the descent vehicle in lunar orbit over the real terrain,
+        marked as a preview until 5.5c). The game switches mission, vehicle,
+        scene, and instruments at runtime; the results card and the menu return
+        to the picker. Keyboard, touch, and gamepad; es-AR and en. The
+        `?scenario=` links stay as developer shortcuts that skip the picker.
+        **Verify:** both missions start from the picker on both backends and
+        return to it; the opening's flights bit-identical; both browser suites.
+  - [ ] **5.5c The level:** land from orbit, finished, from the picker: start in
+        lunar orbit in the descent vehicle, deorbit, and land anywhere on the
+        Moon. No pad; the verdict uses the existing limits-based classifier
         with level-specific limits on vertical speed, horizontal speed, and tilt
         from the local vertical, and the lander must stay upright once settled, so
         a slope or a boulder field can tip it. Instruments for picking a spot:

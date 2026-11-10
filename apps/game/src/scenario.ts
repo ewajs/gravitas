@@ -1,5 +1,5 @@
 import type { FlightEnvironment, FlightState, Vector3 } from '@gravitas/engine';
-import { ATTITUDE, CENTER_OF_MASS_HEIGHT, LANDER } from './lander';
+import { FIRST_LANDER } from './lander';
 import { LANDING_LIMITS } from './rules';
 import type { FlightScenario } from './session';
 
@@ -37,7 +37,7 @@ export const START_ALTITUDE = 80;
  * about 16.6 m/s.
  */
 export const START_STATE: FlightState = {
-  position: { x: -30, y: START_ALTITUDE + CENTER_OF_MASS_HEIGHT, z: 0 },
+  position: { x: -30, y: START_ALTITUDE + FIRST_LANDER.model.centerOfMassHeight, z: 0 },
   orientation: { x: 0, y: -Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
   velocity: { x: 2, y: -4, z: 0 },
   angularVelocity: { x: 0, y: 0, z: 0 },
@@ -47,8 +47,7 @@ export const START_STATE: FlightState = {
 /** Everything a flight session needs for the first descent. */
 export const FIRST_DESCENT: FlightScenario = {
   start: START_STATE,
-  vehicle: LANDER,
-  attitude: ATTITUDE,
+  vehicle: FIRST_LANDER,
   environment: ENVIRONMENT,
   limits: LANDING_LIMITS,
 };

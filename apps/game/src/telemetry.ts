@@ -8,17 +8,17 @@ import {
   type VehiclePose,
 } from '@gravitas/engine';
 import type { FlightTelemetry, OrbitTelemetry, RadarVector } from '@gravitas/ui';
-import { FEET, LANDER } from './lander';
+import { hoverThrottle, legContacts, type VehicleDefinition } from './vehicle';
 import { safeSinkRate } from './rules';
 import { PAD_POSITION, padDistance, SURFACE_GRAVITY } from './scenario';
 
 /**
- * Height of the lowest unloaded foot above the flat surface plane (y = 0), in
- * metres. Negative while legs are compressed against the ground.
+ * Height of `vehicle`'s lowest unloaded foot above the flat surface plane (y = 0),
+ * in metres. Negative while legs are compressed against the ground.
  */
-export function footClearance(pose: VehiclePose): number {
+export function footClearance(pose: VehiclePose, vehicle: VehicleDefinition): number {
   let lowest = Infinity;
-  for (const foot of FEET) {
+  for (const foot of legContacts(vehicle)) {
     lowest = Math.min(lowest, pose.position.y + bodyToWorld(pose.orientation, foot.position).y);
   }
   return lowest;
@@ -37,11 +37,14 @@ export function headingFrame(q: Quaternion, v: Vector3): RadarVector {
 }
 
 /** Presentation snapshot for the HUD; never fed back into the simulation. */
-export function flightTelemetry(state: FlightState, throttle: number): FlightTelemetry {
+export function flightTelemetry(
+  state: FlightState,
+  throttle: number,
+  vehicle: VehicleDefinition,
+): FlightTelemetry {
   const q = state.orientation;
-  const mass = LANDER.dryMass + state.fuelMass;
   // Compressed legs read as zero altitude, not as a negative height.
-  const altitude = Math.max(0, footClearance(state));
+  const altitude = Math.max(0, footClearance(state, vehicle));
   return {
     altitude,
     safeSink: safeSinkRate(altitude),
@@ -49,9 +52,9 @@ export function flightTelemetry(state: FlightState, throttle: number): FlightTel
     horizontalSpeed: Math.hypot(state.velocity.x, state.velocity.z),
     padDistance: padDistance(state.position),
     tilt: tiltAngle(q),
-    fuel: state.fuelMass / LANDER.fuelCapacity,
+    fuel: state.fuelMass / vehicle.parameters.fuelCapacity,
     throttle,
-    hoverThrottle: (mass * SURFACE_GRAVITY) / LANDER.maxThrust,
+    hoverThrottle: hoverThrottle(vehicle, state.fuelMass, SURFACE_GRAVITY),
     lean: headingFrame(q, bodyToWorld(q, { x: 0, y: 1, z: 0 })),
     drift: headingFrame(q, state.velocity),
     pad: headingFrame(q, {
@@ -74,17 +77,17 @@ export function orbitalFlightTelemetry(
   altitude: number,
   gravity: number,
   orbit: OrbitTelemetry | undefined,
+  vehicle: VehicleDefinition,
 ): FlightTelemetry {
   const q = local.orientation;
-  const mass = LANDER.dryMass + local.fuelMass;
   return {
     altitude,
     verticalSpeed: local.velocity.y,
     horizontalSpeed: Math.hypot(local.velocity.x, local.velocity.z),
     tilt: tiltAngle(q),
-    fuel: local.fuelMass / LANDER.fuelCapacity,
+    fuel: local.fuelMass / vehicle.parameters.fuelCapacity,
     throttle,
-    hoverThrottle: (mass * gravity) / LANDER.maxThrust,
+    hoverThrottle: hoverThrottle(vehicle, local.fuelMass, gravity),
     lean: headingFrame(q, bodyToWorld(q, { x: 0, y: 1, z: 0 })),
     drift: headingFrame(q, local.velocity),
     ...(orbit ? { orbit } : {}),

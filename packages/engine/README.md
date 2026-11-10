@@ -27,9 +27,10 @@ state = stepFlight(state, { throttle: 0.6, bodyTorque }, vehicle, environment, M
 ```
 
 `vehicle` (`VehicleParameters`), `attitude` (`AttitudeSettings`), and
-`environment` (`FlightEnvironment`) are host-supplied numbers. Engine contains no
-particular vehicle or mission; the game's first lander lives in
-`apps/game/src/lander.ts`.
+`environment` (`FlightEnvironment`) are host-supplied numbers; `validateVehicle`
+and `validateAttitude` check the first two up front. Engine contains no
+particular vehicle or mission; the game's vehicles are definitions in
+`apps/game/src/lander.ts` and `apps/game/src/descent-vehicle.ts`.
 
 ## Pose and state contract
 

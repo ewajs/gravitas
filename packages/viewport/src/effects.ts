@@ -14,16 +14,24 @@ export const NO_ACTUATORS: Actuators = { throttle: 0, attitude: { x: 0, y: 0, z:
 
 /** Tunable effect values; presentation only. Lengths in metres. */
 export const EFFECTS = {
-  /** Engine bell lip relative to the centre of mass, body metres. */
-  bell: new THREE.Vector3(0, -1.08, 0),
-  /** Plume length at full throttle. */
-  plumeLength: 4,
-  /** Attitude thruster quads: body positions at the ascent-stage rim (0.9 m arm). */
-  quadRadius: 0.9,
-  quadHeight: 0.6,
   /** Dust appears when the feet are lower than this while the engine fires. */
   dustAltitude: 12,
 } as const;
+
+/** Where a vehicle's effects attach, in body metres from its centre of mass. */
+export interface EffectsLayout {
+  /** The engine bell's lip centre. */
+  readonly bell: THREE.Vector3;
+  /** Outer plume radius at the lip, and its length at full throttle. */
+  readonly plumeRadius: number;
+  readonly plumeLength: number;
+  /** Attitude-thruster quads: this far out at front, back, left, and right, at this height. */
+  readonly quadRadius: number;
+  readonly quadHeight: number;
+}
+
+/** The plume's hot core, as a share of its outer radius. */
+const CORE = 0.18 / 0.46;
 
 // Exhaust direction (scaled by command) for each quad, from τ = r × F: positive
 // pitch needs upward force at the front quad, so its exhaust points down; yaw
@@ -43,7 +51,13 @@ const UP = new THREE.Vector3(0, 1, 0);
  * Plume and puffs ride on the vehicle (centre-of-mass frame); dust lies on the
  * ground below it. Returns an update function and disposal.
  */
-export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfaceY: number) {
+export function createEffects(
+  vehicle: THREE.Object3D,
+  scene: THREE.Scene,
+  surfaceY: number,
+  initial: EffectsLayout,
+) {
+  let layout = initial;
   const geometries: THREE.BufferGeometry[] = [];
   const materials: THREE.Material[] = [];
   const glow = (color: number, opacity: number) => {
@@ -60,9 +74,9 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
     return material;
   };
 
-  // Plume: two nested open cones, apex down, unit length scaled by throttle.
+  // Plume: two nested open cones, apex down, unit length and radius scaled by
+  // throttle and the layout.
   const plume = new THREE.Group();
-  plume.position.copy(EFFECTS.bell);
   vehicle.add(plume);
   const cone = (radius: number, material: THREE.Material) => {
     const geometry = new THREE.ConeGeometry(radius, 1, 20, 1, true);
@@ -73,8 +87,8 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
     plume.add(mesh);
     return mesh;
   };
-  cone(0.46, glow(0xff5a12, 0.6));
-  cone(0.18, glow(0xffd27a, 0.75));
+  cone(1, glow(0xff5a12, 0.6));
+  cone(CORE, glow(0xffd27a, 0.75));
   plume.visible = false;
   const light = new THREE.PointLight(0xffb36b, 0, 30, 2);
   vehicle.add(light);
@@ -83,17 +97,19 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
   const puffGeometry = new THREE.SphereGeometry(0.14, 10, 8);
   geometries.push(puffGeometry);
   const puffMaterial = glow(0xf2f8ff, 0.9);
-  const puffs = QUADS.map(({ at }) => {
+  const puffs = QUADS.map(() => {
     const mesh = new THREE.Mesh(puffGeometry, puffMaterial);
-    const base = new THREE.Vector3(
-      at[0] * EFFECTS.quadRadius,
-      EFFECTS.quadHeight,
-      at[1] * EFFECTS.quadRadius,
-    );
     mesh.visible = false;
     vehicle.add(mesh);
-    return { mesh, base };
+    return { mesh, base: new THREE.Vector3() };
   });
+  const place = () => {
+    plume.position.copy(layout.bell);
+    for (const [i, { at }] of QUADS.entries()) {
+      puffs[i]!.base.set(at[0] * layout.quadRadius, layout.quadHeight, at[1] * layout.quadRadius);
+    }
+  };
+  place();
 
   // Dust: a soft ring on the ground that widens as the engine nears it. Opacity
   // fades in from the centre and out at the rim, so it reads as a cloud, not a disc.
@@ -137,12 +153,9 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
         ? 1
         : 1 + 0.08 * Math.sin(time * 37) + 0.05 * Math.sin(time * 61);
       plume.visible = throttle > 0.01;
-      plume.scale.set(
-        0.6 + 0.4 * throttle,
-        EFFECTS.plumeLength * throttle * flicker,
-        0.6 + 0.4 * throttle,
-      );
-      light.position.set(0, EFFECTS.bell.y - 1, 0);
+      const width = layout.plumeRadius * (0.6 + 0.4 * throttle);
+      plume.scale.set(width, layout.plumeLength * throttle * flicker, width);
+      light.position.set(layout.bell.x, layout.bell.y - 1, layout.bell.z);
       light.intensity = 60 * throttle * flicker;
 
       for (const [i, { exhaust: direction }] of QUADS.entries()) {
@@ -168,6 +181,11 @@ export function createEffects(vehicle: THREE.Object3D, scene: THREE.Scene, surfa
         dust.scale.set(radius, radius, 1);
         dustAmount.value = 0.55 * amount;
       }
+    },
+    /** Moves the plume, its light, and the puffs to another vehicle's bell and thrusters. */
+    setLayout(next: EffectsLayout) {
+      layout = next;
+      place();
     },
     /** Objects inspected by tests; not part of any public API. */
     parts: { plume, light, puffs: puffs.map((p) => p.mesh), dust, dustAmount },

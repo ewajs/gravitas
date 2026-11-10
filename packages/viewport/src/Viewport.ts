@@ -7,6 +7,7 @@ import { createPlanet, type OrbitPath, type PlanetPose, type PlanetView } from '
 import type { TerrainStats } from './terrain';
 import { assertPose, blendPose, copyPose, poseBuffer } from './pose';
 import { createScene, DEFAULT_SUN, type SceneAccents } from './scene';
+import { validateVehicleModel, type VehicleModel } from './vehicle-model';
 
 /** Backend request. Auto permits Three.js's built-in WebGL 2 fallback. */
 export type BackendRequest = 'auto' | 'webgl2';
@@ -20,8 +21,8 @@ export interface ViewportOptions {
   readonly container: HTMLElement;
   /** Localized canvas description for assistive technology. */
   readonly label: string;
-  /** Centre of mass above the artwork's level foot-contact plane, in metres. */
-  readonly centerOfMassHeight: number;
+  /** The vehicle drawn first; setVehicle replaces it. */
+  readonly vehicle: VehicleModel;
   /** Defaults to auto, allowing WebGPU with Three.js's WebGL 2 fallback. */
   readonly backend?: BackendRequest;
 }
@@ -49,6 +50,7 @@ const ORIGIN = new THREE.Vector3();
 export class Viewport {
   readonly #options: ViewportOptions;
   readonly #art: ReturnType<typeof createScene>;
+  #model: VehicleModel;
   // Near plane well inside the 6 m minimum zoom; it sets depth precision for surface decals.
   readonly #camera = new THREE.PerspectiveCamera(42, 1, 0.5, LOCAL_FAR);
   readonly #planet: ReturnType<typeof createPlanet>;
@@ -83,10 +85,9 @@ export class Viewport {
     if (options.backend && !['auto', 'webgl2'].includes(options.backend)) {
       throw new RangeError('Unknown viewport backend');
     }
-    if (!Number.isFinite(options.centerOfMassHeight) || options.centerOfMassHeight <= 0) {
-      throw new RangeError('centerOfMassHeight must be finite and positive');
-    }
-    this.#art = createScene(options.centerOfMassHeight);
+    validateVehicleModel(options.vehicle);
+    this.#model = options.vehicle;
+    this.#art = createScene(options.vehicle);
     this.#planet = createPlanet(this.#art.scene.background as THREE.Color);
     this.#art.scene.add(this.#planet.chaseGroup);
     this.#current.position.copy(this.#art.vehicle.position);
@@ -159,16 +160,30 @@ export class Viewport {
   }
 
   /**
-   * Draws each landing leg compressed by the given amount, in metres, in foot
-   * order: left-front, left-back, right-front, right-back (front is body −Z).
-   * Presentation only; pass the host's contact penetration for each foot.
+   * Draws each landing leg compressed by the given amount, in metres, in the
+   * model's leg order. Presentation only; pass the host's contact penetration for
+   * each foot.
    */
   setLegCompression(compressions: readonly number[]): void {
     this.#assertNotDisposed();
-    if (compressions.length !== 4 || !compressions.every((c) => Number.isFinite(c) && c >= 0)) {
-      throw new RangeError('Leg compression needs four finite, non-negative values');
+    if (
+      compressions.length !== this.#art.legCount ||
+      !compressions.every((c) => Number.isFinite(c) && c >= 0)
+    ) {
+      throw new RangeError('Leg compression needs one finite, non-negative value per leg');
     }
     this.#art.setLegCompression(compressions);
+  }
+
+  /**
+   * Draws another vehicle (a validated model) in place of the current one, at the
+   * current pose; pass the new vehicle's pose next. Its legs start uncompressed.
+   */
+  setVehicle(model: VehicleModel): void {
+    this.#assertNotDisposed();
+    validateVehicleModel(model);
+    this.#model = model;
+    this.#art.setVehicle(model);
   }
 
   /**
@@ -331,7 +346,7 @@ export class Viewport {
       Math.min(dt, CHASE.maxFrameTime),
       this.#reducedMotion?.matches ?? false,
       ...(terrain
-        ? [this.#art.vehicle.position.y - altitude - this.#options.centerOfMassHeight]
+        ? [this.#art.vehicle.position.y - altitude - this.#model.centerOfMassHeight]
         : []),
     );
     this.#aimSun();
@@ -428,8 +443,8 @@ export class Viewport {
   // ground (its terrain, else its reference sphere); framing only, not contact.
   #altitude(): number {
     const position = this.#art.vehicle.position;
-    if (!this.#planet.visible) return position.y - this.#options.centerOfMassHeight;
-    return this.#planet.heightAboveGround(position) - this.#options.centerOfMassHeight;
+    if (!this.#planet.visible) return position.y - this.#model.centerOfMassHeight;
+    return this.#planet.heightAboveGround(position) - this.#model.centerOfMassHeight;
   }
 
   // Around a planet, lift the chase camera out of rising ground (a hill behind the

@@ -11,7 +11,8 @@ owner asked for it as a learning resource that will grow into spaceflight and
 orbital mechanics.
 
 - **Explorers run the game's own code.** `manual/.vitepress/learn/models.ts`
-  imports `@gravitas/engine` and the game's lander values (`apps/game/src/lander.ts`).
+  imports `@gravitas/engine` and the game's lander values (`apps/game/src/lander.ts`, the first lander's definition
+  since ADR 0023).
   What a reader plays with is what flies in the game, and plotting engine samples
   beside closed-form formulas shows the simulation is right.
 - **Models are pure TypeScript, unit-tested.** Vitest checks them against

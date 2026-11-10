@@ -1,5 +1,4 @@
 import { bodyToWorld, clamp } from '@gravitas/engine';
-import { ATTITUDE, LANDER } from './lander';
 import { PAD_POSITION, SURFACE_GRAVITY } from './scenario';
 import type { FlightSession, PilotInput } from './session';
 import { footClearance } from './telemetry';
@@ -22,8 +21,9 @@ function descentThrottle(session: FlightSession, sink: number): number {
   const s = session.state;
   const g = SURFACE_GRAVITY;
   const up = bodyToWorld(s.orientation, { x: 0, y: 1, z: 0 }).y;
-  const mass = LANDER.dryMass + s.fuelMass;
-  return (mass * (g + 1.5 * (sink - s.velocity.y))) / (LANDER.maxThrust * Math.max(0.5, up));
+  const { dryMass, maxThrust } = session.scenario.vehicle.parameters;
+  const mass = dryMass + s.fuelMass;
+  return (mass * (g + 1.5 * (sink - s.velocity.y))) / (maxThrust * Math.max(0.5, up));
 }
 
 /** No input at all: the opening's unpowered fall. */
@@ -32,14 +32,15 @@ export const idlePilot: Pilot = () => ({ rates: { x: 0, y: 0, z: 0 }, throttleCh
 /** Throttle only: holds a zero sink rate while upright, so it hovers until the tank runs dry. */
 export const hoverPilot: Pilot = (session) => {
   const s = session.state;
-  const mass = LANDER.dryMass + s.fuelMass;
-  const hold = (mass * (SURFACE_GRAVITY + 1.5 * (0 - s.velocity.y))) / LANDER.maxThrust;
+  const { dryMass, maxThrust } = session.scenario.vehicle.parameters;
+  const mass = dryMass + s.fuelMass;
+  const hold = (mass * (SURFACE_GRAVITY + 1.5 * (0 - s.velocity.y))) / maxThrust;
   return { rates: { x: 0, y: 0, z: 0 }, throttleChange: lever(session, hold) };
 };
 
 /** Throttle only: holds a sink rate of altitude/6 and ignores drift. */
 export const verticalPilot: Pilot = (session) => {
-  const altitude = footClearance(session.state);
+  const altitude = footClearance(session.state, session.scenario.vehicle);
   return {
     rates: { x: 0, y: 0, z: 0 },
     throttleChange: lever(session, descentThrottle(session, -Math.max(0.8, altitude / 6))),
@@ -53,7 +54,7 @@ export const verticalPilot: Pilot = (session) => {
  */
 export const padPilot: Pilot = (session) => {
   const s = session.state;
-  const altitude = footClearance(s);
+  const altitude = footClearance(s, session.scenario.vehicle);
   const g = SURFACE_GRAVITY;
   const up = bodyToWorld(s.orientation, { x: 0, y: 1, z: 0 });
   // Lean along world X (forward) and Z (left of forward is −Z here).
@@ -64,7 +65,7 @@ export const padPilot: Pilot = (session) => {
   const leanX = steer(s.position.x - PAD_POSITION.x, s.velocity.x);
   const leanZ = steer(s.position.z - PAD_POSITION.z, s.velocity.z);
   // Rate requests are fractions of the assist's maximum rate.
-  const { maxRate } = ATTITUDE;
+  const { maxRate } = session.scenario.vehicle.attitude;
   return {
     // −X body rate leans thrust toward +X world; +Z body rate leans it toward −Z world.
     rates: {

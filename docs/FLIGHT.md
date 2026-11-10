@@ -240,8 +240,10 @@ See [GAME.md](GAME.md#landing-rules) and
 
 ## First lander
 
-Fictional, tunable values in `apps/game/src/lander.ts`. They are not historical
-specifications, and playtesting in M3 may change them.
+Fictional, tunable values in `apps/game/src/lander.ts`, the first lander's
+definition ([ADR 0023](decisions/0023-vehicle-definitions.md)). They are not
+historical specifications, and playtesting in M3 may change them. The descent
+vehicle for landing from orbit (5.5) is compared with it in the ADR.
 
 | Parameter                 | Value                       |
 | ------------------------- | --------------------------- |

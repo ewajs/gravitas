@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { rotationAbout } from '@gravitas/engine';
-import { ATTITUDE, LANDER } from './lander';
+import { FIRST_LANDER } from './lander';
 import { FIRST_DESCENT, START_STATE } from './scenario';
 import { FIXED_STEP, FlightSession, MAX_STEPS_PER_FRAME, type PilotInput } from './session';
 import { footClearance } from './telemetry';
@@ -141,10 +141,10 @@ describe('pilot input', () => {
     const session = flying();
     run(session, FIXED_STEP, 3, { ...idle, rates: { x: -1, y: 0, z: 0 } });
     // Saturated for ~1 s, then a 0.3 s exponential approach: within 1e-3 rad/s by 3 s.
-    expect(session.state.angularVelocity.x).toBeCloseTo(-ATTITUDE.maxRate.x, 3);
+    expect(session.state.angularVelocity.x).toBeCloseTo(-FIRST_LANDER.attitude.maxRate.x, 3);
     run(session, FIXED_STEP, 3);
     expect(Math.abs(session.state.angularVelocity.x)).toBeLessThan(1e-3);
-    expect(session.state.fuelMass).toBeLessThan(LANDER.fuelCapacity);
+    expect(session.state.fuelMass).toBeLessThan(FIRST_LANDER.parameters.fuelCapacity);
   });
 });
 
@@ -157,7 +157,8 @@ describe('surface contact in the session', () => {
     let highestAfterTouchdown = -Infinity;
     for (let n = 0; n < 60 * 20; n++) {
       session.advance(FIXED_STEP, idle);
-      if (touchdown === undefined && footClearance(session.state) <= 0) touchdown = session.ticks;
+      if (touchdown === undefined && footClearance(session.state, FIRST_LANDER) <= 0)
+        touchdown = session.ticks;
       if (touchdown !== undefined) {
         highestAfterTouchdown = Math.max(highestAfterTouchdown, session.state.position.y);
       }

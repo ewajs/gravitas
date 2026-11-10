@@ -1,12 +1,11 @@
 import * as THREE from 'three/webgpu';
-import { createEffects } from './effects';
+import { createEffects, type EffectsLayout } from './effects';
+import { buildArtwork } from './vehicle-artwork';
+import type { VehicleModel } from './vehicle-model';
 
 /** Flat ground at y = 0, matching the game's physics surface; decals sit just above. */
 const SURFACE_Y = 0;
 const PAD_RADIUS = 3.8;
-/** Largest drawn leg compression, in metres; beyond it the hull is already touching. */
-const MAX_DRAWN_COMPRESSION = 0.6;
-const UP = new THREE.Vector3(0, 1, 0);
 
 /**
  * CSS hex colours (`#rrggbb`) for the scene's non-physical marks, which a host
@@ -34,13 +33,6 @@ export const DEFAULT_ACCENTS: SceneAccents = {
 /** Where the Sun is in the flat landing scene; a host may aim it with Viewport.setSunDirection. */
 export const DEFAULT_SUN = new THREE.Vector3(-8, 14, -6);
 
-/** A foot pad and its struts, redrawn as the leg compresses. */
-interface Leg {
-  readonly foot: THREE.Mesh;
-  readonly rest: THREE.Vector3;
-  readonly struts: readonly { mesh: THREE.Mesh; start: THREE.Vector3; length: number }[];
-}
-
 // Small deterministic PRNG (mulberry32) for repeatable scenery.
 function seeded(seed: number): () => number {
   let state = seed >>> 0;
@@ -53,8 +45,20 @@ function seeded(seed: number): () => number {
   };
 }
 
-/** Builds illustrative metre-scale artwork, not a physical vehicle specification. */
-export function createScene(centerOfMassHeight: number) {
+/** Where a model's effects attach, relative to its centre of mass. */
+function effectsLayout(model: VehicleModel): EffectsLayout {
+  const { bell, plumeRadius, plumeLength } = model.engine;
+  return {
+    bell: new THREE.Vector3(bell.x, bell.y - model.centerOfMassHeight, bell.z),
+    plumeRadius,
+    plumeLength,
+    quadRadius: model.thrusters.radius,
+    quadHeight: model.thrusters.height - model.centerOfMassHeight,
+  };
+}
+
+/** Builds the scene around a validated vehicle model: illustrative metre-scale artwork. */
+export function createScene(model: VehicleModel) {
   const scene = new THREE.Scene();
   const sky = new THREE.Color(DEFAULT_ACCENTS.sky);
   scene.background = sky;
@@ -77,67 +81,13 @@ export function createScene(centerOfMassHeight: number) {
     parent.add(result);
     return result;
   };
-  const gold = material(0xd2a650, 0.65, 0.42);
-  const white = material(0xe5e7e5, 0.3, 0.4);
-  const graphite = material(0x242c35, 0.4, 0.5);
-  const silver = material(0x9aa6b3, 0.65, 0.3);
-  const glass = material(0x102f42, 0.6, 0.2);
   const vehicle = new THREE.Group();
   scene.add(vehicle);
   // Pose transforms act at the centre of mass. The artwork remains authored from its feet.
-  const artwork = new THREE.Group();
-  artwork.position.y = -centerOfMassHeight;
-  vehicle.add(artwork);
-  vehicle.position.y = centerOfMassHeight;
-
-  // The artwork's origin is the centre of its contact plane, with its front at -Z.
-  mesh(new THREE.CylinderGeometry(0.82, 0.92, 0.75, 8), gold, artwork).position.y = 1.25;
-  mesh(new THREE.CylinderGeometry(0.58, 0.74, 0.85, 8), white, artwork).position.y = 2.02;
-  mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.09, 8), graphite, artwork).position.y = 1.65;
-  mesh(new THREE.CylinderGeometry(0.24, 0.4, 0.44, 12, 1, true), graphite, artwork).position.y =
-    0.64;
-  mesh(new THREE.BoxGeometry(0.62, 0.25, 0.05), glass, artwork).position.set(0, 2.1, -0.64);
-  mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.55, 6), silver, artwork).position.set(
-    0.35,
-    2.7,
-    0,
-  );
-  mesh(new THREE.SphereGeometry(0.055, 8, 6), white, artwork).position.set(0.35, 3, 0);
-
-  // A strut spans from its body attachment to the foot; compression moves the foot end.
-  const placeStrut = (
-    strut: THREE.Mesh,
-    start: THREE.Vector3,
-    end: THREE.Vector3,
-    rest: number,
-  ) => {
-    const direction = end.clone().sub(start);
-    strut.position.copy(start).add(end).multiplyScalar(0.5);
-    strut.scale.y = direction.length() / rest;
-    strut.quaternion.setFromUnitVectors(UP, direction.normalize());
-  };
-  const legs: Leg[] = [];
-  // Foot order: left-front, left-back, right-front, right-back (front is −Z).
-  for (const x of [-1, 1]) {
-    for (const z of [-1, 1]) {
-      const rest = new THREE.Vector3(x * 1.5, 0.04, z * 1.5);
-      const foot = mesh(new THREE.CylinderGeometry(0.23, 0.3, 0.08, 8), graphite, artwork);
-      foot.position.copy(rest);
-      const struts = (
-        [
-          [new THREE.Vector3(x * 0.65, 1.4, z * 0.65), 0.045],
-          [new THREE.Vector3(x * 0.72, 0.94, z * 0.72), 0.025],
-        ] as const
-      ).map(([start, radius]) => {
-        const length = rest.distanceTo(start);
-        const strut = mesh(new THREE.CylinderGeometry(radius, radius, length, 8), silver, artwork);
-        placeStrut(strut, start, rest, length);
-        return { mesh: strut, start, length };
-      });
-      legs.push({ foot, rest, struts });
-    }
-  }
-  const footEnd = new THREE.Vector3();
+  let art = buildArtwork(model);
+  art.artwork.position.y = -model.centerOfMassHeight;
+  vehicle.add(art.artwork);
+  vehicle.position.y = model.centerOfMassHeight;
 
   // The flat landing site: ground, pad, scatter, and the below-vehicle marker. It is
   // hidden while a planet is shown (ADR 0020); a group at the origin draws exactly
@@ -247,7 +197,7 @@ export function createScene(centerOfMassHeight: number) {
   const drop = new THREE.Line(dropGeometry, dropMaterial);
   site.add(drop);
 
-  const effects = createEffects(vehicle, scene, SURFACE_Y);
+  const effects = createEffects(vehicle, scene, SURFACE_Y, effectsLayout(model));
 
   const sun = new THREE.DirectionalLight(0xfff1d8, 4);
   sun.position.copy(DEFAULT_SUN);
@@ -261,10 +211,18 @@ export function createScene(centerOfMassHeight: number) {
   return {
     scene,
     vehicle,
-    /** Foot meshes in foot order; tests inspect them. Not part of any public API. */
-    feet: legs.map((leg) => leg.foot),
+    /** Foot meshes in leg order; tests inspect them. Not part of any public API. */
+    get feet() {
+      return art.feet;
+    },
     /** The vehicle's drawn structure, without effects; tests measure it. */
-    artwork,
+    get artwork() {
+      return art.artwork;
+    },
+    /** The current model's leg count: compressions come one per leg. */
+    get legCount() {
+      return art.feet.length;
+    },
     /** The flat landing site, hidden while a planet is shown. */
     site,
     sun,
@@ -285,16 +243,24 @@ export function createScene(centerOfMassHeight: number) {
       markerMaterial.color.set(accents.marker);
       dropMaterial.color.set(accents.marker);
     },
-    /** Raises each foot by its compression (metres, foot order) and re-aims its struts. */
+    /** Raises each foot by its compression (metres, leg order) and re-aims its struts. */
     setLegCompression(compressions: readonly number[]) {
-      legs.forEach((leg, i) => {
-        const lift = Math.min(MAX_DRAWN_COMPRESSION, compressions[i] ?? 0);
-        footEnd.copy(leg.rest).addScaledVector(UP, lift);
-        leg.foot.position.copy(footEnd);
-        for (const strut of leg.struts) placeStrut(strut.mesh, strut.start, footEnd, strut.length);
-      });
+      art.setLegCompression(compressions);
+    },
+    /**
+     * Replaces the vehicle's artwork and moves its effects to the new model's bell
+     * and thrusters; the vehicle keeps its pose.
+     */
+    setVehicle(next: VehicleModel) {
+      vehicle.remove(art.artwork);
+      art.dispose();
+      art = buildArtwork(next);
+      art.artwork.position.y = -next.centerOfMassHeight;
+      vehicle.add(art.artwork);
+      effects.setLayout(effectsLayout(next));
     },
     dispose() {
+      art.dispose();
       effects.dispose();
       sun.shadow.dispose();
       for (const geometry of geometries) geometry.dispose();

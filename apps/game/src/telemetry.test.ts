@@ -3,6 +3,7 @@ import { rotationAbout, type FlightState } from '@gravitas/engine';
 import { LANDING_LIMITS, safeSinkRate } from './rules';
 import { flightTelemetry, footClearance, headingFrame } from './telemetry';
 import { START_ALTITUDE, START_STATE } from './scenario';
+import { FIRST_LANDER } from './lander';
 
 const upright = { x: 0, y: 0, z: 0, w: 1 };
 const near = (v: { x: number; y: number }) => [v.x, v.y].map((n) => Math.round(n * 1e9) / 1e9 + 0);
@@ -10,17 +11,15 @@ const near = (v: { x: number; y: number }) => [v.x, v.y].map((n) => Math.round(n
 describe('presentation geometry', () => {
   it('measures altitude from the lowest foot, not the centre of mass', () => {
     const position = { x: 0, y: 10, z: 0 };
-    expect(footClearance({ position, orientation: upright })).toBeCloseTo(8.5, 12);
+    expect(footClearance({ position, orientation: upright }, FIRST_LANDER)).toBeCloseTo(8.5, 12);
     // Rolled 45°: the lowest foot is 1.5·sin45° + 1.5·cos45° = 2.1213 m below the centre.
-    expect(footClearance({ position, orientation: rotationAbout('z', Math.PI / 4) })).toBeCloseTo(
-      10 - 3 * Math.SQRT1_2,
-      12,
-    );
+    expect(
+      footClearance({ position, orientation: rotationAbout('z', Math.PI / 4) }, FIRST_LANDER),
+    ).toBeCloseTo(10 - 3 * Math.SQRT1_2, 12);
     // On its side: the feet are level with the centre of mass, ±1.5 m.
-    expect(footClearance({ position, orientation: rotationAbout('z', Math.PI / 2) })).toBeCloseTo(
-      8.5,
-      12,
-    );
+    expect(
+      footClearance({ position, orientation: rotationAbout('z', Math.PI / 2) }, FIRST_LANDER),
+    ).toBeCloseTo(8.5, 12);
   });
 
   it('projects world vectors into the heading frame: x right, y forward', () => {
@@ -36,7 +35,7 @@ describe('presentation geometry', () => {
 describe('flight telemetry', () => {
   it('starts facing the pad with the drift toward it', () => {
     const state: FlightState = { ...START_STATE, fuelMass: 150 };
-    const t = flightTelemetry(state, 0.25);
+    const t = flightTelemetry(state, 0.25, FIRST_LANDER);
     expect(t).toMatchObject({
       altitude: START_ALTITUDE,
       verticalSpeed: -4,
@@ -58,11 +57,13 @@ describe('flight telemetry', () => {
     const forward = flightTelemetry(
       { ...START_STATE, orientation: rotationAbout('x', -0.3) },
       0,
+      FIRST_LANDER,
     ).lean;
     expect(near(forward)).toEqual(near({ x: 0, y: Math.sin(0.3) }));
     const leftward = flightTelemetry(
       { ...START_STATE, orientation: rotationAbout('z', 0.3) },
       0,
+      FIRST_LANDER,
     ).lean;
     expect(near(leftward)).toEqual(near({ x: -Math.sin(0.3), y: 0 }));
   });

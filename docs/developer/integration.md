@@ -29,8 +29,7 @@ DOM. It receives everything it needs as one `FlightScenario`, which
 ```ts
 export const FIRST_DESCENT: FlightScenario = {
   start: START_STATE, // 80 m up, facing the pad, sinking and drifting toward it
-  vehicle: LANDER, // lander.ts: masses, thrust, inertia, torque, thrusters, contact points
-  attitude: ATTITUDE, // lander.ts: rate-assist tuning
+  vehicle: FIRST_LANDER, // lander.ts: physics, rate assist, and model (ADR 0023)
   environment: ENVIRONMENT, // lunar gravity and flat ground at y = 0
   limits: LANDING_LIMITS, // rules.ts: what counts as a landing
 };
@@ -165,7 +164,7 @@ HUD's loading status can render:
 const { Viewport } = await import('@gravitas/viewport');
 const viewport = new Viewport({
   container: host,
-  centerOfMassHeight: CENTER_OF_MASS_HEIGHT,
+  vehicle: session.scenario.vehicle.model, // What to draw; setVehicle swaps it.
   label: viewportMessages().scene,
   backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
 });
@@ -260,7 +259,7 @@ canvas: viewport rejects initialization with `AbortError` and completes cleanup.
 - [Input sources and merging](https://github.com/ewajs/gravitas/blob/main/apps/game/src/input.ts) and [keyboard controls](https://github.com/ewajs/gravitas/blob/main/apps/game/src/controls.ts)
 - [Telemetry and foot clearance](https://github.com/ewajs/gravitas/blob/main/apps/game/src/telemetry.ts)
 - [Landing rules](https://github.com/ewajs/gravitas/blob/main/apps/game/src/rules.ts) and [report](https://github.com/ewajs/gravitas/blob/main/apps/game/src/report.ts)
-- [Lander parameters](https://github.com/ewajs/gravitas/blob/main/apps/game/src/lander.ts) and [opening scenario](https://github.com/ewajs/gravitas/blob/main/apps/game/src/scenario.ts)
+- [Vehicle definitions](https://github.com/ewajs/gravitas/blob/main/apps/game/src/vehicle.ts), the [first lander](https://github.com/ewajs/gravitas/blob/main/apps/game/src/lander.ts), and the [opening scenario](https://github.com/ewajs/gravitas/blob/main/apps/game/src/scenario.ts)
 - [Viewport lifecycle and interpolation](https://github.com/ewajs/gravitas/blob/main/packages/viewport/src/Viewport.ts)
 - [Flight HUD](https://github.com/ewajs/gravitas/blob/main/packages/ui/src/flight-hud.ts)
 - [Runtime verification](https://github.com/ewajs/gravitas/blob/main/docs/verification/runtime.md)

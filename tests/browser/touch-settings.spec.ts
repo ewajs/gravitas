@@ -50,7 +50,9 @@ test.describe('touch controls follow the device and the setting', () => {
 
 test('Always shows them on a desktop, and a mouse can drag the lever', async ({ page }, info) => {
   const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=en`,
+  );
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
   await page.getByRole('button', { name: 'Help', exact: true }).click();
   const dialog = page.getByRole('dialog');

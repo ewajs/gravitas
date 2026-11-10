@@ -50,6 +50,12 @@ export const icons = {
   /** Two chevrons pointing left: slower time warp. */
   slower: (size = 18) => icon(svg`<path d="M19 6l-6 6 6 6M11 6l-6 6 6 6"></path>`, size),
   /** A globe with an orbit around it, for the map view. */
+  // Three stacked cards: the mission list.
+  missions: (size = 20) =>
+    icon(
+      svg`<rect x="4" y="4" width="16" height="4.5" rx="1.5"></rect><rect x="4" y="10" width="16" height="4.5" rx="1.5"></rect><path d="M4 18.5h10"></path>`,
+      size,
+    ),
   map: (size = 20) =>
     icon(
       svg`<circle cx="12" cy="12" r="5"></circle><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-20 12 12)"></ellipse>`,

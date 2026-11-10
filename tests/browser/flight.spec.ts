@@ -4,7 +4,9 @@ import { test, expect } from './test';
 
 async function open(page: Page, project: string, lang = 'en') {
   const backend = project === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=${lang}`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=${lang}`,
+  );
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', project);
 }
 
@@ -250,7 +252,9 @@ test('the developer overlay appears only behind ?debug', async ({ page }, info) 
   await open(page, info.project.name);
   await expect(page.locator('#diagnostics')).toHaveCount(0);
   const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en&debug`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=en&debug`,
+  );
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
   const overlay = page.locator('#diagnostics');
   await expect(overlay).toContainText('fps');

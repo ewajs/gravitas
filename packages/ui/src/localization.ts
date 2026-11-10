@@ -34,6 +34,12 @@ export function viewportMessages() {
       id: 'viewport-scene-terrain',
     }),
     terrainSubtitle: msg('Superficie lunar · prueba', { id: 'viewport-subtitle-terrain' }),
+    descentScene: msg('Un módulo de descenso en órbita alrededor de la Luna.', {
+      id: 'viewport-scene-descent',
+    }),
+    descentSubtitle: msg('Aterrizaje desde órbita · vista previa', {
+      id: 'viewport-subtitle-descent',
+    }),
     controls: msg('W/S cabeceo · A/D alabeo · Q/E guiñada · R/F empuje · P pausa', {
       id: 'viewport-controls',
     }),

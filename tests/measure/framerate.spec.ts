@@ -4,7 +4,9 @@ import { test } from '@playwright/test';
 // frame rate, per-frame main-thread work, dropped simulation time, draw calls.
 test('frame rate during a powered descent', async ({ page }, info) => {
   const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en&debug`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=en&debug`,
+  );
   await page.waitForSelector('#viewport[data-backend]');
   await page.keyboard.press('p');
   // Burn hard, then hover with thruster use, so plume, dust, and puffs all draw.

@@ -448,7 +448,7 @@ bit-identical unless a step says otherwise.
         throttle, mass flow, and delta-v against the rocket equation. Local checks
         passed on 2026-11-09; see [ADR 0023](decisions/0023-vehicle-definitions.md)
         and [vehicle definitions verification](verification/vehicles.md).
-  - [ ] **5.5b Mission picker:** owner decision on 2026-11-09. A screen at the
+  - [x] **5.5b Mission picker:** owner decision on 2026-11-09. A screen at the
         start offers two missions: the quick landing (the opening hop) and land
         from orbit (the descent vehicle in lunar orbit over the real terrain,
         marked as a preview until 5.5c). The game switches mission, vehicle,
@@ -457,6 +457,8 @@ bit-identical unless a step says otherwise.
         `?scenario=` links stay as developer shortcuts that skip the picker.
         **Verify:** both missions start from the picker on both backends and
         return to it; the opening's flights bit-identical; both browser suites.
+        Local checks passed on 2026-11-09; see the
+        [mission picker verification](verification/missions.md).
   - [ ] **5.5c The level:** land from orbit, finished, from the picker: start in
         lunar orbit in the descent vehicle, deorbit, and land anywhere on the
         Moon. No pad; the verdict uses the existing limits-based classifier

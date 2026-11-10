@@ -18,7 +18,7 @@ test('production scene renders in both languages with the requested backend', as
   });
   for (const lang of ['es-AR', 'en']) {
     await page.goto(
-      `http://127.0.0.1:4173/gravitas/?backend=${backend === 'webgl2' ? 'webgl2' : 'auto'}&lang=${lang}`,
+      `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend === 'webgl2' ? 'webgl2' : 'auto'}&lang=${lang}`,
     );
     await expect(page.locator('#viewport')).toHaveAttribute('data-backend', backend);
     await expect(page.locator('canvas')).toBeVisible();
@@ -247,7 +247,9 @@ test.describe('unavailable graphics', () => {
       } as typeof original;
     });
     for (const lang of ['es-AR', 'en']) {
-      await page.goto(`http://127.0.0.1:4173/gravitas/?backend=webgl2&lang=${lang}`);
+      await page.goto(
+        `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=webgl2&lang=${lang}`,
+      );
       await expect(page.getByRole('alert')).toContainText(
         lang === 'en' ? 'We couldn’t display' : 'No pudimos mostrar',
       );
@@ -288,7 +290,9 @@ test.describe('lost graphics context', () => {
   test('production context loss stops drawing and shows an understandable failure', async ({
     page,
   }) => {
-    await page.goto('http://127.0.0.1:4173/gravitas/?backend=webgl2&lang=en');
+    await page.goto(
+      'http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=webgl2&lang=en',
+    );
     await expect(page.locator('#viewport')).toHaveAttribute('data-backend', 'webgl2');
     await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => {
       canvas.getContext('webgl2')!.getExtension('WEBGL_lose_context')!.loseContext();

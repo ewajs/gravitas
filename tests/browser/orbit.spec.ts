@@ -108,7 +108,9 @@ test('the sandbox reads in Spanish too', async ({ page }, info) => {
 
 test('the opening offers no time warp or map', async ({ page }, info) => {
   const backend = info.project.name === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=en`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=en`,
+  );
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   const hud = page.locator('gravitas-flight-hud');
   await expect(hud.getByRole('button', { name: 'Pause' })).toBeVisible();

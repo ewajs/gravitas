@@ -215,7 +215,7 @@ export class Viewport {
 
   /**
    * Shows a spherical body instead of the flat landing site, or the site again with
-   * null. With a planet, the host's world should centre on the vehicle with +Y up
+   * null, in its default sunlight. With a planet, the host's world should centre on the vehicle with +Y up
    * (away from the body's centre), so float32 rendering stays steady (ADR 0020).
    * Callable before init(); the colour map loads asynchronously.
    */
@@ -238,6 +238,8 @@ export class Viewport {
       this.#planet.setOrbit(null);
       this.#cameraMode = 'chase';
       this.#syncControls();
+      // Back over the site, light it as it is lit before any planet.
+      this.#sunDirection.copy(DEFAULT_SUN).normalize();
     }
   }
 

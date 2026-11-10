@@ -10,6 +10,8 @@ import {
   type InputDevice,
   type Locale,
   type LocaleRequest,
+  type MissionId,
+  type MissionRequest,
   type SoundRequest,
   type ViewRequest,
   type WarpRequest,
@@ -23,19 +25,14 @@ import { TouchControlsSource } from './touch';
 import { blockPageZoom } from './zoom';
 import { PilotInputs, type InputCommand } from './input';
 import {
-  localGravity,
-  ORBIT_SANDBOX,
-  orbitalScene,
-  orbitPath,
-  orbitTelemetry,
-  groundAltitude,
-  SUN_DIRECTION,
-  TERRAIN_SUN,
-  orbitSandbox,
-  terrainSandbox,
-} from './orbital';
+  MISSIONS,
+  PICKER_MISSIONS,
+  shortcutMission,
+  type Mission,
+  type MissionKey,
+} from './missions';
+import { localGravity, orbitalScene, orbitPath, orbitTelemetry, groundAltitude } from './orbital';
 import { landingReport } from './report';
-import { FIRST_DESCENT } from './scenario';
 import {
   FlightSession,
   isVerdict,
@@ -63,18 +60,24 @@ const host = document.querySelector<HTMLDivElement>('#viewport')!;
 const hud = document.querySelector('gravitas-flight-hud')!;
 const touchControls = document.querySelector('gravitas-touch-controls')!;
 const parameters = new URLSearchParams(location.search);
-// ?scenario=orbit: the orbit sandbox (5.3b); ?scenario=terrain: the terrain sandbox
-// (5.4b), low over Tranquility Base. Both are reached only by URL, not the start card.
-const requestedScenario = parameters.get('scenario');
-const terrainSandboxMode = requestedScenario === 'terrain';
-const sandbox = requestedScenario === 'orbit' || terrainSandboxMode;
-// The Moon's terrain (both sandboxes): its elevation grid starts downloading now.
-const terrainLoad = sandbox ? loadMoonTerrain(import.meta.env.BASE_URL) : undefined;
-// The terrain sandbox starts from the ground's height, so its session is made once
-// the terrain has loaded, before Start is offered; the orbit stands in until then.
-let session = new FlightSession(sandbox ? ORBIT_SANDBOX : FIRST_DESCENT);
-// Sunlight: low behind the orbit's start, or a low morning Sun over Tranquility Base.
-const sunDirection = terrainSandboxMode ? TERRAIN_SUN : SUN_DIRECTION;
+// The mission picker comes first (5.5b). Developer shortcuts skip it: ?scenario=
+// quick-landing or orbit-landing, or the sandboxes, orbit (5.3b) and terrain
+// (5.4b, low over Tranquility Base).
+const shortcut = shortcutMission(parameters.get('scenario'));
+let mission: Mission = MISSIONS[shortcut ?? 'quick-landing'];
+let picking = shortcut === undefined;
+// The mission a gamepad's D-pad has moved to on the picker.
+let missionFocus: MissionId = 'quick-landing';
+// The Moon's terrain downloads once, when a mission first needs it.
+let terrainLoad =
+  mission.terrain === 'none' ? undefined : loadMoonTerrain(import.meta.env.BASE_URL);
+// A mission that starts from the ground's height waits for the terrain; the orbit
+// sandbox stands in until then.
+let session = new FlightSession(
+  mission.terrain === 'required'
+    ? MISSIONS['orbit-sandbox'].scenario(undefined)
+    : mission.scenario(undefined),
+);
 // Every input source reports commands to one handler; held input merges per frame.
 const inputs = new PilotInputs([
   new KeyboardControls(window, inputCommand),
@@ -112,11 +115,11 @@ let stopped = false;
 let destroyed = false;
 let lastOutcome = session.outcome.status;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-// In the orbit sandbox without terrain, at the mean radius: there is no ground to
+// Around the Moon without terrain, at the mean radius: there is no ground to
 // touch, so the flight stays paused until restarted.
 let surfaceReached = false;
-// The Moon's terrain once loaded (sandboxes only). Without it, the orbit sandbox
-// measures altitude from the mean radius and draws a smooth sphere.
+// The Moon's terrain once loaded (for flights around the Moon). Without it, they
+// measure altitude from the mean radius and draw a smooth sphere.
 let terrain: Terrain | undefined;
 // Developer diagnostics only behind an explicit ?debug switch; zero cost otherwise.
 const diagnostics = parameters.has('debug')
@@ -124,8 +127,11 @@ const diagnostics = parameters.has('debug')
   : undefined;
 
 hud.heading = 'Gravitas';
-hud.warpAvailable = sandbox;
-hud.mapAvailable = sandbox;
+hud.missions = PICKER_MISSIONS;
+hud.picking = picking;
+hud.missionFocus = missionFocus;
+hud.warpAvailable = mission.around;
+hud.mapAvailable = mission.around;
 hud.muted = settings.muted;
 hud.showControls = !settings.controlsSeen;
 hud.reduceTransparency = settings.reduceTransparency;
@@ -140,10 +146,12 @@ function updateSettings(changes: Partial<Settings>): void {
 }
 
 // Sound follows the flight: running while flying (or a crash plays out), else suspended.
-// A hidden tab is always silent, including while a crash plays out after a verdict.
+// A hidden tab and the mission picker are always silent.
 function syncAudio(): void {
   if (stopped) return;
-  audio.setActive(!document.hidden && (session.phase === 'flying' || session.phase === 'complete'));
+  audio.setActive(
+    !document.hidden && !picking && (session.phase === 'flying' || session.phase === 'complete'),
+  );
   host.dataset.audio = audio.state;
 }
 
@@ -205,7 +213,7 @@ function syncTouchControls(): void {
 }
 
 function underway(): boolean {
-  return session.phase === 'flying' || session.phase === 'paused';
+  return !picking && (session.phase === 'flying' || session.phase === 'paused');
 }
 
 // A phone or tablet held upright during a flight. Menus, Help, the start card, and
@@ -265,7 +273,7 @@ const BLOCKED: Record<RailsBlocker, FlightNotice | ''> = {
 
 // One step faster or slower through WARP_LEVELS; a refused rails warp says why.
 function changeWarp(direction: 1 | -1): void {
-  if (!sandbox || session.phase !== 'flying') return;
+  if (!mission.around || session.phase !== 'flying') return;
   const next = WARP_LEVELS[WARP_LEVELS.indexOf(session.warp) + direction];
   if (next === undefined) return;
   if (session.requestWarp(next)) showNotice('');
@@ -275,31 +283,142 @@ function changeWarp(direction: 1 | -1): void {
 
 // The chase camera or the map; only around a body.
 function setCamera(camera: 'chase' | 'map'): void {
-  if (!sandbox || !viewport) return;
+  if (!mission.around || !viewport) return;
   if (viewport.setCameraMode(camera)) hud.camera = camera;
 }
 
-// The vehicle-centred poses, the Moon, and the Sun for this frame (sandbox only).
+// The vehicle-centred poses, the Moon, and the Sun for this frame (around the Moon).
 function placeOrbitalScene(): void {
   if (!viewport) return;
-  const scene = orbitalScene(session.state, session.previous, session.time, sunDirection);
+  const scene = orbitalScene(session.state, session.previous, session.time, mission.sun!);
   viewport.setPlanetPose(scene.planet);
   viewport.setSunDirection(scene.sun);
   viewport.setVehiclePose(scene.current, scene.previous);
 }
 
-// The canvas description for the current scenario and language.
+// The canvas description for the current mission and language.
 function sceneLabel(): string {
   const messages = viewportMessages();
-  if (!sandbox) return messages.scene;
-  return terrainSandboxMode ? messages.terrainScene : messages.orbitScene;
+  const labels: Record<MissionKey, string> = {
+    'quick-landing': messages.scene,
+    'orbit-landing': messages.descentScene,
+    'orbit-sandbox': messages.orbitScene,
+    'terrain-sandbox': messages.terrainScene,
+  };
+  return labels[mission.id];
+}
+
+// The subtitle under the heading; empty for the HUD's own "Lunar descent".
+function subtitle(): string {
+  const messages = viewportMessages();
+  const subtitles: Record<MissionKey, string> = {
+    'quick-landing': '',
+    'orbit-landing': messages.descentSubtitle,
+    'orbit-sandbox': messages.orbitSubtitle,
+    'terrain-sandbox': messages.terrainSubtitle,
+  };
+  return subtitles[mission.id];
+}
+
+// Shows the current mission: its vehicle, the Moon or the flat site, the camera
+// behind it, and the HUD's options for it. Call after replacing the session.
+function showMission(): void {
+  hud.warpAvailable = mission.around;
+  hud.mapAvailable = mission.around;
+  hud.camera = 'chase';
+  hud.subtitle = subtitle();
+  if (!viewport) return;
+  viewport.setVehicle(session.scenario.vehicle.model);
+  if (mission.around) {
+    viewport.setPlanet({
+      radius: MOON.radius,
+      surfaceMap: `${import.meta.env.BASE_URL}moon/lroc-color-2k.jpg`,
+      ...(terrain ? { terrain } : {}),
+    });
+    viewport.setCameraMode('chase');
+    placeOrbitalScene();
+    viewport.setOrbitPath(orbitPath(session.state, session.time) ?? null);
+  } else {
+    viewport.setPlanet(null);
+    viewport.setVehiclePose(session.state);
+  }
+  viewport.setLegCompression(legCompression());
+  viewport.resetCamera();
+  viewport.setLabel(sceneLabel());
+}
+
+// Loads the terrain the mission needs, if it has not yet. A mission that requires
+// it fails without it; one that can do without flies over a smooth sphere.
+async function loadTerrain(next: Mission): Promise<void> {
+  if (next.terrain === 'none' || terrain) return;
+  terrainLoad ??= loadMoonTerrain(import.meta.env.BASE_URL);
+  try {
+    terrain = await terrainLoad;
+  } catch (error) {
+    if (next.terrain === 'required') throw error;
+    console.error('Gravitas could not load the Moon terrain.', error);
+  }
+}
+
+// Starts a mission from the picker: a fresh session, its scene, and its Start card.
+async function chooseMission(key: MissionKey): Promise<void> {
+  if (!picking || stopped) return;
+  const next = MISSIONS[key];
+  picking = false;
+  hud.picking = false;
+  if (next.terrain !== 'none' && !terrain) {
+    hud.status = 'loading';
+    try {
+      await loadTerrain(next);
+    } catch (error) {
+      fail(error);
+      return;
+    }
+    if (destroyed || stopped) return;
+    hud.status = 'ready';
+  }
+  mission = next;
+  session = new FlightSession(next.scenario(terrain));
+  inputs.clear();
+  surfaceReached = false;
+  showNotice('');
+  lastOutcome = session.outcome.status;
+  showMission();
+  publish();
+  syncAudio();
+}
+
+// Leaves the flight for the picker; the scene stays behind it, paused.
+function showPicker(): void {
+  if (picking) return;
+  if (session.phase === 'flying') session.pause();
+  inputs.clear();
+  picking = true;
+  missionFocus = PICKER_MISSIONS.some((choice) => choice.id === mission.id)
+    ? (mission.id as MissionId)
+    : PICKER_MISSIONS[0]!.id;
+  hud.missionFocus = missionFocus;
+  hud.picking = true;
+  if (viewport && mission.around) setCamera('chase');
+  showNotice('');
+  syncAudio();
+  publish();
+}
+
+// A gamepad's D-pad moves between the picker's missions.
+function moveMissionFocus(direction: 1 | -1): void {
+  const ids = PICKER_MISSIONS.map((choice) => choice.id);
+  const next = ids[ids.indexOf(missionFocus) + direction];
+  if (!next) return;
+  missionFocus = next;
+  hud.missionFocus = next;
 }
 
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
-  const telemetry = sandbox
+  const telemetry = mission.around
     ? orbitalFlightTelemetry(
-        orbitalScene(session.state, session.state, session.time, sunDirection).current,
+        orbitalScene(session.state, session.state, session.time, mission.sun!).current,
         session.throttle,
         Math.max(0, groundAltitude(session.state, terrain, session.scenario.vehicle)),
         localGravity(session.state),
@@ -307,12 +426,12 @@ function publish(): void {
         session.scenario.vehicle,
       )
     : flightTelemetry(session.state, session.throttle, session.scenario.vehicle);
-  if (sandbox) {
+  if (mission.around) {
     hud.warp = session.warp;
     viewport?.setOrbitPath(orbitPath(session.state, session.time) ?? null);
   }
   hud.phase = session.phase;
-  hud.report = landingReport(session, { pad: !sandbox });
+  hud.report = landingReport(session, { pad: mission.pad });
   hud.telemetry = telemetry;
   // The lever shows the throttle actually applied, whichever device moved it.
   touchControls.throttle = session.throttle;
@@ -334,9 +453,9 @@ function draw(timestamp: number): void {
     const phase = session.phase;
     session.advance(elapsed, inputs.sample());
     if (inputs.activeDevice) useDevice(inputs.activeDevice);
-    // Without terrain to touch, reaching the mean radius pauses the orbit sandbox.
+    // Without terrain to touch, reaching the mean radius pauses a flight around the Moon.
     if (
-      sandbox &&
+      mission.around &&
       !session.scenario.environment.surface &&
       session.phase === 'flying' &&
       groundAltitude(session.state, terrain, session.scenario.vehicle) <= 0
@@ -345,7 +464,7 @@ function draw(timestamp: number): void {
       flightAction('pause');
       showNotice('surface');
     }
-    if (sandbox) placeOrbitalScene();
+    if (mission.around) placeOrbitalScene();
     else viewport?.setVehiclePose(session.state, session.previous);
     viewport?.setLegCompression(legCompression());
     viewport?.setActuators(session.actuation);
@@ -399,6 +518,9 @@ function resume(): void {
 const sizeObserver = new ResizeObserver(resume);
 
 function flightAction(action: FlightRequest['action'] | 'toggle'): void {
+  if (action === 'missions') return showPicker();
+  // Behind the picker, the flight waits for a mission.
+  if (picking) return;
   if (action === 'toggle') {
     // After a verdict, P does nothing; restart (Enter or the button) starts over.
     const toggled: Record<SessionPhase, FlightRequest['action'] | undefined> = {
@@ -430,7 +552,7 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
     surfaceReached = false;
     showNotice('');
     // The vehicle teleports back to the opening; do not ease the camera across it.
-    if (sandbox) placeOrbitalScene();
+    if (mission.around) placeOrbitalScene();
     else viewport?.setVehiclePose(session.state);
     viewport?.resetCamera();
     lastOutcome = session.outcome.status;
@@ -444,7 +566,13 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
 function inputCommand(command: InputCommand): void {
   if (stopped) return;
   if (command === 'toggle-mute') setMuted(!settings.muted);
-  else if (command === 'toggle-pause') flightAction('toggle');
+  else if (picking) {
+    // On the picker a gamepad moves with the D-pad and chooses with A; keys and
+    // touch use the focused buttons themselves.
+    if (command === 'warp-faster') moveMissionFocus(1);
+    else if (command === 'warp-slower') moveMissionFocus(-1);
+    else if (command === 'confirm') void chooseMission(missionFocus);
+  } else if (command === 'toggle-pause') flightAction('toggle');
   else if (command === 'restart') flightAction('restart');
   else if (command === 'warp-faster') changeWarp(1);
   else if (command === 'warp-slower') changeWarp(-1);
@@ -494,8 +622,13 @@ function viewRequested(event: Event): void {
 
 function flightRequested(event: Event): void {
   const action = (event as CustomEvent<FlightRequest>).detail?.action;
-  if (stopped || !['start', 'pause', 'resume', 'restart'].includes(action)) return;
+  if (stopped || !['start', 'pause', 'resume', 'restart', 'missions'].includes(action)) return;
   flightAction(action);
+}
+
+function missionRequested(event: Event): void {
+  const id = (event as CustomEvent<MissionRequest>).detail?.mission;
+  if (PICKER_MISSIONS.some((choice) => choice.id === id)) void chooseMission(id);
 }
 
 // Losing focus never leaves a key "held": the matching keyup may never arrive.
@@ -529,6 +662,7 @@ function destroy(): void {
   stopRendering();
   hud.removeEventListener('locale-request', localeRequested);
   hud.removeEventListener('flight-request', flightRequested);
+  hud.removeEventListener('mission-request', missionRequested);
   hud.removeEventListener('sound-request', soundRequested);
   hud.removeEventListener('appearance-request', appearanceRequested);
   hud.removeEventListener('warp-request', warpRequested);
@@ -575,10 +709,7 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     // The manual is a separate static build under the same base: /manual/ or /manual/en/.
     hud.manualHref = `${import.meta.env.BASE_URL}manual/${locale === 'en' ? 'en/' : ''}`;
     document.documentElement.lang = locale;
-    const messages = viewportMessages();
-    if (sandbox) {
-      hud.subtitle = terrainSandboxMode ? messages.terrainSubtitle : messages.orbitSubtitle;
-    }
+    hud.subtitle = subtitle();
     if (viewport && !stopped) viewport.setLabel(sceneLabel());
     if (updateUrl) {
       updateSettings({ locale });
@@ -602,6 +733,7 @@ function localeRequested(event: Event): void {
 
 hud.addEventListener('locale-request', localeRequested);
 hud.addEventListener('flight-request', flightRequested);
+hud.addEventListener('mission-request', missionRequested);
 hud.addEventListener('sound-request', soundRequested);
 hud.addEventListener('appearance-request', appearanceRequested);
 hud.addEventListener('warp-request', warpRequested);
@@ -631,32 +763,16 @@ async function start(): Promise<void> {
   });
   // Scene marks match the interface; physical materials keep their own colours.
   viewport.setAccents(gravitasTheme.scene);
-  if (terrainLoad) {
-    try {
-      terrain = await terrainLoad;
-    } catch (error) {
-      // The terrain sandbox needs the ground; the orbit sandbox can do without it.
-      if (terrainSandboxMode) throw error;
-      console.error('Gravitas could not load the Moon terrain.', error);
-    }
+  if (mission.terrain !== 'none') {
+    // A shortcut to a flight around the Moon: its terrain has been loading since
+    // the page opened, and its session starts from it.
+    await loadTerrain(mission);
     if (destroyed) return;
-    // Both sandboxes touch the terrain; without it, the orbit flies without ground.
-    session = new FlightSession(
-      terrainSandboxMode ? terrainSandbox(terrain!) : orbitSandbox(terrain),
-    );
-    // The viewport draws the session's vehicle.
-    viewport.setVehicle(session.scenario.vehicle.model);
-    publish();
+    session = new FlightSession(mission.scenario(terrain));
+    lastOutcome = session.outcome.status;
   }
-  if (sandbox) {
-    viewport.setPlanet({
-      radius: MOON.radius,
-      surfaceMap: `${import.meta.env.BASE_URL}moon/lroc-color-2k.jpg`,
-      ...(terrain ? { terrain } : {}),
-    });
-    placeOrbitalScene();
-    viewport.setOrbitPath(orbitPath(session.state, session.time) ?? null);
-  } else viewport.setVehiclePose(session.state);
+  showMission();
+  publish();
   await viewport.init();
   if (destroyed) return;
   host.dataset.backend = viewport.backend!;

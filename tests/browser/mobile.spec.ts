@@ -327,7 +327,7 @@ for (const [name, size] of Object.entries(PHONES)) {
             configurable: true,
           });
         });
-        await page.goto('http://127.0.0.1:4173/gravitas/?lang=en');
+        await page.goto('http://127.0.0.1:4173/gravitas/?scenario=quick-landing&lang=en');
         await expect(page.locator('#viewport')).toHaveAttribute('data-backend', 'webgl2');
         await page.getByRole('button', { name: 'Start', exact: true }).tap();
         await expect(page.locator('gravitas-touch-controls')).toBeVisible();

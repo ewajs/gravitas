@@ -122,7 +122,9 @@ export class Fingers {
 
 export async function openPhone(page: Page, project: string, lang = 'en') {
   const backend = project === 'webgl2' ? 'webgl2' : 'auto';
-  await page.goto(`http://127.0.0.1:4173/gravitas/?backend=${backend}&lang=${lang}`);
+  await page.goto(
+    `http://127.0.0.1:4173/gravitas/?scenario=quick-landing&backend=${backend}&lang=${lang}`,
+  );
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', project);
 }
 

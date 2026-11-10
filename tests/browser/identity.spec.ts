@@ -12,7 +12,7 @@ async function pngSize(response: APIResponse) {
 
 test('the game serves its icons, link preview, and theme colour', async ({ page }, info) => {
   test.skip(info.project.name !== 'webgl2', 'Static files; one backend is enough.');
-  await page.goto(`${game}?backend=webgl2`);
+  await page.goto(`${game}?scenario=quick-landing&backend=webgl2`);
   const head = page.locator('head');
   await expect(head.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#04060b');
   for (const [selector, size] of [
@@ -51,7 +51,9 @@ test('the game serves its icons, link preview, and theme colour', async ({ page 
 });
 
 test('the HUD shows the mark beside the name and on the start card', async ({ page }, info) => {
-  await page.goto(`${game}?backend=${info.project.name === 'webgl2' ? 'webgl2' : 'auto'}&lang=en`);
+  await page.goto(
+    `${game}?scenario=quick-landing&backend=${info.project.name === 'webgl2' ? 'webgl2' : 'auto'}&lang=en`,
+  );
   await expect(page.locator('#viewport')).toHaveAttribute('data-backend', info.project.name);
   for (const slot of ['mark', 'mark-large']) {
     const mark = page.locator(`gravitas-flight-hud > img[slot="${slot}"]`);

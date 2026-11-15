@@ -2,6 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 const executable = process.env.GRAVITAS_CHROMIUM;
 const software = process.env.GRAVITAS_SOFTWARE_GPU === '1';
+// Extra Chromium flags, space-separated, for hosts whose headless Chromium does
+// not pick the GPU by itself (Linux: `--use-angle=gl-egl`); see CONTRIBUTING.md.
+const extra = (process.env.GRAVITAS_CHROMIUM_ARGS ?? '').split(/\s+/).filter(Boolean);
 
 export default defineConfig({
   testDir: './tests/browser',
@@ -22,12 +25,21 @@ export default defineConfig({
       use: {
         launchOptions: {
           ...(executable ? { executablePath: executable } : {}),
-          args: software ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [],
+          args: software ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : extra,
         },
       },
     },
     // Full Chromium's new headless mode; requires usable WebGPU presentation.
-    { name: 'webgpu', use: { channel: 'chromium' } },
+    {
+      name: 'webgpu',
+      use: {
+        channel: 'chromium',
+        launchOptions: {
+          ...(executable ? { executablePath: executable } : {}),
+          args: extra,
+        },
+      },
+    },
   ],
   webServer: [
     {

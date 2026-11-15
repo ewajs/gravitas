@@ -67,7 +67,10 @@ npm run test:e2e:webgpu   # Requires usable WebGPU; asserts actual backend/image
 - [Game direction](docs/GAME.md): intended experience and first playable scope.
 - [Architecture](docs/ARCHITECTURE.md): boundaries, ownership, time, and units.
 - [Flight model](docs/FLIGHT.md): dynamics, controls, first lander, and worked examples.
-- [Plan](docs/PLAN.md): reviewable increments and acceptance criteria.
+- [Plan](docs/PLAN.md): the milestone in hand, as reviewable increments with
+  acceptance criteria; finished milestones are in the
+  [plan archive](docs/PLAN-ARCHIVE.md).
+- [Releases](docs/RELEASES.md): a short note per tagged release.
 - [Decisions](docs/decisions/README.md): choices and their tradeoffs.
 - [Contributing](CONTRIBUTING.md): workflow, dependencies, and verification.
 - [Agent instructions](AGENTS.md): shared rules for Claude and Codex.

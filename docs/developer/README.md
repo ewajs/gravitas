@@ -73,6 +73,7 @@ for software-runner options, review workflow, and verification rules.
 
 - [Architecture and units](https://github.com/ewajs/gravitas/blob/main/docs/ARCHITECTURE.md)
 - [Implementation plan](https://github.com/ewajs/gravitas/blob/main/docs/PLAN.md)
+- [Release notes](https://github.com/ewajs/gravitas/blob/main/docs/RELEASES.md)
 - [Architectural decisions](https://github.com/ewajs/gravitas/blob/main/docs/decisions/README.md)
 - [Game direction](https://github.com/ewajs/gravitas/blob/main/docs/GAME.md)
 - [Flight model](https://github.com/ewajs/gravitas/blob/main/docs/FLIGHT.md)

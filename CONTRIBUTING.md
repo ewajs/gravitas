@@ -110,6 +110,11 @@ Both npm scripts build the game before testing. Playwright itself serves the exi
 under `/gravitas/`, exercising the Pages asset prefix and both locales. When running
 `npx playwright test` directly, build first or supply the CI artifact.
 
+On Linux, headless Chromium draws WebGL with SwiftShader (software) even when the
+machine has a GPU, and the suite then times out. `GRAVITAS_CHROMIUM_ARGS` passes
+extra space-separated flags to both projects; with a working GPU driver,
+`GRAVITAS_CHROMIUM_ARGS="--use-angle=gl-egl" npm run test:e2e` draws on the GPU.
+
 On a headless software runner, use `GRAVITAS_SOFTWARE_GPU=1 npm run test:e2e` for
 SwiftShader WebGL. `GRAVITAS_CHROMIUM=/absolute/path/to/chromium` optionally selects
 an installed browser for diagnostics; normal verification uses the pinned

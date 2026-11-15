@@ -153,10 +153,29 @@ describe('surface contact references', () => {
     const rest = simulate(state(), 5);
     const sliding = { ...rest, velocity: { x: 3, y: 0, z: 0 } };
     const after = simulate(sliding, 0.5);
-    // Regularized friction and small pitching shift loads; the sum stays near m·g.
+    // Small pitching shifts loads between the legs; the sum stays near m·g.
     expect(after.velocity.x).toBeCloseTo(3 - 0.6 * g * 0.5, 1);
     const stopped = simulate(after, 4);
     expect(Math.abs(stopped.velocity.x)).toBeLessThan(0.02);
+  });
+
+  it('grips where it touches: a nudge at rest is held, and leaving clears the anchors', () => {
+    const rest = simulate(state(), 5);
+    // Resting: every leg holds an anchor under itself; the bell, clear, has none.
+    expect(rest.contactAnchors).toHaveLength(5);
+    expect(rest.contactAnchors![4]).toBeNull();
+    for (const [n, point] of legs.entries()) {
+      expect(rest.contactAnchors![n]!.x).toBeCloseTo(point.position.x, 6);
+      expect(rest.contactAnchors![n]!.z).toBeCloseTo(point.position.z, 6);
+    }
+    // A 0.1 m/s sideways nudge stretches the grip by under a centimetre and
+    // springs back to where it stood, instead of gliding 1.7 cm on and stopping there.
+    const nudged = simulate({ ...rest, velocity: { x: 0.1, y: 0, z: 0 } }, 5);
+    expect(Math.abs(nudged.position.x - rest.position.x)).toBeLessThan(1e-4);
+    expect(Math.abs(nudged.velocity.x)).toBeLessThan(1e-4);
+    // Lifted clear of the ground, the state carries no anchors.
+    const lifted = simulate({ ...rest, position: { x: 0, y: 5, z: 0 } }, 1 / 60);
+    expect(lifted.contactAnchors).toBeUndefined();
   });
 
   it.each([

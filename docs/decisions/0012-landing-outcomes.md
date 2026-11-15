@@ -80,3 +80,11 @@ flights pin this.
 - **Tilt is from the vertical, not the ground.** Landing upright on a 10° slope
   reads about 10° of tilt and is at the limit; the vehicle's legs must take the
   slope. The descent level may relax the tilt limit.
+
+## Amendment (2026-11-10): a stable stance
+
+With static friction (the ADR 0011 amendment), feet hold where they touch, and
+on uneven terrain a stiff-legged lander rests on three of its four legs.
+Settling now needs at least three loaded legs (all of them for a vehicle with
+fewer), at rest for the settle time, instead of every leg. On the flat pad all
+four legs load as before.

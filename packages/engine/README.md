@@ -137,7 +137,9 @@ const facts = contactFacts(state, vehicle.contacts!, environment.surface!);
 
 `contactFacts` reports what each point is doing: penetration, push, approach and
 slip speeds, world position. It decides nothing; the host turns facts into
-outcomes
+outcomes. Friction grips: each touching point holds an anchor on the ground,
+returned in `state.contactAnchors`, so pass each state back to `stepFlight`
+unchanged and a vehicle at rest on a slope stays there
 ([ADR 0011](https://github.com/ewajs/gravitas/blob/main/docs/decisions/0011-contact-model.md)).
 
 ## Terrain

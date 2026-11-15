@@ -44,8 +44,9 @@ export interface GroundPlane {
 
 /**
  * A body point that can touch the surface, modelled as a one-sided spring-damper
- * along the surface normal with regularized Coulomb friction. Legs are designed
- * to touch; hull contact means the structure itself hit the ground.
+ * along the surface normal with Coulomb friction that holds at rest (see
+ * ContactAnchor). Legs are designed to touch; hull contact means the structure
+ * itself hit the ground.
  */
 export interface ContactPoint {
   /** Stable identifier reported in contact facts, e.g. "foot-left-front". */
@@ -83,7 +84,19 @@ export interface ContactFact {
   readonly slipSpeed: number;
 }
 
-/** Slip speed (m/s) below which friction scales down smoothly instead of switching sign. */
+/**
+ * Where a touching contact point grips the ground, in world metres, or null while
+ * it is clear. Friction is a spring-damper from the point to its anchor along the
+ * surface (the point's own stiffness and compression damping), capped at μN: under
+ * the cap the point holds, so a vehicle at rest on a slope stays; at the cap the
+ * anchor is dragged along and the point slides against μN, as Coulomb friction.
+ */
+export type ContactAnchor = Vector3 | null;
+
+/**
+ * Slip speed (m/s) below which friction scales down smoothly instead of switching
+ * sign, for a point without an anchor yet: the step in which it first touches.
+ */
 export const FRICTION_SLIP_SCALE = 0.1;
 
 /** Motion needed to evaluate contacts; positions and velocities in world frame. */
@@ -143,13 +156,23 @@ export function validateContacts(contacts: readonly ContactPoint[]): void {
 /**
  * Per-point evaluation shared by forces and facts. Terrain uses `planes` when
  * given (one per contact) and otherwise samples the ground under each point.
+ * Friction pulls toward `anchors` where given, capped at μN; a point without one
+ * gets regularized friction against its slip.
  */
 function evaluate(
   motion: ContactMotion,
   contacts: readonly ContactPoint[],
   surface: Surface,
   planes: readonly GroundPlane[] | undefined,
-  visit: (point: ContactPoint, fact: ContactFact, force: Vector3, arm: Vector3) => void,
+  anchors: readonly ContactAnchor[] | undefined,
+  visit: (
+    point: ContactPoint,
+    fact: ContactFact,
+    force: Vector3,
+    arm: Vector3,
+    normal: Vector3,
+    index: number,
+  ) => void,
 ): void {
   // RK stages may carry a slightly non-unit quaternion; geometry uses its rotation.
   const q = normalizeQuaternion(motion.orientation);
@@ -178,14 +201,33 @@ function evaluate(
     const damping = normalVelocity < 0 ? point.damping : point.reboundDamping;
     const normalForce =
       penetration > 0 ? Math.max(0, point.stiffness * penetration - damping * normalVelocity) : 0;
-    // Regularized Coulomb friction: full μN when sliding, proportional near rest.
-    const frictionScale =
-      (point.friction * normalForce) / Math.hypot(slipSpeed, FRICTION_SLIP_SCALE);
-    const force = {
-      x: normalForce * n.x - frictionScale * tangent.x,
-      y: normalForce * n.y - frictionScale * tangent.y,
-      z: normalForce * n.z - frictionScale * tangent.z,
-    };
+    const anchor = anchors?.[index];
+    let force: Vector3;
+    if (anchor && normalForce > 0) {
+      // Held by its anchor: a spring-damper along the surface, capped at μN.
+      const offset = subtract(position, anchor);
+      const along = addScaled(offset, n, -dot(offset, n));
+      const fx = -point.stiffness * along.x - point.damping * tangent.x;
+      const fy = -point.stiffness * along.y - point.damping * tangent.y;
+      const fz = -point.stiffness * along.z - point.damping * tangent.z;
+      const pull = Math.sqrt(fx * fx + fy * fy + fz * fz);
+      const limit = point.friction * normalForce;
+      const capped = pull > limit ? limit / pull : 1;
+      force = {
+        x: normalForce * n.x + capped * fx,
+        y: normalForce * n.y + capped * fy,
+        z: normalForce * n.z + capped * fz,
+      };
+    } else {
+      // Regularized Coulomb friction: full μN when sliding, proportional near rest.
+      const frictionScale =
+        (point.friction * normalForce) / Math.hypot(slipSpeed, FRICTION_SLIP_SCALE);
+      force = {
+        x: normalForce * n.x - frictionScale * tangent.x,
+        y: normalForce * n.y - frictionScale * tangent.y,
+        z: normalForce * n.z - frictionScale * tangent.z,
+      };
+    }
     visit(
       point,
       {
@@ -199,23 +241,27 @@ function evaluate(
       },
       force,
       arm,
+      n,
+      index,
     );
   }
 }
 
 /**
  * Total contact force (world N) and torque about the centre of mass (body N m).
- * On terrain, `planes` (one per contact, from contactPlanes) replace sampling.
+ * On terrain, `planes` (one per contact, from contactPlanes) replace sampling;
+ * `anchors` (one per contact) are where touching points grip the ground.
  */
 export function contactLoads(
   motion: ContactMotion,
   contacts: readonly ContactPoint[],
   surface: Surface,
   planes?: readonly GroundPlane[],
+  anchors?: readonly ContactAnchor[],
 ): { readonly force: Vector3; readonly torque: Vector3 } {
   const force = { x: 0, y: 0, z: 0 };
   const torque = { x: 0, y: 0, z: 0 };
-  evaluate(motion, contacts, surface, planes, (_point, fact, f, arm) => {
+  evaluate(motion, contacts, surface, planes, anchors, (_point, fact, f, arm) => {
     if (fact.normalForce === 0) return;
     force.x += f.x;
     force.y += f.y;
@@ -229,6 +275,41 @@ export function contactLoads(
     force,
     torque: bodyToWorld(conjugate(normalizeQuaternion(motion.orientation)), torque),
   };
+}
+
+/**
+ * The anchors after a step that ended in `motion`: a point that touches keeps its
+ * anchor, or grips where it is if it had none; one pulled past what friction can
+ * hold (μN over its stiffness) drags its anchor to that distance, so it slides.
+ * A clear point has none. Returns undefined when nothing touches.
+ */
+export function nextAnchors(
+  motion: ContactMotion,
+  contacts: readonly ContactPoint[],
+  surface: Surface,
+  planes: readonly GroundPlane[] | undefined,
+  anchors: readonly ContactAnchor[] | undefined,
+): readonly ContactAnchor[] | undefined {
+  const next: ContactAnchor[] = [];
+  let touching = false;
+  evaluate(motion, contacts, surface, planes, undefined, (point, fact, _force, _arm, n, index) => {
+    if (fact.penetration <= 0) {
+      next.push(null);
+      return;
+    }
+    touching = true;
+    const anchor = anchors?.[index];
+    if (!anchor) {
+      next.push(fact.position);
+      return;
+    }
+    const offset = subtract(fact.position, anchor);
+    const along = addScaled(offset, n, -dot(offset, n));
+    const stretch = magnitude(along);
+    const reach = (point.friction * fact.normalForce) / point.stiffness;
+    next.push(stretch > reach ? addScaled(fact.position, along, -reach / stretch) : anchor);
+  });
+  return touching ? next : undefined;
 }
 
 /**
@@ -247,6 +328,6 @@ export function contactFacts(
   vector(motion.velocity, 'velocity');
   vector(motion.angularVelocity, 'angularVelocity');
   const facts: ContactFact[] = [];
-  evaluate(motion, contacts, surface, undefined, (_point, fact) => facts.push(fact));
+  evaluate(motion, contacts, surface, undefined, undefined, (_point, fact) => facts.push(fact));
   return facts;
 }

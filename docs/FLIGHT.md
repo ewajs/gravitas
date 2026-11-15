@@ -107,8 +107,13 @@ it. Each contact point `p` (body frame) is checked every RK4 stage:
 - Normal force `N = max(0, k·d + c·ḋ)`, where `ḋ` is the rate of penetration. The
   damping `c` is the compression value while sinking in and the rebound value while
   coming out. `N` never pulls.
-- Friction `F = −μN · v_t / √(|v_t|² + 0.1²)`. That is full Coulomb friction while
-  sliding, scaled smoothly to zero at rest so it never chatters.
+- Friction with static grip: a touching point holds an anchor on the ground, and
+  `F = −k·s − c·v_t` pulls it back along the surface (`s` is its offset from the
+  anchor), capped at `μN`. Under the cap it holds, so a lander at rest stays put
+  on slopes up to `atan μ` (31° for 0.6); at the cap the anchor drags along and
+  the point slides against exactly `μN`. Anchors travel in the flight state
+  (`contactAnchors`). In the step a point first touches, before it has an
+  anchor, `F = −μN · v_t / √(|v_t|² + 0.1²)`.
 - The force acts at the point: it adds `F/m` to linear acceleration and `r × F`
   (in body axes) to Euler's equations.
 

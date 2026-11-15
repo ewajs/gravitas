@@ -102,9 +102,8 @@ takes about 40 ms once. Phones are slower; 5.4b measures them.
 - **Creep on slopes.** Friction is regularized below 0.1 m/s of slip
   ([ADR 0011](0011-contact-model.md)), so a lander resting on a slope creeps
   downhill slowly instead of sticking: about 3 cm/s on 10° with friction 0.6.
-  Flat ground hides this. If the descent level needs landers to rest still on
-  slopes, add true static friction (per-contact anchor springs, which put state
-  in the contact model) or a smaller slip scale for new vehicles.
+  Flat ground hides this. Fixed on 2026-11-10 with static friction: per-contact
+  anchors in the flight state (the ADR 0011 amendment).
 - **Roughness.** On the real Moon, about 13% of random spots tilt more than 10°
   across 3 m from the detail alone. The constants are tuned by eye and by these
   statistics; 5.4b and 5.5 may retune them.

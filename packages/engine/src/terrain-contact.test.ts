@@ -159,17 +159,23 @@ describe('contact on a slope', () => {
     expect(ground.normal.x).toBeGreaterThan(0);
   });
 
-  it('rests on a 10° slope with friction 0.6, creeping as regularized friction predicts', () => {
+  it('rests on a 10° slope with friction 0.6 and stays: static friction holds', () => {
     const terrain = tilt(10);
     const θ = (10 * Math.PI) / 180;
     const first = standing(terrain, 10);
     const rest = simulate(first, 6, vehicle(0.6), central(terrain));
-    // Friction is μN · v / √(v² + ε²) (FRICTION_SLIP_SCALE ε = 0.1 m/s), so holding
-    // m·g·sin θ takes a slow creep v = ε r / √(1 − r²), r = tan θ / μ: about 3 cm/s.
-    const r = Math.tan(θ) / 0.6;
-    const creep = (0.1 * r) / Math.sqrt(1 - r * r);
-    expect(Math.hypot(rest.velocity.x, rest.velocity.y, rest.velocity.z)).toBeCloseTo(creep, 3);
-    expect(rest.velocity.x).toBeGreaterThan(0);
+    // tan 10° = 0.18 is well under μ = 0.6: each foot holds at its anchor.
+    expect(Math.hypot(rest.velocity.x, rest.velocity.y, rest.velocity.z)).toBeLessThan(1e-4);
+    expect(rest.contactAnchors?.filter((anchor) => anchor !== null)).toHaveLength(4);
+    // A minute later it has not moved a millimetre (it used to creep 1.8 m).
+    const later = simulate(rest, 60, vehicle(0.6), central(terrain));
+    expect(
+      Math.hypot(
+        later.position.x - rest.position.x,
+        later.position.y - rest.position.y,
+        later.position.z - rest.position.z,
+      ),
+    ).toBeLessThan(1e-3);
     // Upright on its legs, which carry the weight's normal part, m·g·cos θ.
     const up = bodyToWorld(rest.orientation, { x: 0, y: 1, z: 0 });
     expect(Math.acos(up.x * Math.sin(θ) - up.z * Math.cos(θ))).toBeLessThan(0.01);
@@ -178,10 +184,21 @@ describe('contact on a slope', () => {
     expect(total / (1500 * g * Math.cos(θ))).toBeCloseTo(1, 3);
   });
 
+  it('holds up to the friction angle and slides beyond it: 25° stays, 35° goes', () => {
+    // μ = 0.6 holds slopes up to atan 0.6 = 31°. Legs along the slope's normal.
+    const speedAfter = (degrees: number) => {
+      const terrain = tilt(degrees);
+      const state = simulate(standing(terrain, degrees), 4, vehicle(0.6), central(terrain));
+      return Math.hypot(state.velocity.x, state.velocity.y, state.velocity.z);
+    };
+    expect(speedAfter(25)).toBeLessThan(1e-3);
+    expect(speedAfter(35)).toBeGreaterThan(0.3);
+  });
+
   it('slides a low-friction lander downhill at g (sin θ − μ cos θ)', () => {
     const terrain = tilt(10);
     const θ = (10 * Math.PI) / 180;
-    // Once sliding well above the 0.1 m/s regularization, friction is the full μN.
+    // Past what the anchors can hold, friction is the full μN against the slide.
     const sliding = simulate(standing(terrain, 10), 3, vehicle(0.1), central(terrain));
     const later = simulate(sliding, 2, vehicle(0.1), central(terrain));
     const expected = g * (Math.sin(θ) - 0.1 * Math.cos(θ));

@@ -56,7 +56,9 @@ sandbox (`?scenario=orbit`, `apps/game/src/orbital.ts`). There, each frame,
 centred on the vehicle (+Y away from the Moon), and places the Moon and the Sun in
 it for the viewport (`setPlanetPose`, `setSunDirection`); `orbitPath` and
 `orbitTelemetry` feed the map line and the HUD's orbit readouts at the 10 Hz
-publish rate ([ADR 0020](../decisions/0020-planetary-view.md)).
+publish rate ([ADR 0020](../decisions/0020-planetary-view.md)). The game's
+`mission-view.ts` makes these calls for the mission in hand; `main.ts` decides
+when.
 
 ## 2. Attach input and the HUD
 

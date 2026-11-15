@@ -223,6 +223,9 @@ Main deployments publish all three.
    them, draws each leg compressed by its contact penetration (from `contactFacts`),
    shows the actuators the session actually applied (plume, thruster puffs, dust),
    advances the chase camera on its own presentation clock, and draws.
+   What differs between a flight around the Moon and one over the flat site (the
+   poses handed over, the scene set up, and the instrument snapshot) is in
+   `mission-view.ts`, as stateless functions that `main.ts` calls.
 5. While flying, the app publishes a telemetry snapshot to the HUD at 10 Hz, and
    at once on any phase change. It includes heading-frame radar vectors (lean,
    drift, pad). HUD buttons emit `flight-request`; P and Enter reach the app through

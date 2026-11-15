@@ -1,9 +1,8 @@
-import { contactFacts, MOON, type Terrain } from '@gravitas/engine';
+import { contactFacts, type Terrain } from '@gravitas/engine';
 import type { Viewport } from '@gravitas/viewport';
 import {
   registerUi,
   setLocale,
-  viewportMessages,
   type AppearanceRequest,
   type FlightNotice,
   type FlightRequest,
@@ -25,13 +24,21 @@ import { TouchControlsSource } from './touch';
 import { blockPageZoom } from './zoom';
 import { PilotInputs, type InputCommand } from './input';
 import {
+  missionSubtitle,
+  missionTelemetry,
+  placeVehicle,
+  reachedBareSurface,
+  sceneLabel,
+  showMissionScene,
+} from './mission-view';
+import {
   MISSIONS,
   PICKER_MISSIONS,
   shortcutMission,
   type Mission,
   type MissionKey,
 } from './missions';
-import { localGravity, orbitalScene, orbitPath, orbitTelemetry, groundAltitude } from './orbital';
+import { orbitPath } from './orbital';
 import { landingReport } from './report';
 import {
   FlightSession,
@@ -41,7 +48,6 @@ import {
   type SessionPhase,
 } from './session';
 import { browserStorage, loadSettings, saveSettings, type Settings } from './settings';
-import { flightTelemetry, orbitalFlightTelemetry } from './telemetry';
 import { loadMoonTerrain } from './terrain';
 import { legContacts } from './vehicle';
 // The theme's typefaces, self-hosted (OFL). Declared on the page: @font-face rules
@@ -287,64 +293,18 @@ function setCamera(camera: 'chase' | 'map'): void {
   if (viewport.setCameraMode(camera)) hud.camera = camera;
 }
 
-// The vehicle-centred poses, the Moon, and the Sun for this frame (around the Moon).
-function placeOrbitalScene(): void {
-  if (!viewport) return;
-  const scene = orbitalScene(session.state, session.previous, session.time, mission.sun!);
-  viewport.setPlanetPose(scene.planet);
-  viewport.setSunDirection(scene.sun);
-  viewport.setVehiclePose(scene.current, scene.previous);
-}
-
-// The canvas description for the current mission and language.
-function sceneLabel(): string {
-  const messages = viewportMessages();
-  const labels: Record<MissionKey, string> = {
-    'quick-landing': messages.scene,
-    'orbit-landing': messages.descentScene,
-    'orbit-sandbox': messages.orbitScene,
-    'terrain-sandbox': messages.terrainScene,
-  };
-  return labels[mission.id];
-}
-
-// The subtitle under the heading; empty for the HUD's own "Lunar descent".
-function subtitle(): string {
-  const messages = viewportMessages();
-  const subtitles: Record<MissionKey, string> = {
-    'quick-landing': '',
-    'orbit-landing': messages.descentSubtitle,
-    'orbit-sandbox': messages.orbitSubtitle,
-    'terrain-sandbox': messages.terrainSubtitle,
-  };
-  return subtitles[mission.id];
-}
-
 // Shows the current mission: its vehicle, the Moon or the flat site, the camera
 // behind it, and the HUD's options for it. Call after replacing the session.
 function showMission(): void {
   hud.warpAvailable = mission.around;
   hud.mapAvailable = mission.around;
   hud.camera = 'chase';
-  hud.subtitle = subtitle();
+  hud.subtitle = missionSubtitle(mission);
   if (!viewport) return;
-  viewport.setVehicle(session.scenario.vehicle.model);
-  if (mission.around) {
-    viewport.setPlanet({
-      radius: MOON.radius,
-      surfaceMap: `${import.meta.env.BASE_URL}moon/lroc-color-2k.jpg`,
-      ...(terrain ? { terrain } : {}),
-    });
-    viewport.setCameraMode('chase');
-    placeOrbitalScene();
-    viewport.setOrbitPath(orbitPath(session.state, session.time) ?? null);
-  } else {
-    viewport.setPlanet(null);
-    viewport.setVehiclePose(session.state);
-  }
+  showMissionScene(viewport, mission, session, terrain, import.meta.env.BASE_URL);
   viewport.setLegCompression(legCompression());
   viewport.resetCamera();
-  viewport.setLabel(sceneLabel());
+  viewport.setLabel(sceneLabel(mission));
 }
 
 // Loads the terrain the mission needs, if it has not yet. A mission that requires
@@ -416,16 +376,7 @@ function moveMissionFocus(direction: 1 | -1): void {
 
 // HUD reactivity receives a small snapshot; the session's per-tick state stays outside Lit.
 function publish(): void {
-  const telemetry = mission.around
-    ? orbitalFlightTelemetry(
-        orbitalScene(session.state, session.state, session.time, mission.sun!).current,
-        session.throttle,
-        Math.max(0, groundAltitude(session.state, terrain, session.scenario.vehicle)),
-        localGravity(session.state),
-        orbitTelemetry(session.state, session.time),
-        session.scenario.vehicle,
-      )
-    : flightTelemetry(session.state, session.throttle, session.scenario.vehicle);
+  const telemetry = missionTelemetry(mission, session, terrain);
   if (mission.around) {
     hud.warp = session.warp;
     viewport?.setOrbitPath(orbitPath(session.state, session.time) ?? null);
@@ -454,18 +405,12 @@ function draw(timestamp: number): void {
     session.advance(elapsed, inputs.sample());
     if (inputs.activeDevice) useDevice(inputs.activeDevice);
     // Without terrain to touch, reaching the mean radius pauses a flight around the Moon.
-    if (
-      mission.around &&
-      !session.scenario.environment.surface &&
-      session.phase === 'flying' &&
-      groundAltitude(session.state, terrain, session.scenario.vehicle) <= 0
-    ) {
+    if (reachedBareSurface(mission, session, terrain)) {
       surfaceReached = true;
       flightAction('pause');
       showNotice('surface');
     }
-    if (mission.around) placeOrbitalScene();
-    else viewport?.setVehiclePose(session.state, session.previous);
+    if (viewport) placeVehicle(viewport, mission, session);
     viewport?.setLegCompression(legCompression());
     viewport?.setActuators(session.actuation);
     viewport?.render(session.alpha);
@@ -552,8 +497,7 @@ function flightAction(action: FlightRequest['action'] | 'toggle'): void {
     surfaceReached = false;
     showNotice('');
     // The vehicle teleports back to the opening; do not ease the camera across it.
-    if (mission.around) placeOrbitalScene();
-    else viewport?.setVehiclePose(session.state);
+    if (viewport) placeVehicle(viewport, mission, session);
     viewport?.resetCamera();
     lastOutcome = session.outcome.status;
   }
@@ -709,8 +653,8 @@ async function changeLocale(locale: Locale, updateUrl: boolean): Promise<void> {
     // The manual is a separate static build under the same base: /manual/ or /manual/en/.
     hud.manualHref = `${import.meta.env.BASE_URL}manual/${locale === 'en' ? 'en/' : ''}`;
     document.documentElement.lang = locale;
-    hud.subtitle = subtitle();
-    if (viewport && !stopped) viewport.setLabel(sceneLabel());
+    hud.subtitle = missionSubtitle(mission);
+    if (viewport && !stopped) viewport.setLabel(sceneLabel(mission));
     if (updateUrl) {
       updateSettings({ locale });
       const url = new URL(location.href);
@@ -758,7 +702,7 @@ async function start(): Promise<void> {
   viewport = new Viewport({
     container: host,
     vehicle: session.scenario.vehicle.model,
-    label: sceneLabel(),
+    label: sceneLabel(mission),
     backend: parameters.get('backend') === 'webgl2' ? 'webgl2' : 'auto',
   });
   // Scene marks match the interface; physical materials keep their own colours.
